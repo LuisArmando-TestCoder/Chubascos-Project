@@ -4,34 +4,48 @@ import * as admin from 'firebase-admin';
 export function initAdmin() {
   if (admin.apps.length > 0) return;
 
-  try {
-    // Primary method: load the service account key directly from the local JSON file
-    const serviceAccount = require('../../serviceAccountKey.json');
+  const serviceAccountVar = process.env.FIREBASE_SERVICE_ACCOUNT;
 
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-    console.log('Firebase Admin initialized successfully via JSON ✅');
-  } catch (error: any) {
-    // Fallback logic if JSON file is missing (only uses essential env vars)
-    const projectId = process.env.FIREBASE_PROJECT_ID;
-    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY; // Keep as last-resort fallback for CI
-
-    if (projectId && clientEmail && privateKey) {
-      try {
-        const formattedKey = privateKey.replace(/\\n/g, '\n').replace(/^"|"$/g, '');
-        admin.initializeApp({
-          credential: admin.credential.cert({
-            projectId,
-            clientEmail,
-            privateKey: formattedKey,
-          }),
-        });
-        console.log('Firebase Admin initialized via fallback env vars');
-      } catch (innerError: any) {
-        console.error('Firebase admin init failed completely');
+  if (serviceAccountVar) {
+    try {
+      // 1. Definitively clean and parse the JSON string from env
+      let cleanJson = serviceAccountVar.trim();
+      
+      // Remove wrapping single quotes if present (standard in some .env formats)
+      if (cleanJson.startsWith("'") && cleanJson.endsWith("'")) {
+        cleanJson = cleanJson.slice(1, -1);
       }
+
+      const serviceAccount = JSON.parse(cleanJson);
+
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+      console.log('Firebase Admin initialized successfully via JSON string ✅');
+    } catch (error: any) {
+      console.error('Firebase admin init error from string:', error.message);
+      
+      // Fallback: try local file if available
+      try {
+        const serviceAccount = require('../../serviceAccountKey.json');
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+        });
+        console.log('Firebase Admin initialized via local JSON file fallback');
+      } catch (innerError: any) {
+        console.error('All Firebase Admin initialization methods failed');
+      }
+    }
+  } else {
+    // If env var is missing, try local file directly
+    try {
+      const serviceAccount = require('../../serviceAccountKey.json');
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+      console.log('Firebase Admin initialized via local JSON file');
+    } catch (e) {
+      // Silent for build
     }
   }
 }
@@ -39,10 +53,8 @@ export function initAdmin() {
 // Auto-init on import
 initAdmin();
 
-// Export accessors
 export const getDb = () => admin.apps.length ? admin.firestore() : null;
 export const getAuth = () => admin.apps.length ? admin.auth() : null;
 
-// Compatibility exports
 export const db = admin.apps.length ? admin.firestore() : null as any;
 export const auth = admin.apps.length ? admin.auth() : null as any;
