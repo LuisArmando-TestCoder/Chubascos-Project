@@ -5,7 +5,7 @@ export function initAdmin() {
   if (admin.apps.length > 0) return;
 
   try {
-    // Attempt to load the service account key directly
+    // Primary method: load the service account key directly from the local JSON file
     const serviceAccount = require('../../serviceAccountKey.json');
 
     admin.initializeApp({
@@ -13,10 +13,10 @@ export function initAdmin() {
     });
     console.log('Firebase Admin initialized successfully via JSON ✅');
   } catch (error: any) {
-    // Fallback to environment variables if the file is missing (e.g. in CI/CD)
+    // Fallback logic if JSON file is missing (only uses essential env vars)
     const projectId = process.env.FIREBASE_PROJECT_ID;
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY; // Keep as last-resort fallback for CI
 
     if (projectId && clientEmail && privateKey) {
       try {
@@ -28,9 +28,9 @@ export function initAdmin() {
             privateKey: formattedKey,
           }),
         });
-        console.log('Firebase Admin initialized via environment variables');
+        console.log('Firebase Admin initialized via fallback env vars');
       } catch (innerError: any) {
-        console.error('Firebase admin init error:', innerError.message);
+        console.error('Firebase admin init failed completely');
       }
     }
   }

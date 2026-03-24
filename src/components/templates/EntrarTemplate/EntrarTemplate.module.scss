@@ -1,0 +1,112 @@
+@use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
+
+.container {
+  min-height: 100vh;
+  @include m.flex-center;
+  padding: 5vw;
+  background: radial-gradient(circle at top right, rgba(109, 93, 252, 0.05), transparent 40%),
+              radial-gradient(circle at bottom left, rgba(109, 93, 252, 0.05), transparent 40%);
+}
+
+.card {
+  width: 100%;
+  max-width: 440px;
+  padding: 48px;
+  @include m.glass;
+  border-radius: 2px; 
+  text-align: center;
+}
+
+.header {
+  margin-bottom: 48px;
+}
+
+.title {
+  font-size: 2.5rem;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+  @include m.text-reveal;
+}
+
+.subtitle {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #888;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #2a2a2a;
+  padding: 24px;
+  color: #fcfcfc;
+  font-family: 'Geist Mono', monospace;
+  font-size: 1.1rem;
+  text-align: center;
+  outline: none;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+
+  &:focus {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: #6d5dfc;
+  }
+
+  &::placeholder {
+    color: #1a1a1a;
+  }
+}
+
+.button {
+  width: 100%;
+  padding: 24px;
+  background: #fcfcfc;
+  color: #050505;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+
+  &:hover:not(:disabled) {
+    background: #6d5dfc;
+    color: #fcfcfc;
+    transform: translateY(-2px);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+}
+
+.error {
+  color: #ff4d4d;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.message {
+  color: #6d5dfc;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.back {
+  margin-top: 24px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #888;
+  cursor: pointer;
+  @include m.premium-hover;
+}

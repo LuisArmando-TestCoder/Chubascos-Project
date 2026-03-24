@@ -1,3 +1,5 @@
+@use 'variables' as v;
+
 @mixin flex-center {
   display: flex;
   align-items: center;
@@ -5,21 +7,31 @@
 }
 
 @mixin glass {
-  background: var(--color-glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--color-glass-border);
-  box-shadow: 0 8px 32px 0 var(--color-glass-shadow);
+  background: v.$glass-bg;
+  backdrop-filter: blur(v.$glass-blur);
+  -webkit-backdrop-filter: blur(v.$glass-blur);
+  border: 1px solid v.$glass-border;
+  box-shadow: v.$glass-shadow;
 }
 
-@mixin responsive($breakpoint) {
-  @media (min-width: $breakpoint) {
-    @content;
+@mixin text-reveal {
+  background: linear-gradient(180deg, v.$white 0%, rgba(v.$white, 0.4) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@mixin premium-hover {
+  transition: all v.$duration-fast v.$ease-out;
+  &:hover {
+    opacity: 0.7;
+    letter-spacing: 0.05em;
   }
 }
 
-@mixin text-gradient {
-  background: linear-gradient(to bottom, #fff, rgba(255, 255, 255, 0.5));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+@mixin hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }

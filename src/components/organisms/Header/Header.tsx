@@ -1,31 +1,45 @@
 'use client';
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import Link from 'next/link';
+import FocusTrap from 'focus-trap-react';
 import styles from './Header.module.scss';
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
 
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
-    if (!isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+  const openMenu = () => {
+    setIsOpen(true);
+    document.body.style.overflow = 'hidden';
   };
 
-  const menuVariants = {
-    closed: { opacity: 0, x: '100%' },
+  const closeMenu = () => {
+    setIsOpen(false);
+    document.body.style.overflow = '';
+  };
+
+  const toggleMenu = () => isOpen ? closeMenu() : openMenu();
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) closeMenu();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
+  const menuVariants: Variants = {
+    closed: { 
+      opacity: 0, 
+      y: -20, 
+      transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } 
+    },
     open: { 
       opacity: 1, 
-      x: 0, 
-      transition: { 
-        duration: 0.5, 
-        ease: [0.22, 1, 0.36, 1] as any 
-      } 
+      y: 0, 
+      transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } 
     }
   };
 
@@ -33,7 +47,7 @@ export function Header() {
     <>
       <header className={styles.header}>
         <div className={styles.container}>
-          <Link href="/" className={styles.logo}>
+          <Link href="/" className={styles.logo} aria-label="Volver al inicio de Chubascos">
             CHUBASCOS
           </Link>
           
@@ -41,9 +55,17 @@ export function Header() {
             <Link href="/entrar" className={styles.loginBtn}>
               CONOZCO
             </Link>
-            <button className={styles.hamburger} onClick={toggleMenu} aria-label="Menú">
-              <span className={isOpen ? styles.lineOpen : ''} />
-              <span className={isOpen ? styles.lineOpen : ''} />
+            <button 
+              className={styles.hamburger} 
+              onClick={toggleMenu} 
+              aria-label={isOpen ? 'Cerrar menú' : 'Abrir menú'}
+              aria-expanded={isOpen}
+              aria-controls="main-menu"
+            >
+              <div className={`${styles.burgerIcon} ${isOpen ? styles.isOpen : ''}`}>
+                <span />
+                <span />
+              </div>
             </button>
           </div>
         </div>
@@ -51,23 +73,37 @@ export function Header() {
 
       <AnimatePresence>
         {isOpen && (
-          <motion.nav 
-            className={styles.menu}
-            initial="closed"
-            animate="open"
-            exit="closed"
-            variants={menuVariants}
-          >
-            <div className={styles.menuContent}>
-              <ul className={styles.links}>
-                <li><Link href="/" onClick={toggleMenu}>Inicio</Link></li>
-                <li><Link href="/buscar" onClick={toggleMenu}>Buscar</Link></li>
-                <li><Link href="/guardados" onClick={toggleMenu}>Mis Charcos</Link></li>
-                <li><Link href="/normas" onClick={toggleMenu}>Guía de la Comunidad</Link></li>
-                <li><Link href="/privacidad" onClick={toggleMenu}>Legal y Privacidad</Link></li>
-              </ul>
-            </div>
-          </motion.nav>
+          <FocusTrap focusTrapOptions={{ allowOutsideClick: true }}>
+            <motion.nav 
+              id="main-menu"
+              className={styles.menu}
+              initial="closed"
+              animate="open"
+              exit="closed"
+              variants={menuVariants}
+              aria-label="Menú principal"
+            >
+              <div className={styles.menuContent}>
+                <ul className={styles.links} role="list">
+                  <motion.li initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                    <Link href="/" onClick={closeMenu}>Inicio</Link>
+                  </motion.li>
+                  <motion.li initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                    <Link href="/buscar" onClick={closeMenu}>Buscar</Link>
+                  </motion.li>
+                  <motion.li initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                    <Link href="/guardados" onClick={closeMenu}>Mis Charcos</Link>
+                  </motion.li>
+                  <motion.li initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+                    <Link href="/normas" onClick={closeMenu}>Guía de la Comunidad</Link>
+                  </motion.li>
+                  <motion.li initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+                    <Link href="/privacidad" onClick={closeMenu}>Legal y Privacidad</Link>
+                  </motion.li>
+                </ul>
+              </div>
+            </motion.nav>
+          </FocusTrap>
         )}
       </AnimatePresence>
     </>

@@ -1,22 +1,23 @@
-@use '@/styles/mixins' as mix;
+@use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
 
 .header {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 80px;
+  height: 90px;
   z-index: 100;
-  @include mix.glass;
-  border-top: none;
-  border-left: none;
-  border-right: none;
+  background: rgba(v.$black, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid v.$glass-border;
 }
 
 .container {
-  max-width: var(--breakpoint-xl);
+  max-width: v.$max-width;
   margin: 0 auto;
-  padding: 0 var(--spacing-lg);
+  padding: 0 5vw;
   height: 100%;
   display: flex;
   align-items: center;
@@ -25,52 +26,58 @@
 
 .logo {
   font-weight: 900;
-  letter-spacing: 0.1em;
-  font-size: 1.2rem;
+  letter-spacing: 0.2em;
+  font-size: 1.1rem;
+  @include m.text-reveal;
 }
 
 .actions {
   display: flex;
   align-items: center;
-  gap: var(--spacing-lg);
+  gap: 48px;
 }
 
 .loginBtn {
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border: 1px solid var(--color-glass-border);
-  border-radius: 100px;
-  transition: var(--transition-smooth);
-
-  &:hover {
-    background: var(--color-text-primary);
-    color: var(--color-bg);
-  }
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  padding: 8px 24px;
+  border: 1px solid v.$gray-800;
+  border-radius: 1px;
+  @include m.premium-hover;
 }
 
 .hamburger {
-  width: 30px;
-  height: 20px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  width: 40px;
+  height: 40px;
+  @include m.flex-center;
   z-index: 101;
+}
 
-  span {
-    display: block;
+.burgerIcon {
+  width: 24px;
+  height: 2px;
+  background: v.$white;
+  position: relative;
+  transition: all 0.4s v.$ease-out;
+
+  &::before, &::after {
+    content: '';
+    position: absolute;
     width: 100%;
-    height: 2px;
-    background: var(--color-text-primary);
-    transition: var(--transition-smooth);
-    
-    &.lineOpen:first-child {
-      transform: translateY(9px) rotate(45deg);
-    }
-    &.lineOpen:last-child {
-      transform: translateY(-9px) rotate(-45deg);
-    }
+    height: 100%;
+    background: inherit;
+    left: 0;
+    transition: all 0.4s v.$ease-out;
+  }
+
+  &::before { top: -8px; }
+  &::after { top: 8px; width: 60%; left: auto; right: 0; }
+
+  &.isOpen {
+    background: transparent;
+    &::before { transform: rotate(45deg); top: 0; }
+    &::after { transform: rotate(-45deg); top: 0; width: 100%; }
   }
 }
 
@@ -80,7 +87,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--color-bg);
+  background: v.$black;
   z-index: 99;
   display: flex;
   align-items: center;
@@ -93,18 +100,18 @@
 
 .links {
   li {
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: 24px;
     
     a {
-      font-size: clamp(2rem, 8vw, 4rem);
-      font-weight: 800;
-      transition: var(--transition-smooth);
-      display: inline-block;
-
-      &:hover, &:focus-visible {
-        @include mix.text-gradient;
-        transform: skewX(-10deg);
-        outline: none;
+      font-size: clamp(2.5rem, 10vw, 5rem);
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+      @include m.premium-hover;
+      
+      &:hover {
+        @include m.text-reveal;
+        opacity: 1;
       }
     }
   }

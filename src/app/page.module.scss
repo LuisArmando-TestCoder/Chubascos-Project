@@ -1,57 +1,81 @@
-@use '@/styles/mixins' as mix;
+@use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
 
 .main {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.container {
-  max-width: var(--breakpoint-xl);
-  margin: 0 auto;
-  padding: 0 var(--spacing-lg);
-  width: 100%;
+  padding-top: 90px;
 }
 
 .hero {
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  height: 90vh;
+  @include m.flex-center;
+  flex-direction: column;
   text-align: center;
   position: relative;
   overflow: hidden;
 
-  &::before {
+  &::after {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
     bottom: 0;
-    background: radial-gradient(circle at center, rgba(109, 93, 252, 0.1) 0%, transparent 70%);
-    pointer-events: none;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    background: linear-gradient(180deg, transparent, v.$black);
+    z-index: 1;
   }
 }
 
+.heroContent {
+  position: relative;
+  z-index: 2;
+}
+
 .title {
-  font-size: clamp(3rem, 15vw, 10rem);
+  font-size: clamp(4rem, 18vw, 15rem);
   font-weight: 900;
-  letter-spacing: -0.05em;
-  line-height: 0.9;
-  @include mix.text-gradient;
-  margin-bottom: var(--spacing-md);
+  letter-spacing: -0.06em;
+  line-height: 0.8;
+  text-transform: uppercase;
+  @include m.text-reveal;
 }
 
 .subtitle {
-  font-size: clamp(1rem, 2vw, 1.5rem);
-  color: var(--color-text-secondary);
-  letter-spacing: 0.2em;
+  font-family: v.$font-mono;
+  font-size: clamp(0.8rem, 1.5vw, 1.2rem);
+  color: v.$accent;
   text-transform: uppercase;
+  letter-spacing: 0.4em;
+  margin-top: 24px;
+  opacity: 0.6;
 }
 
-.placeholder {
-  padding: var(--spacing-xxl) 0;
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 24px;
+  max-width: v.$max-width;
+  margin: 0 auto;
+  padding: 96px 5vw;
+}
+
+.placeholderSection {
+  grid-column: span 12;
   text-align: center;
-  color: var(--color-text-secondary);
+  padding: 96px 0;
+  border-top: 1px solid v.$gray-900;
+
+  h2 {
+    font-size: 0.8rem;
+    color: v.$gray-400;
+    letter-spacing: 0.2em;
+    margin-bottom: 48px;
+  }
+  
+  p {
+    font-family: v.$font-serif;
+    font-size: 2rem;
+    font-style: italic;
+    color: rgba(v.$white, 0.3);
+  }
 }
