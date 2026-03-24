@@ -1,0 +1,29 @@
+// Colors
+$color-bg: #0a0a0a;
+$color-text-primary: #ffffff;
+$color-text-secondary: rgba(255, 255, 255, 0.6);
+$color-accent: #6d5dfc;
+$color-glass-bg: rgba(255, 255, 255, 0.05);
+$color-glass-border: rgba(255, 255, 255, 0.1);
+$color-glass-shadow: rgba(0, 0, 0, 0.2);
+
+// Typography
+$font-family-main: 'Geist', sans-serif;
+$font-family-serif: 'Geist Mono', monospace;
+
+// Spacing
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 48px;
+$spacing-xxl: 96px;
+
+// Breakpoints
+$breakpoint-sm: 640px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 1024px;
+$breakpoint-xl: 1280px;
+
+// Transitions
+$transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

@@ -1,0 +1,57 @@
+@use '@/styles/mixins' as mix;
+
+.main {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.container {
+  max-width: var(--breakpoint-xl);
+  margin: 0 auto;
+  padding: 0 var(--spacing-lg);
+  width: 100%;
+}
+
+.hero {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at center, rgba(109, 93, 252, 0.1) 0%, transparent 70%);
+    pointer-events: none;
+  }
+}
+
+.title {
+  font-size: clamp(3rem, 15vw, 10rem);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 0.9;
+  @include mix.text-gradient;
+  margin-bottom: var(--spacing-md);
+}
+
+.subtitle {
+  font-size: clamp(1rem, 2vw, 1.5rem);
+  color: var(--color-text-secondary);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.placeholder {
+  padding: var(--spacing-xxl) 0;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
