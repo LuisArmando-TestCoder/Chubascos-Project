@@ -1,27 +1,49 @@
 @use 'variables' as v;
 
-* {
+// MODERN CSS RESET (Josh Comeau / Andy Bell inspired)
+*, *::before, *::after {
   box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-html,
+* {
+  margin: 0;
+  padding: 0;
+  font: inherit;
+}
+
+html {
+  color-scheme: dark;
+}
+
 body {
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
   background: v.$black;
   color: v.$white;
   font-family: v.$font-sans;
-  font-size: 16px;
   overflow-x: hidden;
-  selection-background-color: v.$accent;
-  selection-color: v.$white;
 }
 
-::selection {
-  background: v.$accent;
-  color: v.$white;
+img, picture, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+}
+
+input, button, textarea, select {
+  font: inherit;
+}
+
+p, h1, h2, h3, h4, h5, h6 {
+  overflow-wrap: break-word;
+}
+
+#root, #__next {
+  isolation: isolate;
+}
+
+ul, ol {
+  list-style: none;
 }
 
 a {
@@ -38,11 +60,10 @@ button {
   background: none;
   border: none;
   cursor: pointer;
-  font-family: inherit;
-  color: inherit;
   outline: none;
 }
 
+// TYPOGRAPHY DEFAULTS
 h1, h2, h3, h4, h5, h6 {
   font-weight: 800;
   line-height: 1.1;
@@ -54,7 +75,13 @@ p {
   color: rgba(v.$white, 0.8);
 }
 
-// Lenis fixes
+// SELECTION
+::selection {
+  background: v.$accent;
+  color: v.$white;
+}
+
+// LENIS SMOOTH SCROLL
 html.lenis {
   height: auto;
 }
@@ -73,4 +100,17 @@ html.lenis {
 
 .lenis.lenis-scrolling iframe {
   pointer-events: none;
+}
+
+// UTILITIES
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
