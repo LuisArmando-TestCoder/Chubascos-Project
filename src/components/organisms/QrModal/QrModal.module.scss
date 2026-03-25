@@ -1,0 +1,67 @@
+@use '@/styles/variables' as v;
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal {
+  background: rgba(20, 20, 20, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  max-width: 320px;
+  width: 100%;
+}
+
+.label {
+  font-family: v.$font-mono;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0;
+  text-align: center;
+}
+
+.qr {
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.url {
+  font-family: v.$font-mono;
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.25);
+  word-break: break-all;
+  text-align: center;
+  margin: 0;
+}
+
+.close {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.5);
+  font-family: v.$font-mono;
+  font-size: 0.7rem;
+  padding: 8px 20px;
+  cursor: pointer;
+  text-transform: lowercase;
+  letter-spacing: 0.06em;
+  transition: color 0.2s, border-color 0.2s;
+  margin-top: 4px;
+
+  &:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.4);
+  }
+}

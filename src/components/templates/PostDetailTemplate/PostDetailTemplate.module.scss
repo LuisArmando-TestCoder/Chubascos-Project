@@ -1,0 +1,141 @@
+@use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
+
+.article {
+  min-height: 100vh;
+  padding-top: v.$header-height;
+  position: relative;
+}
+
+.shaderBg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.35;
+}
+
+.inner {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 60px 5vw 100px;
+}
+
+.header {
+  margin-bottom: 48px;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.author {
+  font-family: v.$font-mono;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  text-decoration: none;
+  text-transform: lowercase;
+  transition: color 0.2s;
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.8);
+  }
+}
+
+.sep {
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 0.7rem;
+}
+
+.date {
+  font-family: v.$font-mono;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.title {
+  font-family: v.$font-serif;
+  font-size: clamp(1.8rem, 5vw, 3.5rem);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0 0 20px;
+}
+
+.tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.content {
+  font-size: 1.05rem;
+  line-height: 1.85;
+  color: rgba(255, 255, 255, 0.8);
+
+  h1, h2, h3, h4 { font-family: v.$font-serif; font-weight: 300; }
+  p { margin: 0 0 1.4em; }
+  em { font-style: italic; }
+  strong { font-weight: 600; }
+  blockquote {
+    border-left: 2px solid rgba(255, 255, 255, 0.15);
+    padding-left: 20px;
+    margin: 24px 0;
+    color: rgba(255, 255, 255, 0.5);
+  }
+  code {
+    font-family: v.$font-mono;
+    font-size: 0.85em;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 2px 6px;
+  }
+  pre {
+    background: rgba(255, 255, 255, 0.04);
+    padding: 20px;
+    overflow-x: auto;
+    margin: 24px 0;
+    code { background: none; padding: 0; }
+  }
+}
+
+.footer {
+  margin-top: 60px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.footerActions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.back {
+  font-family: v.$font-mono;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.3);
+  text-decoration: none;
+  transition: color 0.2s;
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+.idHint {
+  font-family: v.$font-mono;
+  font-size: 0.62rem;
+  color: rgba(255, 255, 255, 0.15);
+  margin: 0;
+
+  code {
+    color: rgba(255, 255, 255, 0.2);
+  }
+}

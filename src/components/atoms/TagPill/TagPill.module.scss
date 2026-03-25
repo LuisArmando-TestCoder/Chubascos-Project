@@ -1,0 +1,30 @@
+@use '@/styles/variables' as v;
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 2px;
+  font-family: v.$font-mono;
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.2s, border-color 0.2s;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--color-accent, #e4c97e);
+    border-color: var(--color-accent, #e4c97e);
+  }
+
+  &.sm {
+    font-size: 0.65rem;
+    padding: 2px 7px;
+  }
+
+  &.md {
+    font-size: 0.75rem;
+    padding: 3px 10px;
+  }
+}

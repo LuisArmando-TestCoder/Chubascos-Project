@@ -1,3 +1,13 @@
+import type { Timestamp } from 'firebase-admin/firestore';
+
+export type SerializedTimestamp = { seconds: number; nanoseconds: number };
+export type FirestoreTimestamp = Timestamp | SerializedTimestamp | null;
+
+export type Contact = {
+  label: string;
+  url: string;
+};
+
 export type Post = {
   id: string;
   userId: string;
@@ -9,23 +19,19 @@ export type Post = {
   eventId?: string;
   isVisible: boolean;
   isIndexed: boolean;
-  createdAt: any; // Firestore Timestamp
-  updatedAt: any;
+  createdAt: FirestoreTimestamp;
+  updatedAt: FirestoreTimestamp;
 };
 
 export type User = {
-  id: string; // Document ID (email)
+  id: string;
   email: string;
   username?: string;
+  usernameLower?: string;
   bio?: string;
-  photoUrl?: string;
   contacts: Contact[];
-  createdAt: any;
-};
-
-export type Contact = {
-  label: string;
-  url: string;
+  sessionVersion: number;
+  createdAt: FirestoreTimestamp;
 };
 
 export type Event = {
@@ -33,15 +39,15 @@ export type Event = {
   ownerUserId: string;
   title: string;
   description: string;
-  day: any;
+  day: FirestoreTimestamp;
   hour: string;
   place: string;
   price?: number;
   urls: string[];
   contacts: string[];
   tagIds: string[];
-  createdAt: any;
-  updatedAt: any;
+  createdAt: FirestoreTimestamp;
+  updatedAt: FirestoreTimestamp;
 };
 
 export type Tag = {
@@ -58,7 +64,23 @@ export type Shader = {
   description?: string;
   glslCode: string;
   isPublic: boolean;
+  isDeleted: boolean;
   usedBy: number;
-  createdAt: any;
-  updatedAt: any;
+  createdAt: FirestoreTimestamp;
+  updatedAt: FirestoreTimestamp;
 };
+
+export type LiveFeedItem = Post & {
+  authorName?: string;
+  eventType?: 'new' | 'updated';
+};
+
+export type SavedStore = {
+  posts: string[];
+  users: string[];
+  events: string[];
+};
+
+export type ActionResult<T = undefined> =
+  | { success: true; data?: T }
+  | { success: false; error: string };

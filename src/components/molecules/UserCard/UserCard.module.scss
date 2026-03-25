@@ -1,0 +1,71 @@
+@use '@/styles/variables' as v;
+
+.card {
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: border-color 0.2s, transform 0.2s;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.18);
+    transform: translateY(-2px);
+  }
+}
+
+.badge {
+  font-family: v.$font-mono;
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: v.$accent;
+  opacity: 0.7;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: v.$font-mono;
+  font-size: 1rem;
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-family: v.$font-mono;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin: 0 0 4px;
+  color: rgba(255, 255, 255, 0.85);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bio {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.35);
+  margin: 0;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

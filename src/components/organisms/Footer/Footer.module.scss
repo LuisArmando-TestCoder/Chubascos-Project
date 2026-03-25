@@ -1,0 +1,63 @@
+@use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
+
+.footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 60px 5vw;
+  margin-top: 100px;
+}
+
+.inner {
+  max-width: v.$max-width;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.brand {
+  font-family: v.$font-serif;
+  font-size: 1.6rem;
+  letter-spacing: -0.04em;
+  font-weight: 300;
+  margin: 0;
+}
+
+.sub {
+  font-family: v.$font-mono;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.nav {
+  display: flex;
+  gap: 24px;
+  margin-top: 8px;
+
+  a {
+    font-family: v.$font-mono;
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.35);
+    text-decoration: none;
+    text-transform: lowercase;
+    letter-spacing: 0.06em;
+    transition: color 0.2s;
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
+}
+
+.copy {
+  font-family: v.$font-mono;
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.2);
+  margin: 0;
+  margin-top: 4px;
+}

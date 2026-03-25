@@ -1,0 +1,155 @@
+@use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
+
+.page {
+  padding-top: v.$header-height;
+}
+
+.profile {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 60px 0;
+}
+
+.profileInner {
+  max-width: v.$max-width;
+  margin: 0 auto;
+  padding: 0 5vw;
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+  }
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: v.$font-mono;
+  font-size: 1.4rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.info {
+  flex: 1;
+}
+
+.name {
+  font-family: v.$font-serif;
+  font-size: clamp(1.6rem, 4vw, 3rem);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  margin: 0 0 12px;
+}
+
+.bio {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.7;
+  max-width: 520px;
+  margin: 0 0 16px;
+}
+
+.contacts {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.contact {
+  font-family: v.$font-mono;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.35);
+  text-decoration: none;
+  transition: color 0.2s;
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.8);
+  }
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-self: flex-start;
+}
+
+.saveBtn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.5);
+  font-family: v.$font-mono;
+  font-size: 0.7rem;
+  padding: 8px 16px;
+  cursor: pointer;
+  text-transform: lowercase;
+  letter-spacing: 0.08em;
+  transition: border-color 0.2s, color 0.2s;
+
+  &:hover, &.saved {
+    color: v.$accent;
+    border-color: v.$accent;
+  }
+}
+
+.qrBtn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
+  font-family: v.$font-mono;
+  font-size: 0.65rem;
+  padding: 6px 12px;
+  cursor: pointer;
+  text-transform: lowercase;
+  letter-spacing: 0.08em;
+  transition: border-color 0.2s, color 0.2s;
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.6);
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+}
+
+.posts {
+  padding: 60px 0;
+}
+
+.postsInner {
+  max-width: v.$max-width;
+  margin: 0 auto;
+  padding: 0 5vw;
+}
+
+.postsTitle {
+  font-family: v.$font-mono;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.25);
+  margin: 0 0 32px;
+}
+
+.empty {
+  font-family: v.$font-mono;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.loading {
+  font-family: v.$font-mono;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.25);
+  text-align: center;
+  padding: 24px 0;
+}

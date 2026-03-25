@@ -6,113 +6,119 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 90px;
   z-index: 100;
-  background: rgba(v.$black, 0.8);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid v.$glass-border;
+  height: v.$header-height;
+  @include m.glass;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.container {
+.inner {
   max-width: v.$max-width;
+  height: 100%;
   margin: 0 auto;
   padding: 0 5vw;
-  height: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
 .logo {
-  font-weight: 900;
-  letter-spacing: 0.2em;
+  font-family: v.$font-serif;
   font-size: 1.1rem;
-  @include m.text-reveal;
+  font-weight: 300;
+  letter-spacing: 0.12em;
+  text-decoration: none;
+  color: v.$white;
+  text-transform: uppercase;
+  opacity: 0.9;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 1;
+  }
 }
 
 .actions {
   display: flex;
   align-items: center;
-  gap: 48px;
+  gap: 20px;
 }
 
-.loginBtn {
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  padding: 8px 24px;
-  border: 1px solid v.$gray-800;
-  border-radius: 1px;
-  @include m.premium-hover;
-}
+.saved {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: v.$font-mono;
+  font-size: 0.72rem;
+  transition: color 0.2s;
 
-.hamburger {
-  width: 40px;
-  height: 40px;
-  @include m.flex-center;
-  z-index: 101;
-}
-
-.burgerIcon {
-  width: 24px;
-  height: 2px;
-  background: v.$white;
-  position: relative;
-  transition: all 0.4s v.$ease-out;
-
-  &::before, &::after {
-    content: '';
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background: inherit;
-    left: 0;
-    transition: all 0.4s v.$ease-out;
-  }
-
-  &::before { top: -8px; }
-  &::after { top: 8px; width: 60%; left: auto; right: 0; }
-
-  &.isOpen {
-    background: transparent;
-    &::before { transform: rotate(45deg); top: 0; }
-    &::after { transform: rotate(-45deg); top: 0; width: 100%; }
+  &:hover {
+    color: rgba(255, 255, 255, 0.9);
   }
 }
 
-.menu {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: v.$black;
-  z-index: 99;
+.savedCount {
+  background: v.$accent;
+  color: v.$black;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 700;
 }
 
-.menuContent {
-  text-align: center;
+.savedLabel {
+  @media (max-width: 500px) {
+    display: none;
+  }
 }
 
-.links {
-  li {
-    margin-bottom: 24px;
-    
-    a {
-      font-size: clamp(2.5rem, 10vw, 5rem);
-      font-weight: 900;
-      letter-spacing: -0.02em;
-      text-transform: uppercase;
-      @include m.premium-hover;
-      
-      &:hover {
-        @include m.text-reveal;
-        opacity: 1;
-      }
-    }
+.loginBtn {
+  font-family: v.$font-mono;
+  font-size: 0.72rem;
+  text-transform: lowercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.65);
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 6px 14px;
+  transition: color 0.2s, border-color 0.2s;
+
+  &:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+}
+
+.hamburger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px;
+
+  span {
+    display: block;
+    width: 22px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.7);
+    transition: transform 0.3s, opacity 0.3s;
+  }
+
+  &.active span:nth-child(1) {
+    transform: translateY(6px) rotate(45deg);
+  }
+  &.active span:nth-child(2) {
+    opacity: 0;
+  }
+  &.active span:nth-child(3) {
+    transform: translateY(-6px) rotate(-45deg);
   }
 }

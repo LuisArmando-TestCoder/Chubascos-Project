@@ -1,0 +1,75 @@
+@use '@/styles/variables' as v;
+
+.card {
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: border-color 0.25s, transform 0.25s;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+  }
+}
+
+.inner {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.dateLine {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.day {
+  font-family: v.$font-mono;
+  font-size: 0.7rem;
+  color: v.$accent;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hour {
+  font-family: v.$font-mono;
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.title {
+  font-family: v.$font-serif;
+  font-size: clamp(1rem, 2vw, 1.4rem);
+  font-weight: 400;
+  margin: 0 0 6px;
+  line-height: 1.2;
+}
+
+.place {
+  font-family: v.$font-mono;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0 0 8px;
+}
+
+.price {
+  font-family: v.$font-mono;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 0 8px;
+}
+
+.desc {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.4);
+  line-height: 1.5;
+  margin: 8px 0 0;
+}
+
+.tags {
+  margin-top: 16px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}

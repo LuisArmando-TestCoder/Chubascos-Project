@@ -1,0 +1,80 @@
+@use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
+
+.main {
+  min-height: 100vh;
+  @include m.flex-center;
+  padding: v.$header-height 5vw 80px;
+}
+
+.inner {
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.code {
+  font-family: v.$font-mono;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.2);
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.title {
+  font-family: v.$font-serif;
+  font-size: clamp(2rem, 6vw, 4rem);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.desc {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.primary {
+  font-family: v.$font-mono;
+  font-size: 0.75rem;
+  text-transform: lowercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  padding: 10px 22px;
+  text-decoration: none;
+  transition: border-color 0.2s, color 0.2s;
+
+  &:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+.ghost {
+  font-family: v.$font-mono;
+  font-size: 0.75rem;
+  text-transform: lowercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 10px 22px;
+  text-decoration: none;
+  transition: border-color 0.2s, color 0.2s;
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.7);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+}

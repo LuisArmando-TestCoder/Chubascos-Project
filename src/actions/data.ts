@@ -1,91 +1,591 @@
+'use server';
+
 import { db } from '@/firebase/admin';
 import * as admin from 'firebase-admin';
+import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { sendNotificationEmail } from '@/utils/sendEmail';
-import { PostSchema } from '@/utils/validation';
+import { PostSchema, EventSchema, ShaderSchema } from '@/utils/validation';
+import { generateSlug } from '@/utils/generateSlug';
+import type { Post, Event, Shader, Tag, User } from '@/types';
+
+const toData = (doc: QueryDocumentSnapshot) => ({ id: doc.id, ...doc.data() });
 
 const LIVE_FEED_MAX = 10;
+const PAGE_SIZE = 10;
 
-export async function getLiveFeed(limitNum: number = 10) {
+// ─── READ ─────────────────────────────────────────────────────────────────────
+
+export async function getLiveFeed(limitNum: number = PAGE_SIZE, cursor?: string) {
+  if (!db) return { items: [], nextCursor: null };
+  // live_feed only contains indexed+visible posts by design (enforced at write time)
+  let query = db.collection('live_feed')
+    .orderBy('updatedAt', 'desc')
+    .limit(limitNum);
+
+  if (cursor) {
+    const cursorDoc = await db.collection('live_feed').doc(cursor).get();
+    if (cursorDoc.exists) query = query.startAfter(cursorDoc);
+  }
+
+  const snapshot = await query.get();
+  const items = snapshot.docs.map(toData);
+  const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
+  return { items, nextCursor };
+}
+
+export async function getEvents(limitNum: number = PAGE_SIZE, cursor?: string) {
+  if (!db) return { items: [], nextCursor: null };
+  const now = admin.firestore.Timestamp.now();
+  let query = db.collection('events')
+    .where('day', '>=', now)
+    .orderBy('day', 'asc')
+    .limit(limitNum);
+
+  if (cursor) {
+    const cursorDoc = await db.collection('events').doc(cursor).get();
+    if (cursorDoc.exists) query = query.startAfter(cursorDoc);
+  }
+
+  const snapshot = await query.get();
+  const items = snapshot.docs.map(toData);
+  const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
+  return { items, nextCursor };
+}
+
+export async function getUsers(limitNum: number = PAGE_SIZE, cursor?: string) {
+  if (!db) return { items: [], nextCursor: null };
+  let query = db.collection('users')
+    .orderBy('createdAt', 'desc')
+    .limit(limitNum);
+
+  if (cursor) {
+    const cursorDoc = await db.collection('users').doc(cursor).get();
+    if (cursorDoc.exists) query = query.startAfter(cursorDoc);
+  }
+
+  const snapshot = await query.get();
+  const items = snapshot.docs.map(toData);
+  const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
+  return { items, nextCursor };
+}
+
+export async function getUserProfile(userId: string): Promise<User | null> {
+  if (!db) return null;
+  const doc = await db.collection('users').doc(userId).get();
+  if (!doc.exists) return null;
+  return { id: doc.id, ...doc.data() } as User;
+}
+
+export async function getUserPosts(
+  userId: string,
+  limitNum: number = PAGE_SIZE,
+  cursor?: string,
+  tagFilter?: string
+): Promise<{ items: Post[]; nextCursor: string | null }> {
+  if (!db) return { items: [], nextCursor: null };
+  
+  let query: admin.firestore.Query = db
+    .collection('users').doc(userId).collection('posts')
+    .where('isVisible', '==', true)
+    .orderBy('updatedAt', 'desc')
+    .limit(limitNum);
+
+  if (tagFilter) {
+    query = query.where('tagIds', 'array-contains', tagFilter);
+  }
+
+  if (cursor) {
+    const cursorDoc = await db.collection('users').doc(userId).collection('posts').doc(cursor).get();
+    if (cursorDoc.exists) query = query.startAfter(cursorDoc);
+  }
+
+  const snapshot = await query.get();
+  const items = snapshot.docs.map(toData) as Post[];
+  const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
+  return { items, nextCursor };
+}
+
+export async function getPost(userId: string, slugOrId: string): Promise<Post | null> {
+  if (!db) return null;
+
+  // Try slug first
+  const bySlug = await db.collection('users').doc(userId).collection('posts')
+    .where('slug', '==', slugOrId)
+    .limit(1)
+    .get();
+
+  if (!bySlug.empty) {
+    const doc = bySlug.docs[0];
+    return { id: doc.id, ...doc.data() } as Post;
+  }
+
+  // Fallback to direct ID
+  const byId = await db.collection('users').doc(userId).collection('posts').doc(slugOrId).get();
+  if (byId.exists) return { id: byId.id, ...byId.data() } as Post;
+
+  return null;
+}
+
+export async function getEvent(eventId: string): Promise<Event | null> {
+  if (!db) return null;
+  const doc = await db.collection('events').doc(eventId).get();
+  if (!doc.exists) return null;
+  return { id: doc.id, ...doc.data() } as Event;
+}
+
+export async function getTags(limitNum: number = 50, prefix?: string): Promise<Tag[]> {
   if (!db) return [];
-  const snapshot = await db.collection('live_feed')
+  let query: admin.firestore.Query = db.collection('tags').orderBy('slug').limit(limitNum);
+  if (prefix) {
+    const end = prefix.replace(/.$/, (c) => String.fromCharCode(c.charCodeAt(0) + 1));
+    query = query.where('slug', '>=', prefix).where('slug', '<', end);
+  }
+  const snapshot = await query.get();
+  return snapshot.docs.map(toData) as Tag[];
+}
+
+export async function getShader(shaderId: string): Promise<Shader | null> {
+  if (!db) return null;
+  const doc = await db.collection('shaders').doc(shaderId).get();
+  if (!doc.exists) return null;
+  return { id: doc.id, ...doc.data() } as Shader;
+}
+
+export async function getPublicShaders(limitNum: number = PAGE_SIZE, cursor?: string): Promise<{ items: Shader[]; nextCursor: string | null }> {
+  if (!db) return { items: [], nextCursor: null };
+  let query: admin.firestore.Query = db.collection('shaders')
+    .where('isPublic', '==', true)
+    .where('isDeleted', '==', false)
+    .orderBy('usedBy', 'desc')
+    .limit(limitNum);
+
+  if (cursor) {
+    const cursorDoc = await db.collection('shaders').doc(cursor).get();
+    if (cursorDoc.exists) query = query.startAfter(cursorDoc);
+  }
+
+  const snapshot = await query.get();
+  const items = snapshot.docs.map(toData) as Shader[];
+  const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
+  return { items, nextCursor };
+}
+
+// ─── SEARCH ───────────────────────────────────────────────────────────────────
+
+export async function searchUsers(
+  query: string,
+  limitNum: number = PAGE_SIZE,
+  cursor?: string
+): Promise<{ items: User[]; nextCursor: string | null }> {
+  if (!db) return { items: [], nextCursor: null };
+  const lower = query.toLowerCase();
+  const end = lower.replace(/.$/, (c) => String.fromCharCode(c.charCodeAt(0) + 1));
+
+  let q: admin.firestore.Query = db.collection('users')
+    .where('usernameLower', '>=', lower)
+    .where('usernameLower', '<', end)
+    .orderBy('usernameLower')
+    .limit(limitNum);
+
+  if (cursor) {
+    const cursorDoc = await db.collection('users').doc(cursor).get();
+    if (cursorDoc.exists) q = q.startAfter(cursorDoc);
+  }
+
+  const snapshot = await q.get();
+  const items = snapshot.docs.map(toData) as User[];
+  const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
+  return { items, nextCursor };
+}
+
+export async function searchPostsByTag(
+  tagId: string,
+  limitNum: number = PAGE_SIZE,
+  cursor?: string
+): Promise<{ items: Post[]; nextCursor: string | null }> {
+  if (!db) return { items: [], nextCursor: null };
+  let q: admin.firestore.Query = db.collection('live_feed')
+    .where('tagIds', 'array-contains', tagId)
     .where('isVisible', '==', true)
     .where('isIndexed', '==', true)
     .orderBy('updatedAt', 'desc')
-    .limit(limitNum)
-    .get();
-  return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+    .limit(limitNum);
+
+  if (cursor) {
+    const cursorDoc = await db.collection('live_feed').doc(cursor).get();
+    if (cursorDoc.exists) q = q.startAfter(cursorDoc);
+  }
+
+  const snapshot = await q.get();
+  const items = snapshot.docs.map(toData) as Post[];
+  const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
+  return { items, nextCursor };
 }
 
-export async function getEvents(limitNum: number = 10) {
-  if (!db) return [];
-  const snapshot = await db.collection('events')
+export async function searchEventsByTag(
+  tagId: string,
+  limitNum: number = PAGE_SIZE,
+  cursor?: string
+): Promise<{ items: Event[]; nextCursor: string | null }> {
+  if (!db) return { items: [], nextCursor: null };
+  let q: admin.firestore.Query = db.collection('events')
+    .where('tagIds', 'array-contains', tagId)
     .orderBy('day', 'asc')
-    .where('day', '>=', admin.firestore.Timestamp.now())
-    .limit(limitNum)
-    .get();
-  return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
-}
+    .limit(limitNum);
 
-export async function getUsers(limitNum: number = 10) {
-  if (!db) return [];
-  const snapshot = await db.collection('users')
-    .orderBy('createdAt', 'desc')
-    .limit(limitNum)
-    .get();
-  return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
-}
-
-export async function createPost(userId: string, data: any) {
-  if (!db) return { success: false, error: 'Database not initialized' };
-  const validated = PostSchema.parse(data);
-  const postRef = db.collection('users').doc(userId).collection('posts').doc();
-  const now = admin.firestore.FieldValue.serverTimestamp();
-
-  const postData = {
-    ...validated,
-    id: postRef.id,
-    userId,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  const batch = db.batch();
-  batch.set(postRef, postData);
-
-  if (postData.isIndexed && postData.isVisible) {
-    const liveFeedRef = db.collection('live_feed').doc(postRef.id);
-    batch.set(liveFeedRef, postData);
+  if (cursor) {
+    const cursorDoc = await db.collection('events').doc(cursor).get();
+    if (cursorDoc.exists) q = q.startAfter(cursorDoc);
   }
 
-  await batch.commit();
-
-  if (postData.isIndexed && postData.isVisible) {
-    // Non-blocking: evict old entries and notify followers
-    evictLiveFeed().catch(err => console.error('Live feed eviction error:', err));
-    notifyFollowers(userId, postData).catch(err => console.error('Notification error:', err));
-  }
-
-  return { success: true, id: postRef.id };
+  const snapshot = await q.get();
+  const items = snapshot.docs.map(toData) as Event[];
+  const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
+  return { items, nextCursor };
 }
+
+// ─── WRITE ────────────────────────────────────────────────────────────────────
+
+export async function createPost(userId: string, data: unknown) {
+  if (!db) return { success: false, error: 'Servicio no disponible.' };
+  
+  try {
+    const validated = PostSchema.parse(data);
+    const postRef = db.collection('users').doc(userId).collection('posts').doc();
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const slug = validated.slug || generateSlug(validated.title);
+
+    const postData = {
+      ...validated,
+      slug,
+      id: postRef.id,
+      userId,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const batch = db.batch();
+    batch.set(postRef, postData);
+
+    // Increment usedBy for each tag
+    for (const tagId of validated.tagIds || []) {
+      const tagRef = db.collection('tags').doc(tagId);
+      batch.update(tagRef, { usedBy: admin.firestore.FieldValue.increment(1) });
+    }
+
+    // Increment usedBy for shader if linked
+    if (validated.shaderId) {
+      const shaderRef = db.collection('shaders').doc(validated.shaderId);
+      batch.update(shaderRef, { usedBy: admin.firestore.FieldValue.increment(1) });
+    }
+
+    if (postData.isIndexed && postData.isVisible) {
+      const liveFeedRef = db.collection('live_feed').doc(postRef.id);
+      batch.set(liveFeedRef, postData);
+    }
+
+    await batch.commit();
+
+    if (postData.isIndexed && postData.isVisible) {
+      evictLiveFeed().catch((err) => console.error('Live feed eviction error:', err));
+      notifyFollowers(userId, postData).catch((err) => console.error('Notification error:', err));
+    }
+
+    return { success: true, id: postRef.id, slug };
+  } catch (error: unknown) {
+    console.error('createPost error:', error);
+    return { success: false, error: 'No se pudo guardar el poema.' };
+  }
+}
+
+export async function updatePost(userId: string, postId: string, data: unknown) {
+  if (!db) return { success: false, error: 'Servicio no disponible.' };
+
+  try {
+    const validated = PostSchema.partial().parse(data);
+    const postRef = db.collection('users').doc(userId).collection('posts').doc(postId);
+    const existing = await postRef.get();
+    if (!existing.exists) return { success: false, error: 'Poema no encontrado.' };
+
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const slug = validated.slug || (validated.title ? generateSlug(validated.title) : existing.data()?.slug);
+
+    const updateData = { ...validated, slug, updatedAt: now };
+    const batch = db.batch();
+    batch.update(postRef, updateData);
+
+    const merged = { ...existing.data(), ...updateData };
+    const isPublic = merged.isIndexed && merged.isVisible;
+    const liveFeedRef = db.collection('live_feed').doc(postId);
+
+    if (isPublic) {
+      batch.set(liveFeedRef, { ...merged }, { merge: true });
+    } else {
+      batch.delete(liveFeedRef);
+    }
+
+    await batch.commit();
+
+    if (isPublic) {
+      evictLiveFeed().catch(console.error);
+      notifyFollowers(userId, merged).catch(console.error);
+    }
+
+    return { success: true };
+  } catch (error: unknown) {
+    console.error('updatePost error:', error);
+    return { success: false, error: 'No se pudo actualizar el poema.' };
+  }
+}
+
+export async function deletePost(userId: string, postId: string) {
+  if (!db) return { success: false, error: 'Servicio no disponible.' };
+
+  try {
+    const postRef = db.collection('users').doc(userId).collection('posts').doc(postId);
+    const existing = await postRef.get();
+    if (!existing.exists) return { success: false, error: 'Poema no encontrado.' };
+
+    const postData = existing.data();
+    const batch = db.batch();
+
+    batch.delete(postRef);
+    batch.delete(db.collection('live_feed').doc(postId));
+
+    // Decrement tag counters
+    for (const tagId of postData?.tagIds || []) {
+      const tagRef = db.collection('tags').doc(tagId);
+      batch.update(tagRef, { usedBy: admin.firestore.FieldValue.increment(-1) });
+    }
+
+    // Decrement shader counter
+    if (postData?.shaderId) {
+      const shaderRef = db.collection('shaders').doc(postData.shaderId);
+      batch.update(shaderRef, { usedBy: admin.firestore.FieldValue.increment(-1) });
+    }
+
+    await batch.commit();
+    return { success: true };
+  } catch (error: unknown) {
+    console.error('deletePost error:', error);
+    return { success: false, error: 'No se pudo eliminar el poema.' };
+  }
+}
+
+export async function createEvent(userId: string, data: unknown) {
+  if (!db) return { success: false, error: 'Servicio no disponible.' };
+
+  try {
+    const validated = EventSchema.parse(data);
+    const eventRef = db.collection('events').doc();
+    const now = admin.firestore.FieldValue.serverTimestamp();
+
+    const eventData = {
+      ...validated,
+      id: eventRef.id,
+      ownerUserId: userId,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const batch = db.batch();
+    batch.set(eventRef, eventData);
+
+    // Increment tag counters
+    for (const tagId of validated.tagIds || []) {
+      const tagRef = db.collection('tags').doc(tagId);
+      batch.update(tagRef, { usedBy: admin.firestore.FieldValue.increment(1) });
+    }
+
+    await batch.commit();
+    return { success: true, id: eventRef.id };
+  } catch (error: unknown) {
+    console.error('createEvent error:', error);
+    return { success: false, error: 'No se pudo crear el evento.' };
+  }
+}
+
+export async function updateEvent(userId: string, eventId: string, data: unknown) {
+  if (!db) return { success: false, error: 'Servicio no disponible.' };
+
+  try {
+    const eventRef = db.collection('events').doc(eventId);
+    const existing = await eventRef.get();
+    if (!existing.exists) return { success: false, error: 'Evento no encontrado.' };
+    if (existing.data()?.ownerUserId !== userId) return { success: false, error: 'Sin permiso.' };
+
+    const validated = EventSchema.partial().parse(data);
+    await eventRef.update({ ...validated, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    return { success: true };
+  } catch (error: unknown) {
+    console.error('updateEvent error:', error);
+    return { success: false, error: 'No se pudo actualizar el evento.' };
+  }
+}
+
+export async function deleteEvent(userId: string, eventId: string) {
+  if (!db) return { success: false, error: 'Servicio no disponible.' };
+
+  try {
+    const eventRef = db.collection('events').doc(eventId);
+    const existing = await eventRef.get();
+    if (!existing.exists) return { success: false, error: 'Evento no encontrado.' };
+    if (existing.data()?.ownerUserId !== userId) return { success: false, error: 'Sin permiso.' };
+
+    const eventData = existing.data();
+    const batch = db.batch();
+    batch.delete(eventRef);
+    for (const tagId of eventData?.tagIds || []) {
+      batch.update(db.collection('tags').doc(tagId), { usedBy: admin.firestore.FieldValue.increment(-1) });
+    }
+    await batch.commit();
+    return { success: true };
+  } catch (error: unknown) {
+    console.error('deleteEvent error:', error);
+    return { success: false, error: 'No se pudo eliminar el evento.' };
+  }
+}
+
+export async function createShader(userId: string, data: unknown) {
+  if (!db) return { success: false, error: 'Servicio no disponible.' };
+
+  try {
+    const validated = ShaderSchema.parse(data);
+    const shaderRef = db.collection('shaders').doc();
+    const now = admin.firestore.FieldValue.serverTimestamp();
+
+    await shaderRef.set({
+      ...validated,
+      id: shaderRef.id,
+      ownerUserId: userId,
+      usedBy: 0,
+      isDeleted: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return { success: true, id: shaderRef.id };
+  } catch (error: unknown) {
+    console.error('createShader error:', error);
+    return { success: false, error: 'No se pudo crear el shader.' };
+  }
+}
+
+export async function updateShader(userId: string, shaderId: string, data: unknown) {
+  if (!db) return { success: false, error: 'Servicio no disponible.' };
+
+  try {
+    const shaderRef = db.collection('shaders').doc(shaderId);
+    const existing = await shaderRef.get();
+    if (!existing.exists) return { success: false, error: 'Shader no encontrado.' };
+    if (existing.data()?.ownerUserId !== userId) return { success: false, error: 'Sin permiso.' };
+
+    const validated = ShaderSchema.partial().parse(data);
+    await shaderRef.update({ ...validated, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    return { success: true };
+  } catch (error: unknown) {
+    console.error('updateShader error:', error);
+    return { success: false, error: 'No se pudo actualizar el shader.' };
+  }
+}
+
+export async function softDeleteShader(userId: string, shaderId: string) {
+  if (!db) return { success: false, error: 'Servicio no disponible.' };
+
+  try {
+    const shaderRef = db.collection('shaders').doc(shaderId);
+    const existing = await shaderRef.get();
+    if (!existing.exists) return { success: false, error: 'Shader no encontrado.' };
+    if (existing.data()?.ownerUserId !== userId) return { success: false, error: 'Sin permiso.' };
+
+    await shaderRef.update({ isDeleted: true, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    return { success: true };
+  } catch (error: unknown) {
+    console.error('softDeleteShader error:', error);
+    return { success: false, error: 'No se pudo eliminar el shader.' };
+  }
+}
+
+export async function upsertTag(value: string): Promise<{ success: boolean; id?: string; error?: string }> {
+  if (!db) return { success: false, error: 'Servicio no disponible.' };
+
+  try {
+    const { generateSlug } = await import('@/utils/generateSlug');
+    const slug = generateSlug(value).toLowerCase();
+    const existing = await db.collection('tags').where('slug', '==', slug).limit(1).get();
+
+    if (!existing.empty) {
+      return { success: true, id: existing.docs[0].id };
+    }
+
+    const tagRef = db.collection('tags').doc();
+    await tagRef.set({ value, slug, usedBy: 0 });
+    return { success: true, id: tagRef.id };
+  } catch (error: unknown) {
+    console.error('upsertTag error:', error);
+    return { success: false, error: 'No se pudo crear la etiqueta.' };
+  }
+}
+
+export async function updateUserProfile(userId: string, data: {
+  username?: string;
+  bio?: string;
+  contacts?: { label: string; url: string }[];
+}) {
+  if (!db) return { success: false, error: 'Servicio no disponible.' };
+
+  try {
+    const updateData: Record<string, unknown> = {};
+    if (data.username !== undefined) {
+      if (data.username.length < 3 || data.username.length > 32) {
+        return { success: false, error: 'Nombre de usuario debe tener entre 3 y 32 caracteres.' };
+      }
+      updateData.username = data.username;
+      updateData.usernameLower = data.username.toLowerCase();
+    }
+    if (data.bio !== undefined) {
+      if (data.bio.length > 500) return { success: false, error: 'Biografía muy larga (máx 500).' };
+      updateData.bio = data.bio;
+    }
+    if (data.contacts !== undefined) {
+      if (data.contacts.length > 5) return { success: false, error: 'Máximo 5 contactos.' };
+      updateData.contacts = data.contacts;
+    }
+
+    await db.collection('users').doc(userId).update(updateData);
+    return { success: true };
+  } catch (error: unknown) {
+    console.error('updateUserProfile error:', error);
+    return { success: false, error: 'No se pudo actualizar el perfil.' };
+  }
+}
+
+// ─── PRIVATE HELPERS ─────────────────────────────────────────────────────────
 
 async function evictLiveFeed(): Promise<void> {
   if (!db) return;
+  // Use cursor-based approach: get 11th doc and delete everything from there
   const snapshot = await db.collection('live_feed')
     .orderBy('updatedAt', 'desc')
-    .offset(LIVE_FEED_MAX)
+    .limit(LIVE_FEED_MAX + 1)
     .get();
-  if (snapshot.empty) return;
+  
+  if (snapshot.docs.length <= LIVE_FEED_MAX) return;
+  
+  // Anything beyond index LIVE_FEED_MAX needs to be removed
+  const toEvict = snapshot.docs.slice(LIVE_FEED_MAX);
+  if (toEvict.length === 0) return;
+  
   const batch = db.batch();
-  snapshot.docs.forEach((doc: any) => batch.delete(doc.ref));
+  toEvict.forEach((doc: QueryDocumentSnapshot) => batch.delete(doc.ref));
   await batch.commit();
 }
 
-async function notifyFollowers(userId: string, postData: any): Promise<void> {
+async function notifyFollowers(userId: string, postData: Record<string, unknown>): Promise<void> {
   if (!db) return;
   const followersSnapshot = await db.collection('users').doc(userId).collection('followers').get();
-  const followerEmails: string[] = followersSnapshot.docs.map((doc: any) => doc.id as string);
-  // Parallel — never sequential
+  const followerEmails: string[] = followersSnapshot.docs.map((doc: QueryDocumentSnapshot) => doc.id);
   await Promise.allSettled(
-    followerEmails.map((email: string) => sendNotificationEmail(email, userId, postData))
+    followerEmails.map((email) => sendNotificationEmail(email, userId, postData))
   );
 }
