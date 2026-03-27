@@ -7,6 +7,7 @@ import { EventCard } from '@/components/molecules/EventCard/EventCard';
 import { UserCard } from '@/components/molecules/UserCard/UserCard';
 import { Footer } from '@/components/organisms/Footer/Footer';
 import { getTags, searchPostsByTag, searchEventsByTag, searchUsers } from '@/actions/data';
+import i18n from '@/utils/i18n';
 import type { Post, Event, User, Tag } from '@/types';
 import styles from './buscar.module.scss';
 
@@ -75,7 +76,7 @@ export function BuscarContent() {
       <main className={styles.main}>
         <div className={styles.inner}>
           <header className={styles.header}>
-            <h1 className={styles.title}>Buscar</h1>
+            <h1 className={styles.title}>{i18n.common.search}</h1>
           </header>
 
           <div className={styles.searchBar}>
@@ -83,7 +84,7 @@ export function BuscarContent() {
               type="search"
               value={query}
               onChange={handleQueryChange}
-              placeholder="Buscar etiqueta, usuario..."
+              placeholder={i18n.search.inputPlaceholder}
               className={styles.input}
               aria-label="Campo de búsqueda"
             />
@@ -114,12 +115,12 @@ export function BuscarContent() {
                 className={`${styles.tab} ${activeTab === tab ? styles.activeTab : ''}`}
                 onClick={() => setActiveTab(tab)}
               >
-                {tab === 'posts' ? 'Poemas' : tab === 'events' ? 'Eventos' : 'Poetas'}
+                {tab === 'posts' ? i18n.common.poems : tab === 'events' ? i18n.common.events : i18n.common.poets}
               </button>
             ))}
           </div>
 
-          {loading && <p className={styles.loading}>Buscando…</p>}
+          {loading && <p className={styles.loading}>{i18n.common.loading}</p>}
 
           {!selectedTag && !loading && (
             <p className={styles.hint}>Selecciona una etiqueta para empezar a buscar.</p>
@@ -139,7 +140,7 @@ export function BuscarContent() {
               ))}
               {postCursor && (
                 <button className={styles.loadMore} onClick={() => search(selectedTag, 'posts', false)}>
-                  Cargar más
+                  {i18n.common.seeMore}
                 </button>
               )}
             </div>

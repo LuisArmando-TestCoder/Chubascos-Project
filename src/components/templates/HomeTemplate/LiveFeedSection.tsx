@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { PostCard } from '@/components/molecules/PostCard/PostCard';
+import i18n from '@/utils/i18n';
 import type { Post } from '@/types';
 import styles from './HomeTemplate.module.scss';
 
@@ -15,7 +16,7 @@ export function LiveFeedSection({ posts }: LiveFeedSectionProps) {
     <section className={styles.section} aria-labelledby="feed-heading">
       <div className={styles.sectionInner}>
         <header className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle} id="feed-heading">Poemas recientes</h2>
+          <h2 className={styles.sectionTitle} id="feed-heading">{i18n.home.liveFeed.title}</h2>
           <span className={styles.liveIndicator} aria-label="En vivo">
             <span className={styles.liveDot} aria-hidden="true" />
             en vivo
@@ -36,10 +37,10 @@ export function LiveFeedSection({ posts }: LiveFeedSectionProps) {
         </div>
         <div className={styles.sectionCta}>
           <Link href="/buscar?type=posts" className={styles.ctaBtn}>
-            Ver todos los poemas
+            {i18n.common.seeMore}
           </Link>
           <Link href="/buscar?type=posts" className={styles.ctaBtnGhost}>
-            Buscar por etiquetas
+            {i18n.common.search}
           </Link>
         </div>
       </div>

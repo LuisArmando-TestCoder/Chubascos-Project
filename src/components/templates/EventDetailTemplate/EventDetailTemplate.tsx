@@ -5,6 +5,7 @@ import { QrModal } from '@/components/organisms/QrModal/QrModal';
 import { TagPill } from '@/components/atoms/TagPill/TagPill';
 import { formatDate } from '@/utils/formatDate';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import i18n from '@/utils/i18n';
 import type { Event } from '@/types';
 import styles from './EventDetailTemplate.module.scss';
 
@@ -30,7 +31,7 @@ export function EventDetailTemplate({ event }: EventDetailTemplateProps) {
           <p className={styles.place}>{event.place}</p>
           {event.price !== undefined && (
             <p className={styles.price}>
-              {event.price === 0 ? 'Entrada libre' : `₡${event.price.toLocaleString('es-CR')}`}
+              {event.price === 0 ? i18n.event.priceFree : `₡${event.price.toLocaleString('es-CR')}`}
             </p>
           )}
         </header>
@@ -82,7 +83,7 @@ export function EventDetailTemplate({ event }: EventDetailTemplateProps) {
               onClick={() => isSaved ? unsaveEvent(event.id) : saveEvent(event.id)}
               aria-label={isSaved ? 'Dejar de guardar evento' : 'Guardar evento'}
             >
-              {isSaved ? 'Guardado' : 'Guardar'}
+              {isSaved ? i18n.common.accepted : i18n.common.save}
             </button>
             <button
               className={styles.qrBtn}
@@ -93,7 +94,7 @@ export function EventDetailTemplate({ event }: EventDetailTemplateProps) {
             </button>
           </div>
           <Link href={`/u/${event.ownerUserId}`} className={styles.ownerLink}>
-            ← Perfil del organizador
+            ← {i18n.event.organizer}
           </Link>
         </footer>
       </article>

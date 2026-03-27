@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { EventCard } from '@/components/molecules/EventCard/EventCard';
+import i18n from '@/utils/i18n';
 import type { Event } from '@/types';
 import styles from './HomeTemplate.module.scss';
 
@@ -15,7 +16,7 @@ export function EventsSection({ events }: EventsSectionProps) {
     <section className={styles.section} aria-labelledby="events-heading">
       <div className={styles.sectionInner}>
         <header className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle} id="events-heading">Eventos</h2>
+          <h2 className={styles.sectionTitle} id="events-heading">{i18n.home.events.title}</h2>
         </header>
         <div className={styles.eventsGrid}>
           {events.map((event, i) => (
@@ -32,10 +33,10 @@ export function EventsSection({ events }: EventsSectionProps) {
         </div>
         <div className={styles.sectionCta}>
           <Link href="/buscar?type=events" className={styles.ctaBtn}>
-            Ver todos los eventos
+            {i18n.common.seeMore}
           </Link>
           <Link href="/buscar?type=events" className={styles.ctaBtnGhost}>
-            Buscar eventos
+            {i18n.common.search}
           </Link>
         </div>
       </div>

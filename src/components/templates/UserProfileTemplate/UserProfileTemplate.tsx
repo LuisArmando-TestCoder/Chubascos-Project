@@ -8,6 +8,7 @@ import { Button } from '@/components/atoms/Button/Button';
 import { getUserPosts } from '@/actions/data';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import i18n from '@/utils/i18n';
 import type { User, Post } from '@/types';
 import styles from './UserProfileTemplate.module.scss';
 
@@ -64,7 +65,7 @@ export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCur
               onClick={() => isSaved ? unsaveUser(user.id) : saveUser(user.id)}
               aria-label={isSaved ? `Dejar de guardar a ${name}` : `Guardar a ${name}`}
             >
-              {isSaved ? 'Guardado' : 'Guardar'}
+              {isSaved ? i18n.common.accepted : i18n.common.save}
             </button>
             <button
               className={styles.qrBtn}
@@ -79,9 +80,9 @@ export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCur
 
       <main className={styles.posts}>
         <div className={styles.postsInner}>
-          <h2 className={styles.postsTitle}>Poemas</h2>
+          <h2 className={styles.postsTitle}>{i18n.common.poems}</h2>
           {posts.length === 0 ? (
-            <p className={styles.empty}>Aún sin poemas publicados.</p>
+            <p className={styles.empty}>{i18n.profile.emptyPoems}</p>
           ) : (
             posts.map((post) => (
               <motion.div
@@ -96,7 +97,7 @@ export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCur
             ))
           )}
           <div ref={sentinelRef} style={{ height: 1 }} />
-          {loading && <p className={styles.loading}>Cargando más…</p>}
+          {loading && <p className={styles.loading}>{i18n.common.loading}</p>}
         </div>
       </main>
 

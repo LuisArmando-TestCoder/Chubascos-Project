@@ -1,5 +1,6 @@
 'use client';
 import { motion, useReducedMotion } from 'framer-motion';
+import i18n from '@/utils/i18n';
 import styles from './HomeTemplate.module.scss';
 
 const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
@@ -16,7 +17,7 @@ export function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, ease }}
         >
-          CHUBASCOS
+          {i18n.home.hero.title}
         </motion.h1>
         <motion.p
           className={styles.heroSub}
@@ -24,7 +25,7 @@ export function HeroSection() {
           animate={{ opacity: 1 }}
           transition={{ duration: 1, delay: 0.4 }}
         >
-          Lluvias repentinas dejando charcos
+          {i18n.home.hero.subtitle}
         </motion.p>
       </div>
     </section>

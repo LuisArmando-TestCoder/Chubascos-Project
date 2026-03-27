@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Footer } from '@/components/organisms/Footer/Footer';
 import { useSavedStore } from '@/store/saved';
 import { getSavedItems } from '@/actions/data';
+import i18n from '@/utils/i18n';
 import styles from './guardados.module.scss';
 
 export default function GuardadosPage() {
@@ -34,12 +35,12 @@ export default function GuardadosPage() {
       <main className={styles.main}>
         <div className={styles.inner}>
           <header className={styles.header}>
-            <h1 className={styles.title}>Guardados</h1>
+            <h1 className={styles.title}>{i18n.common.saved}</h1>
             {totalSaved === 0 && (
               <p className={styles.empty}>
-                No has guardado ningún poema, poeta ni evento todavía.
+                {i18n.saved.empty}
                 <br />
-                <Link href="/" className={styles.link}>Explorar Chubascos</Link>
+                <Link href="/" className={styles.link}>{i18n.common.explore} Chubascos</Link>
               </p>
             )}
           </header>
@@ -55,7 +56,11 @@ export default function GuardadosPage() {
                     className={`${styles.tab} ${activeTab === tab ? styles.activeTab : ''}`}
                     onClick={() => setActiveTab(tab)}
                   >
-                    {tab === 'posts' ? `Poemas (${posts.length})` : tab === 'users' ? `Poetas (${users.length})` : `Eventos (${events.length})`}
+                    {tab === 'posts' 
+                      ? i18n.saved.tabs.poems.replace('{count}', posts.length.toString()) 
+                      : tab === 'users' 
+                        ? i18n.saved.tabs.poets.replace('{count}', users.length.toString()) 
+                        : i18n.saved.tabs.events.replace('{count}', events.length.toString())}
                   </button>
                 ))}
               </div>
@@ -63,7 +68,7 @@ export default function GuardadosPage() {
               {activeTab === 'posts' && (
                 <ul className={styles.list}>
                   {posts.length === 0 ? (
-                    <p className={styles.emptyTab}>Sin poemas guardados.</p>
+                    <p className={styles.emptyTab}>{i18n.saved.emptyTab.replace('{type}', i18n.common.poems.toLowerCase())}</p>
                   ) : (
                     posts.map((id) => (
                       <li key={id} className={styles.item}>
@@ -86,7 +91,7 @@ export default function GuardadosPage() {
               {activeTab === 'users' && (
                 <ul className={styles.list}>
                   {users.length === 0 ? (
-                    <p className={styles.emptyTab}>Sin poetas guardados.</p>
+                    <p className={styles.emptyTab}>{i18n.saved.emptyTab.replace('{type}', i18n.common.poets.toLowerCase())}</p>
                   ) : (
                     users.map((id) => (
                       <li key={id} className={styles.item}>
@@ -109,7 +114,7 @@ export default function GuardadosPage() {
               {activeTab === 'events' && (
                 <ul className={styles.list}>
                   {events.length === 0 ? (
-                    <p className={styles.emptyTab}>Sin eventos guardados.</p>
+                    <p className={styles.emptyTab}>{i18n.saved.emptyTab.replace('{type}', i18n.common.events.toLowerCase())}</p>
                   ) : (
                     events.map((id) => (
                       <li key={id} className={styles.item}>

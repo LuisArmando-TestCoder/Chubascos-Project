@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { requestOtp, verifyOtp } from '@/actions/auth';
+import i18n from '@/utils/i18n';
 import styles from './EntrarTemplate.module.scss';
 
 export default function EntrarTemplate() {
@@ -49,9 +50,9 @@ export default function EntrarTemplate() {
         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
       >
         <header className={styles.header}>
-          <h1 className={styles.title}>CONOZCO</h1>
+          <h1 className={styles.title}>{i18n.auth.title}</h1>
           <p className={styles.subtitle}>
-            {step === 'email' ? 'Ingresa tu correo para entrar' : 'Introduce el código de 6 dígitos'}
+            {step === 'email' ? i18n.auth.subtitle : i18n.auth.otpSubtitle.replace('{email}', email)}
           </p>
         </header>
 
@@ -67,7 +68,7 @@ export default function EntrarTemplate() {
                 <input
                   className={styles.input}
                   type="email"
-                  placeholder="tu@email.com"
+                  placeholder={i18n.auth.emailPlaceholder}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -83,7 +84,7 @@ export default function EntrarTemplate() {
                 <input
                   className={styles.input}
                   type="text"
-                  placeholder="000000"
+                  placeholder={i18n.auth.otpPlaceholder}
                   maxLength={6}
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
@@ -97,7 +98,7 @@ export default function EntrarTemplate() {
           {message && <p className={styles.message}>{message}</p>}
 
           <button className={styles.button} type="submit" disabled={loading}>
-            {loading ? 'CARGANDO...' : (step === 'email' ? 'PEDIR CÓDIGO' : 'ENTRAR')}
+            {loading ? i18n.common.loading : (step === 'email' ? i18n.auth.sendOtp : i18n.auth.verify)}
           </button>
         </form>
 

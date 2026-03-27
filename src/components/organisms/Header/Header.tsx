@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { HamburgerMenu } from '@/components/organisms/HamburgerMenu/HamburgerMenu';
 import { useSavedStore } from '@/store/saved';
 import { useSession } from '@/hooks/useSession';
+import i18n from '@/utils/i18n';
 import styles from './Header.module.scss';
 
 export function Header() {
@@ -23,7 +24,7 @@ export function Header() {
             {savedCount > 0 && (
               <Link href="/guardados" className={styles.saved} aria-label={`${savedCount} elementos guardados`}>
                 <span className={styles.savedCount}>{savedCount}</span>
-                <span className={styles.savedLabel}>Guardados</span>
+                <span className={styles.savedLabel}>{i18n.common.saved}</span>
               </Link>
             )}
             <Link
@@ -31,7 +32,7 @@ export function Header() {
               className={styles.loginBtn}
               aria-label={session.isLoggedIn ? 'Ir al panel' : 'Entrar a la plataforma'}
             >
-              {session.isLoggedIn ? 'Panel' : 'Entrar'}
+              {session.isLoggedIn ? 'Panel' : i18n.common.login}
             </Link>
             <button
               className={`${styles.hamburger} ${menuOpen ? styles.active : ''}`}

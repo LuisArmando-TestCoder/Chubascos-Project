@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { UserCard } from '@/components/molecules/UserCard/UserCard';
+import i18n from '@/utils/i18n';
 import type { User } from '@/types';
 import styles from './HomeTemplate.module.scss';
 
@@ -15,7 +16,7 @@ export function UsersSection({ users }: UsersSectionProps) {
     <section className={styles.section} aria-labelledby="users-heading">
       <div className={styles.sectionInner}>
         <header className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle} id="users-heading">Voces</h2>
+          <h2 className={styles.sectionTitle} id="users-heading">{i18n.home.poets.title}</h2>
         </header>
         <div className={styles.usersGrid}>
           {users.map((user, i) => (
@@ -32,7 +33,7 @@ export function UsersSection({ users }: UsersSectionProps) {
         </div>
         <div className={styles.sectionCta}>
           <Link href="/buscar?type=users" className={styles.ctaBtn}>
-            Ver todos los poetas
+            {i18n.common.seeMore}
           </Link>
         </div>
       </div>
