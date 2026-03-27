@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Footer } from '@/components/organisms/Footer/Footer';
 import { useSavedStore } from '@/store/saved';
+import { getSavedItems } from '@/actions/data';
 import styles from './guardados.module.scss';
 
 export default function GuardadosPage() {
@@ -10,6 +11,23 @@ export default function GuardadosPage() {
   const [activeTab, setActiveTab] = useState<'posts' | 'users' | 'events'>('posts');
 
   const totalSaved = posts.length + users.length + events.length;
+
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      // This is a simplified client-side fetch from the new server action
+      // In a real app, we'd use useInfiniteScroll hook here
+      const result = await getSavedItems('current-user@example.com', activeTab);
+      setItems(result.items);
+      setNextCursor(result.nextCursor);
+      setLoading(false);
+    }
+    load();
+  }, [activeTab]);
 
   return (
     <>

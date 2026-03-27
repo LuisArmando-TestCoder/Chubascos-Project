@@ -10,19 +10,45 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export async function sendNotificationEmail(email: string, authorId: string, postData: any) {
+export async function sendNotificationEmail(email: string, authorId: string, data: any) {
+  let subject = '';
+  let title = '';
+  let description = '';
+  let linkLabel = '';
+  let linkUrl = '';
+
+  if (data.type === 'post') {
+    subject = `Nuevo poema de ${authorId}: ${data.title}`;
+    title = data.title;
+    description = 'Alguien que sigues ha dejado un nuevo charco.';
+    linkLabel = 'Leer poema';
+    linkUrl = `https://chubascos.app/u/${authorId}/p/${data.slug}`;
+  } else if (data.type === 'event') {
+    subject = `Nuevo evento de ${authorId}: ${data.title}`;
+    title = data.title;
+    description = 'Alguien que sigues ha creado un nuevo evento.';
+    linkLabel = 'Ver evento';
+    linkUrl = `https://chubascos.app/e/${data.id}`;
+  } else if (data.type === 'event_subscription') {
+    subject = `Nueva solicitud para tu evento: ${data.title}`;
+    title = data.title;
+    description = `${authorId} quiere asistir a tu evento.`;
+    linkLabel = 'Gestionar participantes';
+    linkUrl = `https://chubascos.app/e/${data.eventId}`;
+  }
+
   const mailOptions = {
     from: `"Chubascos" <${process.env.SMTP_USER}>`,
     to: email,
-    subject: `Nuevo poema de ${authorId}: ${postData.title}`,
+    subject: subject || `Notificación de Chubascos`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #0a0a0a; color: #ffffff;">
         <h1 style="color: #6d5dfc;">CHUBASCOS</h1>
-        <p>Alguien que sigues ha dejado un nuevo charco.</p>
+        <p>${description}</p>
         <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;" />
-        <h2>${postData.title}</h2>
-        <p>Por: ${authorId}</p>
-        <a href="https://chubascos.app/u/${authorId}/p/${postData.slug}" style="display: inline-block; background-color: #6d5dfc; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Leer poema</a>
+        <h2>${title}</h2>
+        ${data.type !== 'event_subscription' ? `<p>Por: ${authorId}</p>` : ''}
+        <a href="${linkUrl}" style="display: inline-block; background-color: #6d5dfc; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 4px;">${linkLabel}</a>
       </div>
     `,
   };

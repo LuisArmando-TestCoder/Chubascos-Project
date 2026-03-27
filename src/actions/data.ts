@@ -244,6 +244,47 @@ export async function searchEventsByTag(
   return { items, nextCursor };
 }
 
+export async function getSavedItems(
+  userEmail: string,
+  type: 'posts' | 'users' | 'events',
+  limitNum: number = PAGE_SIZE,
+  cursor?: string
+) {
+  if (!db) return { items: [], nextCursor: null };
+  const collectionName = type === 'posts' ? 'saved_posts' : type === 'users' ? 'following_users' : 'saved_events';
+  let query = db.collection('users').doc(userEmail).collection(collectionName)
+    .orderBy('savedAt', 'desc')
+    .limit(limitNum);
+
+  if (cursor) {
+    const cursorDoc = await db.collection('users').doc(userEmail).collection(collectionName).doc(cursor).get();
+    if (cursorDoc.exists) query = query.startAfter(cursorDoc);
+  }
+
+  const snapshot = await query.get();
+  const savedRefs = snapshot.docs.map((doc: QueryDocumentSnapshot) => doc.id);
+  
+  // Now fetch the actual data for these items
+  const items: any[] = [];
+  if (savedRefs.length > 0) {
+    if (type === 'posts') {
+      // Posts are in sub-collections, need to fetch from live_feed or individually
+      // Using live_feed for simplicity if available
+      const feedSnapshot = await db.collection('live_feed').where(admin.firestore.FieldPath.documentId(), 'in', savedRefs).get();
+      items.push(...feedSnapshot.docs.map(toData));
+    } else if (type === 'users') {
+      const usersSnapshot = await db.collection('users').where(admin.firestore.FieldPath.documentId(), 'in', savedRefs).get();
+      items.push(...usersSnapshot.docs.map(toData));
+    } else if (type === 'events') {
+      const eventsSnapshot = await db.collection('events').where(admin.firestore.FieldPath.documentId(), 'in', savedRefs).get();
+      items.push(...eventsSnapshot.docs.map(toData));
+    }
+  }
+
+  const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
+  return { items, nextCursor };
+}
+
 // ─── WRITE ────────────────────────────────────────────────────────────────────
 
 export async function createPost(userId: string, data: unknown) {
@@ -288,7 +329,8 @@ export async function createPost(userId: string, data: unknown) {
 
     if (postData.isIndexed && postData.isVisible) {
       evictLiveFeed().catch((err) => console.error('Live feed eviction error:', err));
-      notifyFollowers(userId, postData).catch((err) => console.error('Notification error:', err));
+      // Notify everyone who saved this poet
+      notifyFollowers(userId, postData, 'post').catch((err) => console.error('Notification error:', err));
     }
 
     return { success: true, id: postRef.id, slug };
@@ -328,7 +370,7 @@ export async function updatePost(userId: string, postId: string, data: unknown) 
 
     if (isPublic) {
       evictLiveFeed().catch(console.error);
-      notifyFollowers(userId, merged).catch(console.error);
+      notifyFollowers(userId, merged, 'post').catch(console.error);
     }
 
     return { success: true };
@@ -398,11 +440,79 @@ export async function createEvent(userId: string, data: unknown) {
     }
 
     await batch.commit();
+    
+    // Notify everyone who saved this poet
+    notifyFollowers(userId, eventData, 'event').catch((err) => console.error('Notification error:', err));
+
     return { success: true, id: eventRef.id };
   } catch (error: unknown) {
     console.error('createEvent error:', error);
     return { success: false, error: 'No se pudo crear el evento.' };
   }
+}
+
+export async function joinEvent(eventId: string, userEmail: string) {
+  if (!db) return { success: false, error: 'Servicio no disponible.' };
+  try {
+    const eventRef = db.collection('events').doc(eventId);
+    const eventDoc = await eventRef.get();
+    if (!eventDoc.exists) return { success: false, error: 'Evento no encontrado.' };
+    const eventData = eventDoc.data();
+
+    const requestRef = eventRef.collection('participants').doc(userEmail);
+    await requestRef.set({
+      email: userEmail,
+      status: 'pending',
+      requestedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Notify the poet (owner)
+    if (eventData?.ownerUserId) {
+      const poetDoc = await db.collection('users').doc(eventData.ownerUserId).get();
+      const poetData = poetDoc.data();
+      if (poetData?.email) {
+        await sendNotificationEmail(poetData.email, userEmail, { 
+          title: eventData.title,
+          type: 'event_subscription',
+          eventId: eventId
+        });
+      }
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Join event error:', error);
+    return { success: false, error: 'No se pudo solicitar unirse al evento.' };
+  }
+}
+
+export async function acceptParticipant(eventId: string, ownerUserId: string, userEmail: string) {
+  if (!db) return { success: false, error: 'Servicio no disponible.' };
+  try {
+    const eventRef = db.collection('events').doc(eventId);
+    const eventDoc = await eventRef.get();
+    if (!eventDoc.exists || eventDoc.data()?.ownerUserId !== ownerUserId) {
+      return { success: false, error: 'Sin permiso.' };
+    }
+
+    await eventRef.collection('participants').doc(userEmail).update({
+      status: 'accepted',
+      acceptedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Accept participant error:', error);
+    return { success: false, error: 'No se pudo aceptar al participante.' };
+  }
+}
+
+export async function getEventParticipants(eventId: string) {
+  if (!db) return [];
+  const snapshot = await db.collection('events').doc(eventId).collection('participants')
+    .where('status', '==', 'accepted')
+    .get();
+  return snapshot.docs.map((doc: QueryDocumentSnapshot) => doc.data());
 }
 
 export async function updateEvent(userId: string, eventId: string, data: unknown) {
@@ -581,11 +691,11 @@ async function evictLiveFeed(): Promise<void> {
   await batch.commit();
 }
 
-async function notifyFollowers(userId: string, postData: Record<string, unknown>): Promise<void> {
+async function notifyFollowers(userId: string, itemData: Record<string, unknown>, type: 'post' | 'event'): Promise<void> {
   if (!db) return;
   const followersSnapshot = await db.collection('users').doc(userId).collection('followers').get();
   const followerEmails: string[] = followersSnapshot.docs.map((doc: QueryDocumentSnapshot) => doc.id);
   await Promise.allSettled(
-    followerEmails.map((email) => sendNotificationEmail(email, userId, postData))
+    followerEmails.map((email) => sendNotificationEmail(email, userId, { ...itemData, type }))
   );
 }
