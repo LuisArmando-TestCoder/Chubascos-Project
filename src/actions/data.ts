@@ -8,7 +8,23 @@ import { PostSchema, EventSchema, ShaderSchema } from '@/utils/validation';
 import { generateSlug } from '@/utils/generateSlug';
 import type { Post, Event, Shader, Tag, User } from '@/types';
 
-const toData = (doc: QueryDocumentSnapshot) => ({ id: doc.id, ...doc.data() });
+const serialize = (obj: any): any => {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(serialize);
+  if (obj instanceof admin.firestore.Timestamp) {
+    return { seconds: obj.seconds, nanoseconds: obj.nanoseconds };
+  }
+  const serialized: any = {};
+  for (const [key, value] of Object.entries(obj)) {
+    serialized[key] = serialize(value);
+  }
+  return serialized;
+};
+
+const toData = (doc: QueryDocumentSnapshot) => {
+  const data = { id: doc.id, ...doc.data() };
+  return serialize(data);
+};
 
 const LIVE_FEED_MAX = 10;
 const PAGE_SIZE = 10;
