@@ -260,6 +260,40 @@ export async function searchEventsByTag(
   return { items, nextCursor };
 }
 
+export async function getPreviousPost(userId: string, currentUpdatedAt: admin.firestore.Timestamp | SerializedTimestamp | null): Promise<Post | null> {
+  if (!db || !currentUpdatedAt) return null;
+  const ts = currentUpdatedAt instanceof admin.firestore.Timestamp 
+    ? currentUpdatedAt 
+    : new admin.firestore.Timestamp(currentUpdatedAt.seconds, currentUpdatedAt.nanoseconds);
+
+  const snapshot = await db.collection('users').doc(userId).collection('posts')
+    .where('isVisible', '==', true)
+    .where('updatedAt', '<', ts)
+    .orderBy('updatedAt', 'desc')
+    .limit(1)
+    .get();
+
+  if (snapshot.empty) return null;
+  return toData(snapshot.docs[0]) as Post;
+}
+
+export async function getNextPost(userId: string, currentUpdatedAt: admin.firestore.Timestamp | SerializedTimestamp | null): Promise<Post | null> {
+  if (!db || !currentUpdatedAt) return null;
+  const ts = currentUpdatedAt instanceof admin.firestore.Timestamp 
+    ? currentUpdatedAt 
+    : new admin.firestore.Timestamp(currentUpdatedAt.seconds, currentUpdatedAt.nanoseconds);
+
+  const snapshot = await db.collection('users').doc(userId).collection('posts')
+    .where('isVisible', '==', true)
+    .where('updatedAt', '>', ts)
+    .orderBy('updatedAt', 'asc')
+    .limit(1)
+    .get();
+
+  if (snapshot.empty) return null;
+  return toData(snapshot.docs[0]) as Post;
+}
+
 export async function getSavedItems(
   userEmail: string,
   type: 'posts' | 'users' | 'events',

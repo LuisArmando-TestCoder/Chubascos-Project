@@ -100,6 +100,36 @@
   }
 }
 
+.navigation {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+  .navBtn {
+    font-family: v.$font-mono;
+    font-size: 0.72rem;
+    text-transform: lowercase;
+    color: rgba(255, 255, 255, 0.4);
+    text-decoration: none;
+    transition: color 0.2s;
+    max-width: 45%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &:hover {
+      color: v.$accent;
+    }
+  }
+
+  .spacer {
+    flex: 1;
+  }
+}
+
 .footer {
   margin-top: 60px;
   padding-top: 24px;
