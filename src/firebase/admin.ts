@@ -1,4 +1,6 @@
 import * as admin from 'firebase-admin';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // Function to initialize admin explicitly
 export function initAdmin() {
@@ -25,25 +27,31 @@ export function initAdmin() {
     } catch (error: any) {
       console.error('Firebase admin init error from string:', error.message);
       
-      // Fallback: try local file if available
+      // Fallback: try local file if available via fs at runtime
       try {
-        const serviceAccount = require('../../serviceAccountKey.json');
-        admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount),
-        });
-        console.log('Firebase Admin initialized via local JSON file fallback');
+        const saPath = path.resolve(process.cwd(), 'serviceAccountKey.json');
+        if (fs.existsSync(saPath)) {
+          const serviceAccount = JSON.parse(fs.readFileSync(saPath, 'utf8'));
+          admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount),
+          });
+          console.log('Firebase Admin initialized via local JSON file fallback');
+        }
       } catch (innerError: any) {
         console.error('All Firebase Admin initialization methods failed');
       }
     }
   } else {
-    // If env var is missing, try local file directly
+    // If env var is missing, try local file directly via fs at runtime
     try {
-      const serviceAccount = require('../../serviceAccountKey.json');
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-      console.log('Firebase Admin initialized via local JSON file');
+      const saPath = path.resolve(process.cwd(), 'serviceAccountKey.json');
+      if (fs.existsSync(saPath)) {
+        const serviceAccount = JSON.parse(fs.readFileSync(saPath, 'utf8'));
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+        });
+        console.log('Firebase Admin initialized via local JSON file');
+      }
     } catch (e) {
       // Silent for build
     }

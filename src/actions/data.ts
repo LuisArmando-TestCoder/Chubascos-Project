@@ -247,7 +247,7 @@ export async function searchUsersByTag(
     .limit(limitNum * 2) // Fetch more to account for duplicate users
     .get();
 
-  const userIds = Array.from(new Set(postsSnapshot.docs.map(doc => doc.data().userId)));
+  const userIds = Array.from(new Set(postsSnapshot.docs.map((doc: QueryDocumentSnapshot) => doc.data().userId)));
 
   if (userIds.length === 0) return { items: [], nextCursor: null };
 
@@ -395,7 +395,7 @@ export async function createPost(userId: string, data: unknown) {
     // Increment usedBy for each tag
     for (const tagId of validated.tagIds || []) {
       const tagRef = db.collection('tags').doc(tagId);
-      batch.update(tagRef, { usedBy: admin.firestore.FieldValue.increment(1) });
+      batch.update(tagRef, { usedByPosts: admin.firestore.FieldValue.increment(1) });
     }
 
     // Increment usedBy for shader if linked
@@ -481,7 +481,7 @@ export async function deletePost(userId: string, postId: string) {
     // Decrement tag counters
     for (const tagId of postData?.tagIds || []) {
       const tagRef = db.collection('tags').doc(tagId);
-      batch.update(tagRef, { usedBy: admin.firestore.FieldValue.increment(-1) });
+      batch.update(tagRef, { usedByPosts: admin.firestore.FieldValue.increment(-1) });
     }
 
     // Decrement shader counter
@@ -520,7 +520,7 @@ export async function createEvent(userId: string, data: unknown) {
     // Increment tag counters
     for (const tagId of validated.tagIds || []) {
       const tagRef = db.collection('tags').doc(tagId);
-      batch.update(tagRef, { usedBy: admin.firestore.FieldValue.increment(1) });
+      batch.update(tagRef, { usedByEvents: admin.firestore.FieldValue.increment(1) });
     }
 
     await batch.commit();
@@ -630,7 +630,7 @@ export async function deleteEvent(userId: string, eventId: string) {
     const batch = db.batch();
     batch.delete(eventRef);
     for (const tagId of eventData?.tagIds || []) {
-      batch.update(db.collection('tags').doc(tagId), { usedBy: admin.firestore.FieldValue.increment(-1) });
+      batch.update(db.collection('tags').doc(tagId), { usedByEvents: admin.firestore.FieldValue.increment(-1) });
     }
     await batch.commit();
     return { success: true };
@@ -713,7 +713,7 @@ export async function upsertTag(value: string): Promise<{ success: boolean; id?:
     }
 
     const tagRef = db.collection('tags').doc();
-    await tagRef.set({ value, slug, usedBy: 0 });
+    await tagRef.set({ value, slug, usedByPosts: 0, usedByEvents: 0 });
     return { success: true, id: tagRef.id };
   } catch (error: unknown) {
     console.error('upsertTag error:', error);

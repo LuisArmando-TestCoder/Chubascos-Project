@@ -6,7 +6,8 @@ import { TagPill } from '@/components/atoms/TagPill/TagPill';
 import { formatDate } from '@/utils/formatDate';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import i18n from '@/utils/i18n';
-import type { Event } from '@/types';
+import type { Event, Tag } from '@/types';
+
 import styles from './EventDetailTemplate.module.scss';
 
 interface EventDetailTemplateProps {

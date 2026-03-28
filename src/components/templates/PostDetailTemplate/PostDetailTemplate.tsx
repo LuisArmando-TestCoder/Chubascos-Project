@@ -9,7 +9,7 @@ import { formatDate } from '@/utils/formatDate';
 import { sanitizeMarkdown } from '@/utils/sanitizeMarkdown';
 import { getPreviousPost, getNextPost } from '@/actions/data';
 import i18n from '@/utils/i18n';
-import type { Post, User, Shader } from '@/types';
+import type { Post, User, Shader, Tag } from '@/types';
 import styles from './PostDetailTemplate.module.scss';
 
 const ShaderCanvas = dynamic(() => import('@/components/organisms/ShaderCanvas/ShaderCanvas'), {
