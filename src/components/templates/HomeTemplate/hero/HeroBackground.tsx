@@ -15,7 +15,10 @@ export function HeroBackground({ scale, opacity }: HeroBackgroundProps) {
       className={styles.videoContainer}
       style={{ scale, opacity }}
     >
-      <ShaderCanvas shader={HERO_SHADER} />
+      <ShaderCanvas 
+        shader={HERO_SHADER}
+        iChannel2="https://images.pexels.com/photos/2422569/pexels-photo-2422569.jpeg"
+      />
     </motion.div>
   );
 }

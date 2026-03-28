@@ -4,10 +4,21 @@ import styles from './Hero.module.scss';
 
 interface ShaderCanvasProps {
   shader: string;
-  iChannel2?: string; // Background image URL
 }
 
+// Cubic bezier approximation for "drop impact" easing
+// Control points: (0,0) -> (0.22,0) -> (0.36,1) -> (1,1)
+function easeDropImpact(t: number): number {
+  // Approximate cubic bezier via polynomial
+  // Fast in, slow expand
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return 3 * t2 - 2 * t3; // smoothstep base
+}
+
+// Map eased time to ring expansion with realistic physics
 function dropEase(t: number): number {
+  // Fast initial expansion, decelerating
   return 1 - Math.pow(1 - t, 2.5);
 }
 
@@ -15,40 +26,30 @@ interface Droplet {
   x: number;
   y: number;
   startTime: number;
-  duration: number;
+  duration: number; // ms
   maxRadius: number;
 }
 
-export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
-  shader,
-  iChannel2 = 'https://images.pexels.com/photos/2422569/pexels-photo-2422569.jpeg',
-}) => {
+export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({ shader }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameIdRef = useRef<number | null>(null);
-  const isInViewRef = useRef<boolean>(true);
   const startTimeRef = useRef<number>(Date.now());
 
-  // Mouse tracking
+  // Mouse trail morph (iChannel1)
   const targetMouseRef = useRef({ x: 0, y: 0 });
   const mouseRef = useRef({ x: 0, y: 0 });
-  const lastMouseRef = useRef({ x: 0, y: 0 });
-  const brushRadiusRef = useRef<number>(50);
-
-  // Trail morph (iChannel1) - persistent accumulation
   const trailCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const trailCtxRef = useRef<CanvasRenderingContext2D | null>(null);
   const trailTextureRef = useRef<WebGLTexture | null>(null);
 
-  // Droplets (iChannel0)
+  // Droplets canvas (iChannel0)
   const dropCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const dropCtxRef = useRef<CanvasRenderingContext2D | null>(null);
   const dropTextureRef = useRef<WebGLTexture | null>(null);
   const dropletsRef = useRef<Droplet[]>([]);
   const nextDropTimeRef = useRef<number>(Date.now() + Math.random() * 600);
 
-  // Background image (iChannel2)
-  const imageTextureRef = useRef<WebGLTexture | null>(null);
-
+  // WebGL
   const glRef = useRef<WebGLRenderingContext | null>(null);
   const programRef = useRef<WebGLProgram | null>(null);
   const uniformsRef = useRef<{
@@ -57,15 +58,15 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
     iMouse: WebGLUniformLocation | null;
     iChannel0: WebGLUniformLocation | null;
     iChannel1: WebGLUniformLocation | null;
-    iChannel2: WebGLUniformLocation | null;
-  }>({ iRes: null, iTime: null, iMouse: null, iChannel0: null, iChannel1: null, iChannel2: null });
+  }>({ iRes: null, iTime: null, iMouse: null, iChannel0: null, iChannel1: null });
 
   const spawnDrop = (width: number, height: number) => {
+    const now = Date.now();
     dropletsRef.current.push({
       x: Math.random() * width,
       y: Math.random() * height,
-      startTime: Date.now(),
-      duration: 800 + Math.random() * 1200,
+      startTime: now,
+      duration: 800 + Math.random() * 1200, // 0.8s – 2s
       maxRadius: 40 + Math.random() * 80,
     });
   };
@@ -92,7 +93,7 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
     if (!gl) return;
     glRef.current = gl;
 
-    // Hidden canvases
+    // Init hidden canvases
     const trailCanvas = document.createElement('canvas');
     trailCanvasRef.current = trailCanvas;
     trailCtxRef.current = trailCanvas.getContext('2d', { willReadFrequently: true });
@@ -101,7 +102,7 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
     dropCanvasRef.current = dropCanvas;
     dropCtxRef.current = dropCanvas.getContext('2d', { willReadFrequently: true });
 
-    // Textures
+    // Init textures
     const makeTexture = (unit: number): WebGLTexture | null => {
       const tex = gl.createTexture();
       gl.activeTexture(unit);
@@ -114,22 +115,6 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
     };
     dropTextureRef.current = makeTexture(gl.TEXTURE0);
     trailTextureRef.current = makeTexture(gl.TEXTURE1);
-    imageTextureRef.current = makeTexture(gl.TEXTURE2);
-
-    // Load iChannel2 image
-    if (iChannel2) {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        gl.activeTexture(gl.TEXTURE2);
-        gl.bindTexture(gl.TEXTURE_2D, imageTextureRef.current);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-      };
-      img.src = iChannel2;
-    }
 
     // Compile shaders
     const compile = (type: number, src: string) => {
@@ -147,6 +132,7 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
       attribute vec2 position;
       void main() { gl_Position = vec4(position, 0.0, 1.0); }
     `);
+
     const fs = compile(gl.FRAGMENT_SHADER, `
       precision mediump float;
       uniform vec3 iResolution;
@@ -154,7 +140,6 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
       uniform vec4 iMouse;
       uniform sampler2D iChannel0;
       uniform sampler2D iChannel1;
-      uniform sampler2D iChannel2;
       ${shader}
       void main() {
         vec4 color;
@@ -170,12 +155,12 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
     gl.linkProgram(prog);
     programRef.current = prog;
 
-    const posLoc = gl.getAttribLocation(prog, 'position');
+    const pos = gl.getAttribLocation(prog, 'position');
     const buf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(posLoc);
-    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(pos);
+    gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
 
     uniformsRef.current = {
       iRes: gl.getUniformLocation(prog, 'iResolution'),
@@ -183,7 +168,6 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
       iMouse: gl.getUniformLocation(prog, 'iMouse'),
       iChannel0: gl.getUniformLocation(prog, 'iChannel0'),
       iChannel1: gl.getUniformLocation(prog, 'iChannel1'),
-      iChannel2: gl.getUniformLocation(prog, 'iChannel2'),
     };
 
     const handleResize = () => {
@@ -195,96 +179,82 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
     handleResize();
 
     const render = () => {
-      if (!gl || !programRef.current || !isInViewRef.current) {
-        if (!isInViewRef.current) {
-          animationFrameIdRef.current = requestAnimationFrame(render);
-        }
-        return;
-      }
+      if (!gl || !programRef.current) return;
       const now = Date.now();
       const time = (now - startTimeRef.current) / 1000;
       const unif = uniformsRef.current;
 
       // Smooth mouse
-      mouseRef.current.x += (targetMouseRef.current.x - mouseRef.current.x) * 0.15;
-      mouseRef.current.y += (targetMouseRef.current.y - mouseRef.current.y) * 0.15;
+      mouseRef.current.x += (targetMouseRef.current.x - mouseRef.current.x) * 0.12;
+      mouseRef.current.y += (targetMouseRef.current.y - mouseRef.current.y) * 0.12;
 
-      const dx = mouseRef.current.x - lastMouseRef.current.x;
-      const dy = mouseRef.current.y - lastMouseRef.current.y;
-      const speed = Math.sqrt(dx * dx + dy * dy);
-      
-      // Target radius expands significantly on movement (speed), contracts to a base value
-      const targetRadius = Math.min(260, 50 + speed * 4);
-      // Brush size smoothly scales
-      brushRadiusRef.current += (targetRadius - brushRadiusRef.current) * 0.1;
-
-      // --- iChannel1: Mouse trail morph (shrinking ripple via fade out) ---
+      // --- TRAIL CANVAS (iChannel1): Mouse morph ---
       const tCtx = trailCtxRef.current;
       const tCanvas = trailCanvasRef.current;
       if (tCtx && tCanvas) {
-        // Fade out previous trail (creates the decay effect natively)
-        tCtx.fillStyle = 'rgba(0, 0, 0, 0.04)';
+        tCtx.fillStyle = 'rgba(0,0,0,0.04)';
         tCtx.fillRect(0, 0, tCanvas.width, tCanvas.height);
 
-        // Only draw if there's meaningful movement or we're settling
-        if (speed > 0.5 || brushRadiusRef.current > 51) {
-          const drawY = tCanvas.height - mouseRef.current.y; // Flip Y for WebGL
-          const radius = brushRadiusRef.current;
+        const r = 250;
+        const grad = tCtx.createRadialGradient(
+          mouseRef.current.x, mouseRef.current.y, 0,
+          mouseRef.current.x, mouseRef.current.y, r
+        );
+        grad.addColorStop(0, 'rgba(255,255,255,0.28)');
+        grad.addColorStop(0.25, 'rgba(255,255,255,0.12)');
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
 
-          // Draw the single continuous brush
-          const grad = tCtx.createRadialGradient(
-            mouseRef.current.x, drawY, 0,
-            mouseRef.current.x, drawY, radius
-          );
-          
-          // Outer edge drops sharply to create the defined ripple wave
-          grad.addColorStop(0, 'rgba(255, 255, 255, 0.35)');
-          grad.addColorStop(0.3, 'rgba(255, 255, 255, 0.18)');
-          grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        tCtx.beginPath();
+        tCtx.arc(mouseRef.current.x, mouseRef.current.y, r, 0, Math.PI * 2);
+        tCtx.fillStyle = grad;
+        tCtx.fill();
 
-          tCtx.beginPath();
-          tCtx.arc(mouseRef.current.x, drawY, radius, 0, Math.PI * 2);
-          tCtx.fillStyle = grad;
-          tCtx.fill();
-        }
-
-        lastMouseRef.current = { x: mouseRef.current.x, y: mouseRef.current.y };
-
-        // Upload canvas to texture
         gl.activeTexture(gl.TEXTURE1);
         gl.bindTexture(gl.TEXTURE_2D, trailTextureRef.current);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tCanvas);
       }
 
-      // --- iChannel0: Raindrop ripples ---
+      // --- DROP CANVAS (iChannel0): Raindrop ripples ---
       const dCtx = dropCtxRef.current;
       const dCanvas = dropCanvasRef.current;
       if (dCtx && dCanvas) {
+        // Spawn new drops at random intervals
         if (now >= nextDropTimeRef.current) {
           spawnDrop(dCanvas.width, dCanvas.height);
           nextDropTimeRef.current = now + 200 + Math.random() * 800;
         }
 
+        // Clear fully on each frame
         dCtx.clearRect(0, 0, dCanvas.width, dCanvas.height);
+
+        // Remove dead droplets
         dropletsRef.current = dropletsRef.current.filter(d => now - d.startTime < d.duration);
 
+        // Draw each droplet as expanding donut ring
         for (const drop of dropletsRef.current) {
-          const elapsed = (now - drop.startTime) / drop.duration;
+          const elapsed = (now - drop.startTime) / drop.duration; // 0 → 1
           const easedT = dropEase(elapsed);
-          const innerRadius = easedT * drop.maxRadius * 0.55;
+
+          const innerRadius = easedT * drop.maxRadius * 0.6;
           const outerRadius = easedT * drop.maxRadius;
-          const opacityIn = Math.min(elapsed * 12, 1);
-          const opacityOut = Math.pow(1 - elapsed, 1.9);
-          const opacity = opacityIn * opacityOut * 0.85;
+
+          // Opacity: rises quickly, decays smoothly with cubic ease out
+          const opacityIn = Math.min(elapsed * 10, 1); // fast in
+          const opacityOut = Math.pow(1 - elapsed, 1.8); // smooth out
+          const opacity = opacityIn * opacityOut * 0.9;
 
           if (opacity < 0.005 || outerRadius < 1) continue;
 
-          const grad = dCtx.createRadialGradient(drop.x, drop.y, innerRadius, drop.x, drop.y, outerRadius);
-          grad.addColorStop(0, 'rgba(255,255,255,0)');
-          grad.addColorStop(0.15, `rgba(255,255,255,${opacity.toFixed(3)})`);
-          grad.addColorStop(0.65, `rgba(210,230,255,${(opacity * 0.5).toFixed(3)})`);
-          grad.addColorStop(1, 'rgba(200,220,255,0)');
+          // Donut: outer grad fades to 0 well before border
+          const grad = dCtx.createRadialGradient(
+            drop.x, drop.y, innerRadius,
+            drop.x, drop.y, outerRadius
+          );
+          grad.addColorStop(0, `rgba(255,255,255,0)`);
+          grad.addColorStop(0.2, `rgba(255,255,255,${opacity.toFixed(3)})`);
+          grad.addColorStop(0.6, `rgba(220,235,255,${(opacity * 0.6).toFixed(3)})`);
+          grad.addColorStop(1, `rgba(200,220,255,0)`); // Must reach 0 at edge
 
           dCtx.beginPath();
           dCtx.arc(drop.x, drop.y, outerRadius, 0, Math.PI * 2);
@@ -305,23 +275,12 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
       gl.uniform4f(unif.iMouse, mouseRef.current.x, mouseRef.current.y, 0, 0);
       gl.uniform1i(unif.iChannel0, 0);
       gl.uniform1i(unif.iChannel1, 1);
-      gl.uniform1i(unif.iChannel2, 2);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       animationFrameIdRef.current = requestAnimationFrame(render);
     };
 
     render();
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          isInViewRef.current = entry.isIntersecting;
-        });
-      },
-      { threshold: 0 }
-    );
-    observer.observe(canvas);
 
     const onMove = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
@@ -331,12 +290,11 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
     window.addEventListener('mousemove', onMove);
 
     return () => {
-      observer.disconnect();
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('mousemove', onMove);
       if (animationFrameIdRef.current) cancelAnimationFrame(animationFrameIdRef.current);
     };
-  }, [shader, iChannel2]);
+  }, [shader]);
 
   return (
     <div className={styles.canvasContainer}>
