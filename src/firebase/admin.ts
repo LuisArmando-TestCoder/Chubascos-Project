@@ -1,86 +1,89 @@
 import * as admin from 'firebase-admin';
-import * as fs from 'fs';
-import * as path from 'path';
 
-// Function to initialize admin explicitly
+/**
+ * Robustly repairs common issues in the FIREBASE_SERVICE_ACCOUNT JSON string:
+ *
+ * 1. Strips optional surrounding single quotes added by some .env formats
+ * 2. Inside the "private_key" value, fixes:
+ *    - Literal newlines (bare \n characters) → JSON-escaped \n
+ *    - Backslash+space (\ ) → \n  (common copy-paste corruption)
+ *    - Backslash+r+n (\r\n) → \n
+ */
+function repairServiceAccountJson(raw: string): string {
+  let json = raw.trim();
+
+  // Remove wrapping single quotes if present (some .env parsers keep them)
+  if (json.startsWith("'") && json.endsWith("'")) {
+    json = json.slice(1, -1);
+  }
+
+  // ── Fix private_key field ─────────────────────────────────────────────────
+  // Strategy: extract everything between the opening and closing PEM markers,
+  // normalise line endings, then rebuild the key as a valid JSON string value.
+  json = json.replace(
+    /"private_key"\s*:\s*"([\s\S]*?)(?<!\\)"/,
+    (_match, keyBody: string) => {
+      const fixed = keyBody
+        .replace(/\\r\\n/g, '\\n')   // literal \r\n sequences
+        .replace(/\r\n/g, '\\n')     // real CRLF inside the string
+        .replace(/\r/g, '\\n')       // real CR
+        .replace(/\n/g, '\\n')       // real LF
+        .replace(/\\ /g, '\\n')      // backslash+space corruption
+        .replace(/\\n\\n/g, '\\n');  // collapse accidental doubles
+      return `"private_key":"${fixed}"`;
+    }
+  );
+
+  return json;
+}
+
 export function initAdmin() {
   if (admin.apps.length > 0) return;
 
+  // ── Strategy 1: FIREBASE_SERVICE_ACCOUNT full JSON string ─────────────────
   const serviceAccountVar = process.env.FIREBASE_SERVICE_ACCOUNT;
-
-  // ── Strategy 1: Full JSON string in FIREBASE_SERVICE_ACCOUNT ──────────────
   if (serviceAccountVar) {
     try {
-      let cleanJson = serviceAccountVar.trim();
-      
-      // Remove wrapping single quotes if present (standard in some .env formats)
-      if (cleanJson.startsWith("'") && cleanJson.endsWith("'")) {
-        cleanJson = cleanJson.slice(1, -1);
-      }
-
-      // Fix common corrupted private key: literal newlines inside JSON string values
-      // Replace literal newlines (that are inside the JSON string value) with \n
-      // This fixes the "Bad escaped character" parse error
-      cleanJson = cleanJson.replace(/("private_key"\s*:\s*")([\s\S]*?)(")/g, (_match, prefix, key, suffix) => {
-        const fixedKey = key.replace(/\r?\n/g, '\\n').replace(/\\ /g, '\\n');
-        return `${prefix}${fixedKey}${suffix}`;
-      });
-
-      const serviceAccount = JSON.parse(cleanJson);
-
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
+      const repaired = repairServiceAccountJson(serviceAccountVar);
+      const serviceAccount = JSON.parse(repaired);
+      admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
       console.log('🔥 Firebase Admin initialized via FIREBASE_SERVICE_ACCOUNT ✅');
       return;
     } catch (error: any) {
-      console.error('⚠️  Firebase admin init error from FIREBASE_SERVICE_ACCOUNT string:', error.message);
+      console.error('⚠️  Firebase admin FIREBASE_SERVICE_ACCOUNT parse failed:', error.message);
     }
   }
 
-  // ── Strategy 2: Individual env vars (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY) ──
-  const projectId = process.env.FIREBASE_PROJECT_ID;
+  // ── Strategy 2: individual env vars ───────────────────────────────────────
+  const projectId   = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const rawPrivateKey = process.env.FIREBASE_PRIVATE_KEY;
+  const rawKey      = process.env.FIREBASE_PRIVATE_KEY;
 
-  if (projectId && clientEmail && rawPrivateKey) {
+  if (projectId && clientEmail && rawKey) {
     try {
-      // Netlify/Vercel often stores private keys with literal \n; expand them:
-      const privateKey = rawPrivateKey.replace(/\\n/g, '\n');
-
+      // Netlify / Vercel store the key with literal \n that must be expanded
+      const privateKey = rawKey.replace(/\\n/g, '\n');
       admin.initializeApp({
         credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
       });
-      console.log('🔥 Firebase Admin initialized via individual env vars (FIREBASE_PROJECT_ID / CLIENT_EMAIL / PRIVATE_KEY) ✅');
+      console.log('🔥 Firebase Admin initialized via individual env vars ✅');
       return;
     } catch (error: any) {
-      console.error('⚠️  Firebase admin init error from individual env vars:', error.message);
+      console.error('⚠️  Firebase admin individual env vars failed:', error.message);
     }
   }
 
-  // ── Strategy 3: Local serviceAccountKey.json file (dev fallback) ──────────
-  try {
-    const saPath = path.resolve(process.cwd(), 'serviceAccountKey.json');
-    if (fs.existsSync(saPath)) {
-      const serviceAccount = JSON.parse(fs.readFileSync(saPath, 'utf8'));
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-      console.log('🔥 Firebase Admin initialized via local serviceAccountKey.json ✅');
-      return;
-    }
-  } catch (e: any) {
-    console.error('⚠️  Firebase admin init error from local JSON file:', e.message);
-  }
-
-  console.error('❌ All Firebase Admin initialization strategies failed. DB will be unavailable.');
+  console.error(
+    '❌ Firebase Admin could not be initialized.\n' +
+    '   Set FIREBASE_SERVICE_ACCOUNT (full JSON) or the three individual vars:\n' +
+    '   FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY'
+  );
 }
 
 // Auto-init on import
 initAdmin();
 
-export const getDb = () => admin.apps.length ? admin.firestore() : null;
-export const getAuth = () => admin.apps.length ? admin.auth() : null;
-
-export const db = admin.apps.length ? admin.firestore() : null as any;
-export const auth = admin.apps.length ? admin.auth() : null as any;
+export const db   = admin.apps.length ? admin.firestore() : (null as any);
+export const auth = admin.apps.length ? admin.auth()      : (null as any);
+export const getDb   = () => admin.apps.length ? admin.firestore() : null;
+export const getAuth = () => admin.apps.length ? admin.auth()      : null;
