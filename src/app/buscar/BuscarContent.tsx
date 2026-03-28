@@ -6,7 +6,7 @@ import { PostCard } from '@/components/molecules/PostCard/PostCard';
 import { EventCard } from '@/components/molecules/EventCard/EventCard';
 import { UserCard } from '@/components/molecules/UserCard/UserCard';
 import { Footer } from '@/components/organisms/Footer/Footer';
-import { getTags, searchPostsByTag, searchEventsByTag, searchUsers } from '@/actions/data';
+import { getTags, searchPostsByTag, searchEventsByTag, searchUsers, searchUsersByTag } from '@/actions/data';
 import i18n from '@/utils/i18n';
 import type { Post, Event, User, Tag } from '@/types';
 import styles from './buscar.module.scss';
@@ -50,14 +50,21 @@ export function BuscarContent() {
       setEvents((prev) => reset ? result.items : [...prev, ...result.items]);
       setEventCursor(result.nextCursor);
     } else {
-      // Users are searched by keyword, not tag. Pass tag as keyword.
-      const result = await searchUsers(tag, 10, reset ? undefined : userCursor || undefined);
-      setUsers((prev) => reset ? result.items : [...prev, ...result.items]);
-      setUserCursor(result.nextCursor);
+      // If we're searching by a selected tag
+      if (tags.some(t => t.id === tag)) {
+        const result = await searchUsersByTag(tag, 10, reset ? undefined : userCursor || undefined);
+        setUsers((prev) => reset ? result.items : [...prev, ...result.items]);
+        setUserCursor(result.nextCursor);
+      } else {
+        // Fallback for direct keyword search
+        const result = await searchUsers(tag, 10, reset ? undefined : userCursor || undefined);
+        setUsers((prev) => reset ? result.items : [...prev, ...result.items]);
+        setUserCursor(result.nextCursor);
+      }
     }
 
     setLoading(false);
-  }, [postCursor, eventCursor, userCursor]);
+  }, [postCursor, eventCursor, userCursor, tags]);
 
   useEffect(() => {
     loadTagSuggestions('');
