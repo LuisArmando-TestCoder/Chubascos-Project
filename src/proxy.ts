@@ -20,7 +20,7 @@ if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) 
 
   ratelimit = new Ratelimit({
     redis,
-    limiter: Ratelimit.slidingWindow(60, '1 m'),
+    limiter: Ratelimit.slidingWindow(300, '1 m'),
     analytics: true,
   });
 }

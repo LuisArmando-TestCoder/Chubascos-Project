@@ -8,8 +8,8 @@ export async function GET(request: Request) {
   if (!ip) return NextResponse.json({ allowed: true });
 
   const limits = {
-    minute: 60,
-    hour: 1000
+    minute: 300,
+    hour: 5000
   };
 
   try {
