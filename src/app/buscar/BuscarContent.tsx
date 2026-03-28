@@ -111,8 +111,8 @@ export function BuscarContent() {
           {tags.length > 0 && (
             <div className={styles.tagCloud}>
               {tags.map((tag) => {
-                const legacyCount = (tag as any).usedBy || 0;
-                const totalCount = (tag.usedByPosts || 0) + (tag.usedByEvents || 0) + legacyCount;
+                // Only count posts and events — poets are dynamic and not stored in the tag document
+                const totalCount = (tag.usedByPosts || 0) + (tag.usedByEvents || 0);
                 if (totalCount === 0) return null;
                 return (
                   <button
@@ -122,7 +122,7 @@ export function BuscarContent() {
                     aria-pressed={selectedTag === tag.id}
                   >
                     #{tag.value}
-                    {totalCount > 0 && <span className={styles.tagCount}>{totalCount}</span>}
+                    <span className={styles.tagCount}>{totalCount}</span>
                   </button>
                 );
               })}
@@ -132,7 +132,7 @@ export function BuscarContent() {
           <div className={styles.tabs} role="tablist">
             {(['posts', 'events', 'users'] as TabType[]).map((tab) => {
               let label = tab === 'posts' ? i18n.common.poems : tab === 'events' ? i18n.common.events : i18n.common.poets;
-              
+
               if (selectedTag) {
                 const tagObj = tags.find(t => t.id === selectedTag);
                 if (tagObj) {
@@ -166,9 +166,9 @@ export function BuscarContent() {
             <p className={styles.hint}>Selecciona una etiqueta para empezar a buscar.</p>
           )}
 
-          {hasSearched && !loading && selectedTag && 
-            ((activeTab === 'posts' && posts.length === 0) || 
-             (activeTab === 'events' && events.length === 0) || 
+          {hasSearched && !loading && selectedTag &&
+            ((activeTab === 'posts' && posts.length === 0) ||
+             (activeTab === 'events' && events.length === 0) ||
              (activeTab === 'users' && users.length === 0)) && (
             <p className={styles.hint}>No se encontraron resultados para esta etiqueta en la categoría seleccionada.</p>
           )}
