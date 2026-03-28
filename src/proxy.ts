@@ -56,26 +56,10 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Fallback to internal Node.js API guard (which uses the provided Redis Cloud instance)
-  try {
-    const checkUrl = new URL('/api/guard/check', request.url);
-    checkUrl.searchParams.set('ip', ip);
-    
-    const response = await fetch(checkUrl, { method: 'GET' });
-    const data = await response.json();
-
-    if (!data.allowed) {
-      return new NextResponse(
-        JSON.stringify({ error: 'Demasiadas solicitudes. Por favor, espera.' }),
-        { status: 429, headers: { 'content-type': 'application/json' } }
-      );
-    }
-
-    return NextResponse.next();
-  } catch (error) {
-    console.error('Middleware fallback guard error:', error);
-    return NextResponse.next();
-  }
+  // If no Upstash credentials, we bypass Edge rate limiting. 
+  // Calling an internal API route from Edge middleware via `fetch` on Netlify
+  // often leads to AbortError or timeout loops.
+  return NextResponse.next();
 }
 
 export const config = {
