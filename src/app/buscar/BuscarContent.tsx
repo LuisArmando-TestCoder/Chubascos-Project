@@ -114,12 +114,10 @@ export function BuscarContent() {
           {tags.length > 0 && (
             <div className={styles.tagCloud}>
               {tags.map((tag) => {
-                const baseCount = (tag.usedByPosts || 0) + (tag.usedByEvents || 0);
-                // For the selected tag, add dynamically-loaded poets count
-                const totalCount = tag.id === selectedTag
-                  ? baseCount + users.length
-                  : baseCount;
-                if (baseCount === 0) return null;
+                // Badge shows posts + events only (stable, from DB)
+                // Poets count is dynamic and shown in the tab labels instead
+                const totalCount = (tag.usedByPosts || 0) + (tag.usedByEvents || 0);
+                if (totalCount === 0) return null;
                 return (
                   <button
                     key={tag.id}
