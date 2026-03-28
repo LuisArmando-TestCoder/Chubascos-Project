@@ -30,6 +30,7 @@ export function BuscarContent() {
   const [userCursor, setUserCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [usersLoaded, setUsersLoaded] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadTagSuggestions = useCallback(async (prefix: string) => {
@@ -70,10 +71,12 @@ export function BuscarContent() {
   // Preload users in background when tag is selected so count shows on all tabs
   useEffect(() => {
     if (!selectedTag) return;
+    setUsersLoaded(false);
     searchUsersByTag(selectedTag, 10).then((result) => {
       setUsers(result.items);
       setUserCursor(result.nextCursor);
-    }).catch(() => {});
+      setUsersLoaded(true);
+    }).catch(() => { setUsersLoaded(true); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTag]);
 
@@ -143,7 +146,7 @@ export function BuscarContent() {
                     label += ` (${tagObj.usedByPosts})`;
                   } else if (tab === 'events' && tagObj.usedByEvents !== undefined) {
                     label += ` (${tagObj.usedByEvents})`;
-                  } else if (tab === 'users' && users.length > 0) {
+                  } else if (tab === 'users' && usersLoaded) {
                     label += ` (${users.length})`;
                   }
                 }
