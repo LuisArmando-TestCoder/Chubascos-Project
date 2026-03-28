@@ -60,6 +60,7 @@ export function BuscarContent() {
         setUsers((prev) => reset ? result.items : [...prev, ...result.items]);
         setUserCursor(result.nextCursor);
       }
+      setUsersLoaded(true);
     }
     setLoading(false);
   }, [postCursor, eventCursor, userCursor, tags]);
