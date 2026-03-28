@@ -104,7 +104,9 @@ export function BuscarContent() {
           {tags.length > 0 && (
             <div className={styles.tagCloud}>
               {tags.map((tag) => {
-                const totalCount = (tag.usedByPosts || 0) + (tag.usedByEvents || 0);
+                // Incorporate 'usedBy' for backward compatibility just in case
+                const legacyCount = (tag as any).usedBy || 0;
+                const totalCount = (tag.usedByPosts || 0) + (tag.usedByEvents || 0) + legacyCount;
                 
                 // Still allow hiding if total is 0 to keep the tag cloud clean
                 if (totalCount === 0) return null;

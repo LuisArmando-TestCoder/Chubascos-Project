@@ -32,7 +32,12 @@ const PAGE_SIZE = 10;
 // ─── READ ─────────────────────────────────────────────────────────────────────
 
 export async function getLiveFeed(limitNum: number = PAGE_SIZE, cursor?: string) {
-  if (!db) return { items: [], nextCursor: null };
+  console.log(`🌊 [Feed] Cargando feed de poemas | Límite: ${limitNum} | Cursor: ${cursor || 'Inicio'}`);
+  if (!db) {
+    console.error('❌ [Feed] Base de datos no disponible.');
+    return { items: [], nextCursor: null };
+  }
+  
   // live_feed only contains indexed+visible posts by design (enforced at write time)
   let query = db.collection('live_feed')
     .orderBy('updatedAt', 'desc')
@@ -40,12 +45,16 @@ export async function getLiveFeed(limitNum: number = PAGE_SIZE, cursor?: string)
 
   if (cursor) {
     const cursorDoc = await db.collection('live_feed').doc(cursor).get();
-    if (cursorDoc.exists) query = query.startAfter(cursorDoc);
+    if (cursorDoc.exists) {
+      console.log(`🔍 [Feed] Paginación usando cursor: ${cursor}`);
+      query = query.startAfter(cursorDoc);
+    }
   }
 
   const snapshot = await query.get();
   const items = snapshot.docs.map(toData);
   const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
+  console.log(`✅ [Feed] Se cargaron ${items.length} poemas exitosamente.`);
   return { items, nextCursor };
 }
 
@@ -238,7 +247,11 @@ export async function searchUsersByTag(
   limitNum: number = PAGE_SIZE,
   cursor?: string
 ): Promise<{ items: User[]; nextCursor: string | null }> {
-  if (!db) return { items: [], nextCursor: null };
+  console.log(`🔎 👤 [Búsqueda: Poetas] Buscando poetas con tag: "${tagId}"`);
+  if (!db) {
+    console.error('❌ [Búsqueda: Poetas] Base de datos no disponible.');
+    return { items: [], nextCursor: null };
+  }
 
   // This is a complex query because tagIds are on posts, not users.
   // We'll search for posts with the tag, and get unique user IDs.
@@ -249,7 +262,12 @@ export async function searchUsersByTag(
 
   const userIds = Array.from(new Set(postsSnapshot.docs.map((doc: QueryDocumentSnapshot) => doc.data().userId)));
 
-  if (userIds.length === 0) return { items: [], nextCursor: null };
+  if (userIds.length === 0) {
+    console.log(`⚠️  [Búsqueda: Poetas] Ningún poeta ha escrito sobre el tag "${tagId}".`);
+    return { items: [], nextCursor: null };
+  }
+
+  console.log(`👥 [Búsqueda: Poetas] Identificados ${userIds.length} poetas únicos para el tag "${tagId}". Solicitando perfiles...`);
 
   // Fetch user profiles for these IDs
   // Firestore 'in' queries are limited to 10-30 items
@@ -258,6 +276,7 @@ export async function searchUsersByTag(
     .get();
 
   const items = usersSnapshot.docs.map(toData) as User[];
+  console.log(`🌟 [Búsqueda: Poetas] Perfiles recuperados con éxito: ${items.length}`);
   return { items, nextCursor: null };
 }
 
@@ -266,7 +285,12 @@ export async function searchPostsByTag(
   limitNum: number = PAGE_SIZE,
   cursor?: string
 ): Promise<{ items: Post[]; nextCursor: string | null }> {
-  if (!db) return { items: [], nextCursor: null };
+  console.log(`🔎 📝 [Búsqueda: Poemas] Buscando poemas con tag: "${tagId}" | Límite: ${limitNum} | Cursor: ${cursor || 'Inicio'}`);
+  if (!db) {
+    console.error('❌ [Búsqueda: Poemas] Base de datos no disponible.');
+    return { items: [], nextCursor: null };
+  }
+  
   // live_feed only contains indexed+visible posts
   let q: admin.firestore.Query = db.collection('live_feed')
     .where('tagIds', 'array-contains', tagId)
@@ -275,12 +299,16 @@ export async function searchPostsByTag(
 
   if (cursor) {
     const cursorDoc = await db.collection('live_feed').doc(cursor).get();
-    if (cursorDoc.exists) q = q.startAfter(cursorDoc);
+    if (cursorDoc.exists) {
+      console.log(`⏭️  [Búsqueda: Poemas] Paginando a partir del cursor: ${cursor}`);
+      q = q.startAfter(cursorDoc);
+    }
   }
 
   const snapshot = await q.get();
   const items = snapshot.docs.map(toData) as Post[];
   const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
+  console.log(`✨ [Búsqueda: Poemas] Encontrados ${items.length} poemas bajo el tag "${tagId}".`);
   return { items, nextCursor };
 }
 
@@ -289,7 +317,12 @@ export async function searchEventsByTag(
   limitNum: number = PAGE_SIZE,
   cursor?: string
 ): Promise<{ items: Event[]; nextCursor: string | null }> {
-  if (!db) return { items: [], nextCursor: null };
+  console.log(`🔎 📅 [Búsqueda: Eventos] Buscando eventos con tag: "${tagId}" | Límite: ${limitNum}`);
+  if (!db) {
+    console.error('❌ [Búsqueda: Eventos] Base de datos no disponible.');
+    return { items: [], nextCursor: null };
+  }
+  
   let q: admin.firestore.Query = db.collection('events')
     .where('tagIds', 'array-contains', tagId)
     .orderBy('day', 'asc')
@@ -303,6 +336,7 @@ export async function searchEventsByTag(
   const snapshot = await q.get();
   const items = snapshot.docs.map(toData) as Event[];
   const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
+  console.log(`🎉 [Búsqueda: Eventos] Encontrados ${items.length} eventos bajo el tag "${tagId}".`);
   return { items, nextCursor };
 }
 
