@@ -50,25 +50,32 @@ export function BuscarContent() {
       setEvents((prev) => reset ? result.items : [...prev, ...result.items]);
       setEventCursor(result.nextCursor);
     } else {
-      // If we're searching by a selected tag
       if (tags.some(t => t.id === tag)) {
         const result = await searchUsersByTag(tag, 10, reset ? undefined : userCursor || undefined);
         setUsers((prev) => reset ? result.items : [...prev, ...result.items]);
         setUserCursor(result.nextCursor);
       } else {
-        // Fallback for direct keyword search
         const result = await searchUsers(tag, 10, reset ? undefined : userCursor || undefined);
         setUsers((prev) => reset ? result.items : [...prev, ...result.items]);
         setUserCursor(result.nextCursor);
       }
     }
-
     setLoading(false);
   }, [postCursor, eventCursor, userCursor, tags]);
 
   useEffect(() => {
     loadTagSuggestions('');
   }, [loadTagSuggestions]);
+
+  // Preload users in background when tag is selected so count shows on all tabs
+  useEffect(() => {
+    if (!selectedTag) return;
+    searchUsersByTag(selectedTag, 10).then((result) => {
+      setUsers(result.items);
+      setUserCursor(result.nextCursor);
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTag]);
 
   useEffect(() => {
     if (selectedTag) search(selectedTag, activeTab);
@@ -104,13 +111,9 @@ export function BuscarContent() {
           {tags.length > 0 && (
             <div className={styles.tagCloud}>
               {tags.map((tag) => {
-                // Incorporate 'usedBy' for backward compatibility just in case
                 const legacyCount = (tag as any).usedBy || 0;
                 const totalCount = (tag.usedByPosts || 0) + (tag.usedByEvents || 0) + legacyCount;
-                
-                // Still allow hiding if total is 0 to keep the tag cloud clean
                 if (totalCount === 0) return null;
-                
                 return (
                   <button
                     key={tag.id}
@@ -137,6 +140,8 @@ export function BuscarContent() {
                     label += ` (${tagObj.usedByPosts})`;
                   } else if (tab === 'events' && tagObj.usedByEvents !== undefined) {
                     label += ` (${tagObj.usedByEvents})`;
+                  } else if (tab === 'users' && users.length > 0) {
+                    label += ` (${users.length})`;
                   }
                 }
               }
