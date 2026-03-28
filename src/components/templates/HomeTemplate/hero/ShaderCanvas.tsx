@@ -224,6 +224,8 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
     window.addEventListener('resize', handleResize);
     handleResize();
 
+    let lastDrawTime = Date.now();
+
     const render = () => {
       if (!gl || !programRef.current || !isInViewRef.current) {
         if (!isInViewRef.current) {
@@ -233,6 +235,8 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
       }
       const now = Date.now();
       const time = (now - startTimeRef.current) / 1000;
+      const dt = now - lastDrawTime;
+      lastDrawTime = now;
       const unif = uniformsRef.current;
 
       // Fade in overlay image if loaded
@@ -241,6 +245,7 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
       }
 
       // Smooth mouse
+      mouseRef.current.x += (targetMouseRef.current.x - mouseRef.current.x) * 0.15;
       mouseRef.current.y += (targetMouseRef.current.y - mouseRef.current.y) * 0.15;
 
       const dx = mouseRef.current.x - lastMouseRef.current.x;
