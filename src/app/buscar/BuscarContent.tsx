@@ -111,9 +111,12 @@ export function BuscarContent() {
           {tags.length > 0 && (
             <div className={styles.tagCloud}>
               {tags.map((tag) => {
-                // Only count posts and events — poets are dynamic and not stored in the tag document
-                const totalCount = (tag.usedByPosts || 0) + (tag.usedByEvents || 0);
-                if (totalCount === 0) return null;
+                const baseCount = (tag.usedByPosts || 0) + (tag.usedByEvents || 0);
+                // For the selected tag, add dynamically-loaded poets count
+                const totalCount = tag.id === selectedTag
+                  ? baseCount + users.length
+                  : baseCount;
+                if (baseCount === 0) return null;
                 return (
                   <button
                     key={tag.id}
