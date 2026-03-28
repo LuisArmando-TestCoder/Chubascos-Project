@@ -5,14 +5,20 @@ let client: any = null;
 export async function getRedisClient() {
   if (client) return client;
 
-  client = createClient({
-    username: process.env.REDIS_USERNAME || 'default',
-    password: process.env.REDIS_PASSWORD,
-    socket: {
-      host: process.env.REDIS_HOST,
-      port: Number(process.env.REDIS_PORT) || 11588
-    }
-  });
+  const url = process.env.KV_URL || process.env.REDIS_URL;
+
+  if (url) {
+    client = createClient({ url });
+  } else {
+    client = createClient({
+      username: process.env.REDIS_USERNAME || 'default',
+      password: process.env.REDIS_PASSWORD,
+      socket: {
+        host: process.env.REDIS_HOST || '127.0.0.1',
+        port: Number(process.env.REDIS_PORT) || 6379
+      }
+    });
+  }
 
   client.on('error', (err: any) => console.error('Redis Client Error', err));
 
