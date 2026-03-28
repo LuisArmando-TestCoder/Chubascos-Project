@@ -116,7 +116,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     }
     float n = fbm(displacedP * 3.5 + t + trail * 1.8);
 
-    // --- BACKGROUND IMAGE (iChannel2) ---
+    // --- BASE & OVERLAY IMAGES (iChannel2 & iChannel3) ---
     vec2 imgAspect = vec2(1.0);
     float imgRatio = 1.7777; // approx 16/9 for pexels photo
     vec2 coverUV;
@@ -127,7 +127,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     }
 
     // Refract background UVs using our calculated normal offset
-    // This creates the glass/water distortion effect
+    // This creates the glass/water distortion effect for both textures
     float refractionStrength = 0.5;
     vec2 refractedUV = coverUV + normalOffset * refractionStrength;
     
@@ -138,44 +138,45 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
         smoothNoise(displacedP * 4.0 + t + 5.4) - 0.5
     ) * morphStrength;
 
-    vec4 imgColor = texture2D(iChannel2, refractedUV);
+    // Sample both textures with the fully morphed/refracted UVs
+    vec3 baseImgColor = texture2D(iChannel2, refractedUV).rgb;
+    vec3 overlayImgColor = texture2D(iChannel3, refractedUV).rgb;
 
-    // --- COLOR PALETTE ---
+    // Smoothly multiply the overlay over the base image, gated by JS fade
+    // We boost the overlay colors slightly so they pop when multiplied
+    vec3 combinedImgColor = mix(
+        baseImgColor, 
+        baseImgColor * overlayImgColor * 1.8, 
+        overlayFade
+    );
+
+    // --- COLOR PALETTE & FLUID BLENDING ---
     vec3 colorBlack    = vec3(0.01, 0.02, 0.03);
     vec3 colorGray     = vec3(0.13, 0.16, 0.20);
     vec3 colorBlueGray = vec3(0.27, 0.37, 0.50);
     vec3 colorWhite    = vec3(0.83, 0.90, 0.96);
 
+    // Base fluid procedural noise
     vec3 baseLiquid = mix(colorBlack, colorGray, n);
     vec3 fluidColor = mix(baseLiquid, colorBlueGray, smoothstep(0.38, 0.78, n));
 
-    // Blend background image
-    vec3 imgBlended = imgColor.rgb * vec3(0.55, 0.60, 0.65);
-    float imgMix = smoothstep(0.35, 0.75, n);
-    imgMix = clamp(imgMix * 0.45, 0.0, 0.5);
-    fluidColor = mix(fluidColor, imgBlended, imgMix);
-
-    // --- OVERLAY IMAGE (iChannel3) ---
-    // Sample the overlay image using the same refracted UVs
-    vec4 overlayColor = texture2D(iChannel3, refractedUV);
-    
-    // Smoothly multiply the overlay into the fluid, gated by the JS fade variable
-    // This makes the overlay appear seamlessly when loaded, without a hard pop
-    vec3 overlayBlended = overlayColor.rgb * vec3(0.9, 0.95, 1.0); // Slight cool tint
-    fluidColor = mix(fluidColor, fluidColor * overlayBlended * 1.5, overlayFade * 0.65);
+    // Blend the combined, morphed image texture into the procedural fluid
+    // Allow the vibrant colors of the image to shine through the dark water
+    float imgMix = smoothstep(0.2, 0.9, n); // Wider reveal threshold
+    vec3 finalBlended = mix(fluidColor, combinedImgColor * fluidColor * 2.5, imgMix);
 
     // Add specular highlights on the wave crests (where height is positive and high)
     float specular = smoothstep(0.01, 0.03, totalHeight);
-    fluidColor += colorWhite * specular * 10.0; // Radiance set to 10
+    finalBlended += colorWhite * specular * 10.0; // Sharp highlights
     
     // Add shadows in the wave troughs
     float shadow = smoothstep(0.0, -0.02, totalHeight);
-    fluidColor -= colorBlack * shadow * 0.3;
+    finalBlended -= colorBlack * shadow * 0.5;
 
     // Mouse trail shimmer
-    fluidColor = mix(fluidColor, colorWhite * 0.72, trail * 0.42);
-    fluidColor += colorBlueGray * trail * 0.22;
+    finalBlended = mix(finalBlended, colorWhite * 0.72, trail * 0.42);
+    finalBlended += colorBlueGray * trail * 0.22;
 
-    fragColor = vec4(clamp(fluidColor, 0.0, 1.0), 1.0);
+    fragColor = vec4(clamp(finalBlended, 0.0, 1.0), 1.0);
 }
 `;
