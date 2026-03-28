@@ -5,6 +5,7 @@ import styles from './Hero.module.scss';
 interface ShaderCanvasProps {
   shader: string;
   iChannel2?: string; // Background image URL
+  iChannel3?: string; // New foreground overlay image URL
 }
 
 function dropEase(t: number): number {
@@ -22,6 +23,7 @@ interface Droplet {
 export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
   shader,
   iChannel2 = 'https://images.pexels.com/photos/2422569/pexels-photo-2422569.jpeg',
+  iChannel3 = 'https://images.pexels.com/photos/10384062/pexels-photo-10384062.jpeg',
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameIdRef = useRef<number | null>(null);
@@ -49,6 +51,11 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
   // Background image (iChannel2)
   const imageTextureRef = useRef<WebGLTexture | null>(null);
 
+  // Overlay image (iChannel3)
+  const overlayTextureRef = useRef<WebGLTexture | null>(null);
+  const overlayFadeRef = useRef<number>(0.0); // 0 to 1 fade
+  const overlayLoadedRef = useRef<boolean>(false);
+
   const glRef = useRef<WebGLRenderingContext | null>(null);
   const programRef = useRef<WebGLProgram | null>(null);
   const uniformsRef = useRef<{
@@ -58,7 +65,9 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
     iChannel0: WebGLUniformLocation | null;
     iChannel1: WebGLUniformLocation | null;
     iChannel2: WebGLUniformLocation | null;
-  }>({ iRes: null, iTime: null, iMouse: null, iChannel0: null, iChannel1: null, iChannel2: null });
+    iChannel3: WebGLUniformLocation | null;
+    overlayFade: WebGLUniformLocation | null;
+  }>({ iRes: null, iTime: null, iMouse: null, iChannel0: null, iChannel1: null, iChannel2: null, iChannel3: null, overlayFade: null });
 
   const spawnDrop = (width: number, height: number) => {
     dropletsRef.current.push({
@@ -115,6 +124,7 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
     dropTextureRef.current = makeTexture(gl.TEXTURE0);
     trailTextureRef.current = makeTexture(gl.TEXTURE1);
     imageTextureRef.current = makeTexture(gl.TEXTURE2);
+    overlayTextureRef.current = makeTexture(gl.TEXTURE3);
 
     // Load iChannel2 image
     if (iChannel2) {
@@ -129,6 +139,22 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
       };
       img.src = iChannel2;
+    }
+
+    // Load iChannel3 image (Overlay)
+    if (iChannel3) {
+      const img3 = new Image();
+      img3.crossOrigin = 'anonymous';
+      img3.onload = () => {
+        gl.activeTexture(gl.TEXTURE3);
+        gl.bindTexture(gl.TEXTURE_2D, overlayTextureRef.current);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img3);
+        overlayLoadedRef.current = true;
+      };
+      img3.src = iChannel3;
     }
 
     // Compile shaders
@@ -155,6 +181,8 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
       uniform sampler2D iChannel0;
       uniform sampler2D iChannel1;
       uniform sampler2D iChannel2;
+      uniform sampler2D iChannel3;
+      uniform float overlayFade;
       ${shader}
       void main() {
         vec4 color;
@@ -184,6 +212,8 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
       iChannel0: gl.getUniformLocation(prog, 'iChannel0'),
       iChannel1: gl.getUniformLocation(prog, 'iChannel1'),
       iChannel2: gl.getUniformLocation(prog, 'iChannel2'),
+      iChannel3: gl.getUniformLocation(prog, 'iChannel3'),
+      overlayFade: gl.getUniformLocation(prog, 'overlayFade'),
     };
 
     const handleResize = () => {
@@ -205,8 +235,12 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
       const time = (now - startTimeRef.current) / 1000;
       const unif = uniformsRef.current;
 
+      // Fade in overlay image if loaded
+      if (overlayLoadedRef.current && overlayFadeRef.current < 1.0) {
+        overlayFadeRef.current = Math.min(1.0, overlayFadeRef.current + dt * 0.001); // 1-second fade
+      }
+
       // Smooth mouse
-      mouseRef.current.x += (targetMouseRef.current.x - mouseRef.current.x) * 0.15;
       mouseRef.current.y += (targetMouseRef.current.y - mouseRef.current.y) * 0.15;
 
       const dx = mouseRef.current.x - lastMouseRef.current.x;
@@ -306,6 +340,8 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
       gl.uniform1i(unif.iChannel0, 0);
       gl.uniform1i(unif.iChannel1, 1);
       gl.uniform1i(unif.iChannel2, 2);
+      gl.uniform1i(unif.iChannel3, 3);
+      gl.uniform1f(unif.overlayFade, overlayFadeRef.current);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       animationFrameIdRef.current = requestAnimationFrame(render);

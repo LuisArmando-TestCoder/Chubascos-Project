@@ -155,6 +155,15 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     imgMix = clamp(imgMix * 0.45, 0.0, 0.5);
     fluidColor = mix(fluidColor, imgBlended, imgMix);
 
+    // --- OVERLAY IMAGE (iChannel3) ---
+    // Sample the overlay image using the same refracted UVs
+    vec4 overlayColor = texture2D(iChannel3, refractedUV);
+    
+    // Smoothly multiply the overlay into the fluid, gated by the JS fade variable
+    // This makes the overlay appear seamlessly when loaded, without a hard pop
+    vec3 overlayBlended = overlayColor.rgb * vec3(0.9, 0.95, 1.0); // Slight cool tint
+    fluidColor = mix(fluidColor, fluidColor * overlayBlended * 1.5, overlayFade * 0.65);
+
     // Add specular highlights on the wave crests (where height is positive and high)
     float specular = smoothstep(0.01, 0.03, totalHeight);
     fluidColor += colorWhite * specular * 10.0; // Radiance set to 10
