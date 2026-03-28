@@ -50,10 +50,12 @@ export function BuscarContent() {
       setEvents((prev) => reset ? result.items : [...prev, ...result.items]);
       setEventCursor(result.nextCursor);
     } else {
-      const result = await searchUsersByTag(tag, 10, reset ? undefined : userCursor || undefined);
+      // Users are searched by keyword, not tag. Pass tag as keyword.
+      const result = await searchUsers(tag, 10, reset ? undefined : userCursor || undefined);
       setUsers((prev) => reset ? result.items : [...prev, ...result.items]);
       setUserCursor(result.nextCursor);
     }
+
     setLoading(false);
   }, [postCursor, eventCursor, userCursor]);
 
@@ -94,32 +96,54 @@ export function BuscarContent() {
 
           {tags.length > 0 && (
             <div className={styles.tagCloud}>
-              {tags.map((tag) => (
-                <button
-                  key={tag.id}
-                  className={`${styles.tagBtn} ${selectedTag === tag.id ? styles.active : ''}`}
-                  onClick={() => setSelectedTag(tag.id)}
-                  aria-pressed={selectedTag === tag.id}
-                >
-                  #{tag.value}
-                  {tag.usedBy > 0 && <span className={styles.tagCount}>{tag.usedBy}</span>}
-                </button>
-              ))}
+              {tags.map((tag) => {
+                const totalCount = (tag.usedByPosts || 0) + (tag.usedByEvents || 0);
+                
+                // Still allow hiding if total is 0 to keep the tag cloud clean
+                if (totalCount === 0) return null;
+                
+                return (
+                  <button
+                    key={tag.id}
+                    className={`${styles.tagBtn} ${selectedTag === tag.id ? styles.active : ''}`}
+                    onClick={() => setSelectedTag(tag.id)}
+                    aria-pressed={selectedTag === tag.id}
+                  >
+                    #{tag.value}
+                    {totalCount > 0 && <span className={styles.tagCount}>{totalCount}</span>}
+                  </button>
+                );
+              })}
             </div>
           )}
 
           <div className={styles.tabs} role="tablist">
-            {(['posts', 'events', 'users'] as TabType[]).map((tab) => (
-              <button
-                key={tab}
-                role="tab"
-                aria-selected={activeTab === tab}
-                className={`${styles.tab} ${activeTab === tab ? styles.activeTab : ''}`}
-                onClick={() => setActiveTab(tab)}
-              >
-                {tab === 'posts' ? i18n.common.poems : tab === 'events' ? i18n.common.events : i18n.common.poets}
-              </button>
-            ))}
+            {(['posts', 'events', 'users'] as TabType[]).map((tab) => {
+              let label = tab === 'posts' ? i18n.common.poems : tab === 'events' ? i18n.common.events : i18n.common.poets;
+              
+              if (selectedTag) {
+                const tagObj = tags.find(t => t.id === selectedTag);
+                if (tagObj) {
+                  if (tab === 'posts' && tagObj.usedByPosts !== undefined) {
+                    label += ` (${tagObj.usedByPosts})`;
+                  } else if (tab === 'events' && tagObj.usedByEvents !== undefined) {
+                    label += ` (${tagObj.usedByEvents})`;
+                  }
+                }
+              }
+
+              return (
+                <button
+                  key={tab}
+                  role="tab"
+                  aria-selected={activeTab === tab}
+                  className={`${styles.tab} ${activeTab === tab ? styles.activeTab : ''}`}
+                  onClick={() => setActiveTab(tab)}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
 
           {loading && <p className={styles.loading}>{i18n.common.loading}</p>}

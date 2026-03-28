@@ -54,7 +54,8 @@ export type Tag = {
   id: string;
   value: string;
   slug: string;
-  usedBy: number;
+  usedByPosts: number; // counter for posts
+  usedByEvents: number; // counter for events
 };
 
 export type Shader = {

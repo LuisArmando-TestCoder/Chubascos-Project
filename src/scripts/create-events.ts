@@ -3,6 +3,7 @@ import { faker } from '@faker-js/faker';
 import * as dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import { REALISTIC_EVENTS } from './realistic-data';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
@@ -51,11 +52,12 @@ async function createBulkEvents() {
     for (let i = 0; i < EVENTS_PER_USER; i++) {
       const eventRef = db.collection('events').doc();
       const selectedTags = faker.helpers.arrayElements(tagIds, { min: 1, max: 2 });
+      const eventTitle = faker.helpers.arrayElement(REALISTIC_EVENTS);
       
       const eventData = {
         id: eventRef.id,
         ownerUserId: userId,
-        title: faker.company.catchPhrase(),
+        title: `${eventTitle} - ${faker.location.city()}`,
         description: faker.lorem.paragraph(),
         day: admin.firestore.Timestamp.fromDate(faker.date.future()),
         hour: `${faker.number.int({ min: 10, max: 23 })}:00`,
@@ -73,7 +75,7 @@ async function createBulkEvents() {
       // Increment tag counts
       for (const tagId of selectedTags) {
         await db.collection('tags').doc(tagId).update({
-          usedBy: admin.firestore.FieldValue.increment(1)
+          usedByEvents: admin.firestore.FieldValue.increment(1)
         });
       }
     }
