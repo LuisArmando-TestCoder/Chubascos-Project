@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getEvent } from '@/actions/data';
+import { getEvent, getTagsByIds } from '@/actions/data';
 import { EventDetailTemplate } from '@/components/templates/EventDetailTemplate/EventDetailTemplate';
 import { Footer } from '@/components/organisms/Footer/Footer';
 
@@ -23,9 +23,12 @@ export default async function EventDetailPage({ params }: Props) {
   const { eventId } = await params;
   const event = await getEvent(eventId);
   if (!event) notFound();
+
+  const tags = await getTagsByIds(event.tagIds || []);
+
   return (
     <>
-      <EventDetailTemplate event={event} />
+      <EventDetailTemplate event={event} tags={tags} />
       <Footer />
     </>
   );

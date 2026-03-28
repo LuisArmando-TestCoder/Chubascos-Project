@@ -11,95 +11,118 @@ import styles from './EventDetailTemplate.module.scss';
 
 interface EventDetailTemplateProps {
   event: Event;
+  tags?: Tag[];
 }
 
-export function EventDetailTemplate({ event }: EventDetailTemplateProps) {
+export function EventDetailTemplate({ event, tags = [] }: EventDetailTemplateProps) {
   const [qrOpen, setQrOpen] = useState(false);
   const { isEventSaved, saveEvent, unsaveEvent } = useSavedItems();
   const isSaved = isEventSaved(event.id);
   const eventUrl = typeof window !== 'undefined' ? `${window.location.origin}/e/${event.id}` : `/e/${event.id}`;
 
   return (
-    <div className={styles.page}>
-      <article className={styles.article}>
-        <header className={styles.header}>
-          <div className={styles.dateLine}>
-            <span className={styles.day}>{event.day ? formatDate(event.day) : '—'}</span>
-            <span className={styles.hour}>{event.hour}</span>
-          </div>
-          <h1 className={styles.title}>{event.title}</h1>
-          <p className={styles.place}>{event.place}</p>
-          {event.price !== undefined && (
-            <p className={styles.price}>
-              {event.price === 0 ? i18n.event.priceFree : `₡${event.price.toLocaleString('es-CR')}`}
-            </p>
-          )}
-        </header>
+    <main className={styles.page}>
+      <div className={styles.contentGrid}>
+        <article className={styles.article}>
+          <header className={styles.header}>
+            <div className={styles.meta}>
+              <div className={styles.dateBlock}>
+                <span className={styles.label}>Fecha</span>
+                <span className={styles.day}>{event.day ? formatDate(event.day) : '—'}</span>
+              </div>
+              <div className={styles.hourBlock}>
+                <span className={styles.label}>Hora</span>
+                <span className={styles.hour}>{event.hour}</span>
+              </div>
+            </div>
+            
+            <h1 className={styles.title}>{event.title}</h1>
+            
+            <div className={styles.locationBlock}>
+              <span className={styles.label}>Ubicación</span>
+              <p className={styles.place}>{event.place}</p>
+            </div>
 
-        {event.description && (
-          <section className={styles.description}>
-            <p>{event.description}</p>
+            {event.price !== undefined && (
+              <div className={styles.priceBlock}>
+                <span className={styles.label}>Entrada</span>
+                <p className={styles.price}>
+                  {event.price === 0 ? i18n.event.priceFree : `₡${event.price.toLocaleString('es-CR')}`}
+                </p>
+              </div>
+            )}
+          </header>
+
+          <section className={styles.mainInfo}>
+            {event.description && (
+              <div className={styles.description}>
+                <p className={styles.label}>Sobre el evento</p>
+                <div className={styles.descText}>{event.description}</div>
+              </div>
+            )}
+
+            {tags.length > 0 && (
+              <div className={styles.tagsSection}>
+                <p className={styles.label}>Etiquetas</p>
+                <div className={styles.tags}>
+                  {tags.map((tag) => (
+                    <TagPill key={tag.id} tagId={tag.id} value={tag.value} size="sm" />
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
-        )}
 
-        {event.tagIds?.length > 0 && (
-          <div className={styles.tags}>
-            {event.tagIds.map((id) => (
-              <TagPill key={id} tagId={id} value={id} size="sm" />
-            ))}
-          </div>
-        )}
+          <section className={styles.interaction}>
+             <div className={styles.actions}>
+              <button
+                className={`${styles.saveBtn} ${isSaved ? styles.saved : ''}`}
+                onClick={() => isSaved ? unsaveEvent(event.id) : saveEvent(event.id)}
+              >
+                {isSaved ? 'Agendado' : 'Guardar Evento'}
+              </button>
+              <button className={styles.qrBtn} onClick={() => setQrOpen(true)}>
+                Obtener Pase QR
+              </button>
+            </div>
+          </section>
+        </article>
 
-        {event.urls?.length > 0 && (
-          <section className={styles.links}>
-            <h2 className={styles.linksTitle}>Enlaces</h2>
-            <ul>
-              {event.urls.map((url, i) => (
-                <li key={i}>
-                  <a href={url} target="_blank" rel="noopener noreferrer" className={styles.link}>
-                    {url}
+        <aside className={styles.sidebar}>
+          {event.urls?.length > 0 && (
+            <section className={styles.sidebarSection}>
+              <h3 className={styles.sidebarTitle}>Enlaces oficiales</h3>
+              <div className={styles.linksList}>
+                {event.urls.map((url, i) => (
+                  <a key={i} href={url} target="_blank" rel="noopener noreferrer" className={styles.externalLink}>
+                    {new URL(url).hostname} →
                   </a>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+                ))}
+              </div>
+            </section>
+          )}
 
-        {event.contacts?.length > 0 && (
-          <section className={styles.contactsSection}>
-            <h2 className={styles.linksTitle}>Contacto</h2>
-            <ul>
-              {event.contacts.map((c, i) => (
-                <li key={i} className={styles.contactItem}>{c}</li>
-              ))}
-            </ul>
-          </section>
-        )}
+          {event.contacts?.length > 0 && (
+            <section className={styles.sidebarSection}>
+              <h3 className={styles.sidebarTitle}>Contacto directo</h3>
+              <div className={styles.contactsList}>
+                {event.contacts.map((c, i) => (
+                  <span key={i} className={styles.contactItem}>{c}</span>
+                ))}
+              </div>
+            </section>
+          )}
 
-        <footer className={styles.footer}>
-          <div className={styles.footerActions}>
-            <button
-              className={`${styles.saveBtn} ${isSaved ? styles.saved : ''}`}
-              onClick={() => isSaved ? unsaveEvent(event.id) : saveEvent(event.id)}
-              aria-label={isSaved ? 'Dejar de guardar evento' : 'Guardar evento'}
-            >
-              {isSaved ? i18n.common.accepted : i18n.common.save}
-            </button>
-            <button
-              className={styles.qrBtn}
-              onClick={() => setQrOpen(true)}
-              aria-label="Ver código QR del evento"
-            >
-              QR
-            </button>
+          <div className={styles.organizerSection}>
+             <span className={styles.label}>Organizado por</span>
+             <Link href={`/u/${event.ownerUserId}`} className={styles.ownerLink}>
+                Ver perfil del autor
+             </Link>
           </div>
-          <Link href={`/u/${event.ownerUserId}`} className={styles.ownerLink}>
-            ← {i18n.event.organizer}
-          </Link>
-        </footer>
-      </article>
+        </aside>
+      </div>
 
       <QrModal isOpen={qrOpen} onClose={() => setQrOpen(false)} url={eventUrl} label={event.title} />
-    </div>
+    </main>
   );
 }

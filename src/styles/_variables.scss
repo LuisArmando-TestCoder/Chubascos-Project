@@ -25,6 +25,12 @@ $max-width: 1440px;
 $safe-padding: 5vw;
 $header-height: 64px;
 
+// -- BREAKPOINTS --
+$mobile: 480px;
+$tablet: 768px;
+$laptop: 1024px;
+$desktop: 1280px;
+
 // -- MOTION --
 $ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 $duration-base: 0.6s;

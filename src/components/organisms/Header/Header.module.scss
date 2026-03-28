@@ -43,7 +43,13 @@
 .actions {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
+  margin-right: 64px;
+
+  @media (max-width: v.$tablet) {
+    margin-right: 60px;
+    gap: 16px;
+  }
 }
 
 .saved {
@@ -89,7 +95,9 @@
   text-decoration: none;
   border: 1px solid rgba(255, 255, 255, 0.15);
   padding: 6px 14px;
-  transition: color 0.2s, border-color 0.2s;
+  transition:
+    color 0.2s,
+    border-color 0.2s;
 
   &:hover {
     color: #fff;
@@ -97,30 +105,51 @@
   }
 }
 
-.hamburger {
-  background: none;
-  border: none;
+.hamWrapper {
   cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
   display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 6px;
+  align-items: center;
+  position: fixed;
+  top: calc((v.$header-height - 60px) / 2);
+  right: v.$safe-padding;
+  z-index: 300;
 
-  span {
-    display: block;
-    width: 22px;
-    height: 1px;
-    background: rgba(255, 255, 255, 0.7);
-    transition: transform 0.3s, opacity 0.3s;
+  @media (max-width: v.$tablet) {
+    right: 5vw;
   }
+}
 
-  &.active span:nth-child(1) {
-    transform: translateY(6px) rotate(45deg);
-  }
-  &.active span:nth-child(2) {
-    opacity: 0;
-  }
-  &.active span:nth-child(3) {
-    transform: translateY(-6px) rotate(-45deg);
-  }
+.ham {
+  cursor: pointer;
+  transition: transform 400ms;
+}
+
+.line {
+  fill: none;
+  transition:
+    stroke-dasharray 400ms,
+    stroke-dashoffset 400ms;
+  stroke: v.$white;
+  stroke-width: 5.5;
+  stroke-linecap: round;
+  opacity: 0.8;
+}
+
+.hamRotate.active {
+  transform: rotate(45deg);
+}
+
+.ham4 .top {
+  stroke-dasharray: 40 121;
+}
+.ham4 .bottom {
+  stroke-dasharray: 40 121;
+}
+.ham4.active .top {
+  stroke-dashoffset: -68px;
+}
+.ham4.active .bottom {
+  stroke-dashoffset: -68px;
 }

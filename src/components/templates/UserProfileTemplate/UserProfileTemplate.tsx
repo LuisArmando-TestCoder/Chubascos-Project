@@ -40,68 +40,102 @@ export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCur
   const sentinelRef = useInfiniteScroll({ onLoadMore: loadMore, hasMore: !!cursor });
 
   return (
-    <div className={styles.page}>
-      <header className={styles.profile}>
-        <div className={styles.profileInner}>
-          <div className={styles.avatar}>{name.slice(0, 1).toUpperCase()}</div>
-          <div className={styles.info}>
-            <h1 className={styles.name}>{name}</h1>
-            {user.bio && <p className={styles.bio}>{user.bio}</p>}
-            {user.contacts?.length > 0 && (
-              <ul className={styles.contacts}>
-                {user.contacts.map((c, i) => (
-                  <li key={i}>
-                    <a href={c.url} target="_blank" rel="noopener noreferrer" className={styles.contact}>
-                      {c.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <div className={styles.actions}>
-            <button
-              className={`${styles.saveBtn} ${isSaved ? styles.saved : ''}`}
-              onClick={() => isSaved ? unsaveUser(user.id) : saveUser(user.id)}
-              aria-label={isSaved ? `Dejar de guardar a ${name}` : `Guardar a ${name}`}
-            >
-              {isSaved ? i18n.common.accepted : i18n.common.save}
-            </button>
-            <button
-              className={styles.qrBtn}
-              onClick={() => setQrOpen(true)}
-              aria-label="Ver código QR de este perfil"
-            >
-              QR
-            </button>
-          </div>
-        </div>
-      </header>
+    <main className={styles.page}>
+      {/* Immersive Background Branding */}
+      <div className={styles.contentGrid}>
+        <article className={styles.profileArticle}>
+          <header className={styles.profileHeader}>
+            <div className={styles.avatarBlock}>
+              <div className={styles.avatar}>{name.slice(0, 1).toUpperCase()}</div>
+              <span className={styles.label}>Perfil Verificado</span>
+            </div>
 
-      <main className={styles.posts}>
-        <div className={styles.postsInner}>
-          <h2 className={styles.postsTitle}>{i18n.common.poems}</h2>
-          {posts.length === 0 ? (
-            <p className={styles.empty}>{i18n.profile.emptyPoems}</p>
-          ) : (
-            posts.map((post) => (
-              <motion.div
-                key={post.id}
-                whileInView={{ opacity: 1, y: 0 }}
-                initial={{ opacity: 0, y: 16 }}
-                transition={{ duration: 0.4, ease: [0.25, 1, 0.5, 1] }}
-                viewport={{ once: true }}
-              >
-                <PostCard post={post} />
-              </motion.div>
-            ))
+            <h1 className={styles.name}>{name}</h1>
+            
+            <div className={styles.bioBlock}>
+              <span className={styles.label}>Biografía</span>
+              {user.bio ? (
+                <div className={styles.bioText}>{user.bio}</div>
+              ) : (
+                <p className={styles.emptyBio}>Este poeta aún no ha compartido su historia.</p>
+              )}
+            </div>
+
+            <div className={styles.interaction}>
+              <div className={styles.actions}>
+                <button
+                  className={`${styles.saveBtn} ${isSaved ? styles.saved : ''}`}
+                  onClick={() => isSaved ? unsaveUser(user.id) : saveUser(user.id)}
+                >
+                  {isSaved ? 'Siguiendo' : 'Seguir Poeta'}
+                </button>
+                <button className={styles.qrBtn} onClick={() => setQrOpen(true)}>
+                  Compartir Perfil
+                </button>
+              </div>
+            </div>
+          </header>
+
+          <section className={styles.poemsSection}>
+            <div className={styles.sectionHeader}>
+               <span className={styles.label}>Obra publicada</span>
+               <h2 className={styles.sectionTitle}>Poemas</h2>
+            </div>
+
+            <div className={styles.postsGrid}>
+              {posts.length === 0 ? (
+                <p className={styles.empty}>{i18n.profile.emptyPoems}</p>
+              ) : (
+                posts.map((post, i) => (
+                  <motion.div
+                    key={post.id}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    transition={{ duration: 0.5, delay: i % 3 * 0.1 }}
+                    viewport={{ once: true }}
+                  >
+                    <PostCard post={post} />
+                  </motion.div>
+                ))
+              )}
+            </div>
+            <div ref={sentinelRef} style={{ height: 40 }} />
+            {loading && <p className={styles.loading}>{i18n.common.loading}</p>}
+          </section>
+        </article>
+
+        <aside className={styles.sidebar}>
+          {user.contacts?.length > 0 && (
+            <section className={styles.sidebarSection}>
+              <h3 className={styles.sidebarTitle}>Canales digitales</h3>
+              <div className={styles.linksList}>
+                {user.contacts.map((c, i) => (
+                  <a key={i} href={c.url} target="_blank" rel="noopener noreferrer" className={styles.externalLink}>
+                    {c.label} →
+                  </a>
+                ))}
+              </div>
+            </section>
           )}
-          <div ref={sentinelRef} style={{ height: 1 }} />
-          {loading && <p className={styles.loading}>{i18n.common.loading}</p>}
-        </div>
-      </main>
+
+          <div className={styles.statsSection}>
+             <div className={styles.statItem}>
+                <span className={styles.label}>Publicaciones</span>
+                <span className={styles.statValue}>{posts.length}</span>
+             </div>
+          </div>
+
+          <div className={styles.creativeEngineering}>
+            <p className={styles.title}>CHUBASCOS</p>
+            <p className={styles.text}>
+              Donde la palabra encuentra su cauce. 
+              Explora el universo creativo de {name}.
+            </p>
+          </div>
+        </aside>
+      </div>
 
       <QrModal isOpen={qrOpen} onClose={() => setQrOpen(false)} url={profileUrl} label={name} />
-    </div>
+    </main>
   );
 }

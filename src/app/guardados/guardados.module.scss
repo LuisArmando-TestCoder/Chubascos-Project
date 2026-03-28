@@ -1,124 +1,245 @@
 @use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
 
-.main {
+.page {
   min-height: 100vh;
+  display: flex;
+  justify-content: center;
   padding-top: v.$header-height;
+  overflow-x: hidden;
+
+  @media (max-width: v.$tablet) {
+    display: flex;
+    flex-direction: column;
+    padding-top: 80px;
+  }
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 350px);
+  gap: clamp(2rem, 6vw, 6rem);
+  padding: 80px 4vw;
+
+  @media (max-width: v.$laptop) {
+    grid-template-columns: 1fr;
+    gap: 4rem;
+    padding: 60px 2rem;
+  }
+
+  @media (max-width: v.$tablet) {
+    padding: 40px 1.5rem;
+  }
 }
 
 .inner {
-  max-width: v.$max-width;
-  margin: 0 auto;
-  padding: 60px 5vw 100px;
+  max-width: 900px;
 }
 
 .header {
-  margin-bottom: 40px;
+  margin-bottom: 5rem;
+}
+
+.label {
+  @include m.font-body;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.2);
+  display: block;
+  margin-bottom: 0.5rem;
 }
 
 .title {
-  font-family: v.$font-serif;
-  font-size: clamp(2rem, 5vw, 3rem);
-  font-weight: 300;
+  @include m.font-heading;
+  font-size: clamp(3rem, 8vw, 6rem);
+  line-height: 0.95;
+  margin: 0 0 2rem;
   letter-spacing: -0.04em;
-  margin: 0 0 16px;
+  color: v.$white;
 }
 
 .empty {
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.35);
-  line-height: 1.7;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.4);
+  line-height: 1.6;
 }
 
-.link {
-  color: rgba(255, 255, 255, 0.6);
-  font-family: v.$font-mono;
-  font-size: 0.8rem;
-  transition: color 0.2s;
+.exploreLink {
+  @include m.font-heading;
+  font-size: 0.9rem;
+  color: v.$accent;
+  text-decoration: none;
+  display: inline-block;
+  margin-top: 1rem;
+  transition: transform 0.2s;
 
   &:hover {
-    color: v.$white;
+    transform: translateX(5px);
   }
+}
+
+.collectionSpace {
+  margin-top: 4rem;
 }
 
 .tabs {
   display: flex;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  margin-bottom: 32px;
+  gap: 3rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 4rem;
+  
+  @media (max-width: v.$mobile) {
+    gap: 1.5rem;
+  }
 }
 
 .tab {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.35);
-  font-family: v.$font-mono;
-  font-size: 0.72rem;
-  text-transform: lowercase;
-  letter-spacing: 0.08em;
-  padding: 10px 20px;
+  padding: 1.5rem 0;
   cursor: pointer;
-  border-bottom: 1px solid transparent;
-  margin-bottom: -1px;
-  transition: color 0.2s, border-color 0.2s;
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  position: relative;
+  transition: opacity 0.3s;
+  opacity: 0.3;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: v.$accent;
+    transform: scaleX(0);
+    transition: transform 0.3s v.$ease-out;
+  }
 
   &:hover {
-    color: rgba(255, 255, 255, 0.7);
+    opacity: 0.7;
   }
 
   &.activeTab {
-    color: v.$white;
-    border-bottom-color: v.$white;
+    opacity: 1;
+    &::after { transform: scaleX(1); }
   }
 }
 
+.tabLabel {
+  @include m.font-heading;
+  font-size: clamp(1rem, 2vw, 1.5rem);
+  color: v.$white;
+}
+
+.tabCount {
+  font-family: v.$font-mono;
+  font-size: 0.7rem;
+  color: v.$accent;
+}
+
 .list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 1rem;
 }
 
 .item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s v.$ease-out;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.04);
+    transform: translateX(10px);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  @media (max-width: v.$mobile) {
+    padding: 1.5rem;
+  }
 }
 
 .itemLink {
-  font-family: v.$font-mono;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.5);
   text-decoration: none;
-  transition: color 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
 
-  code {
-    color: rgba(255, 255, 255, 0.3);
-  }
+.itemLabel {
+  @include m.font-body;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.2);
+}
 
-  &:hover {
-    color: rgba(255, 255, 255, 0.9);
-  }
+.itemValue {
+  @include m.font-heading;
+  font-size: 1.1rem;
+  color: v.$white;
+  max-width: 80%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .removeBtn {
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.2);
-  font-size: 0.7rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
+  font-family: v.$font-mono;
+  font-size: 0.65rem;
+  padding: 0.5rem 1rem;
   cursor: pointer;
-  padding: 4px 8px;
-  transition: color 0.2s;
+  text-transform: uppercase;
+  transition: all 0.2s;
 
   &:hover {
+    border-color: #e86b6b;
     color: #e86b6b;
   }
 }
 
-.emptyTab {
-  font-family: v.$font-mono;
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
+}
+
+.statsCard {
+  padding: 2.5rem;
+  background: v.$white;
+  color: v.$black;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  .label {
+    color: rgba(0, 0, 0, 0.4);
+  }
+}
+
+.statLine {
+  display: flex;
+  flex-direction: column;
+}
+
+.statLabel {
+  @include m.font-body;
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.statValue {
+  @include m.font-heading;
+  font-size: 3rem;
+  line-height: 1;
 }

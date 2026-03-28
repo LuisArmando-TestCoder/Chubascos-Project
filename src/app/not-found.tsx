@@ -5,7 +5,7 @@ export default function NotFound() {
   return (
     <main className={styles.main}>
       <div className={styles.inner}>
-        <p className={styles.code}>404</p>
+        <p className={styles.code}>NOT FOUND</p>
         <h1 className={styles.title}>Esta lluvia ya pasó</h1>
         <p className={styles.desc}>
           El poema, evento o perfil que buscas fue removido, renombrado o nunca existió.

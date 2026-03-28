@@ -1,171 +1,277 @@
 @use '@/styles/variables' as v;
 @use '@/styles/mixins' as m;
 
-.article {
+.page {
   min-height: 100vh;
+  display: flex;
+  justify-content: center;
   padding-top: v.$header-height;
+  overflow-x: hidden;
   position: relative;
+
+  @media (max-width: v.$tablet) {
+    display: flex;
+    flex-direction: column;
+    padding-top: 80px;
+  }
 }
 
 .shaderBg {
   position: fixed;
   inset: 0;
   z-index: -1;
-  opacity: 0.35;
+  opacity: 0.25;
 }
 
-.inner {
-  max-width: 680px;
-  margin: 0 auto;
-  padding: 60px 5vw 100px;
+.contentGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 350px);
+  gap: clamp(2rem, 6vw, 6rem);
+  padding: 80px 4vw;
+
+  @media (max-width: v.$laptop) {
+    grid-template-columns: 1fr;
+    gap: 4rem;
+    padding: 60px 2rem;
+  }
+
+  @media (max-width: v.$tablet) {
+    padding: 40px 1.5rem;
+  }
 }
 
-.header {
-  margin-bottom: 48px;
+.poemArticle {
+  max-width: 900px;
+}
+
+.poemHeader {
+  margin-bottom: 5rem;
 }
 
 .meta {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
-}
+  gap: 3rem;
+  margin-bottom: 2rem;
 
-.author {
-  font-family: v.$font-mono;
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.4);
-  text-decoration: none;
-  text-transform: lowercase;
-  transition: color 0.2s;
-
-  &:hover {
-    color: rgba(255, 255, 255, 0.8);
+  @media (max-width: v.$mobile) {
+    flex-direction: column;
+    gap: 1.5rem;
   }
 }
 
-.sep {
+.label {
+  @include m.font-body;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
   color: rgba(255, 255, 255, 0.2);
-  font-size: 0.7rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.authorName {
+  @include m.font-heading;
+  font-size: 1.2rem;
+  color: v.$accent;
+  text-decoration: none;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.7;
+  }
 }
 
 .date {
-  font-family: v.$font-mono;
-  font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.25);
+  @include m.font-heading;
+  font-size: 1.2rem;
+  color: v.$white;
 }
 
 .title {
-  font-family: v.$font-serif;
-  font-size: clamp(1.8rem, 5vw, 3.5rem);
-  font-weight: 300;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-  margin: 0 0 20px;
+  @include m.font-heading;
+  font-size: clamp(3rem, 8vw, 6rem);
+  line-height: 0.95;
+  margin: 0;
+  letter-spacing: -0.04em;
+  color: v.$white;
+}
+
+.content {
+  @include m.font-body;
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 65ch;
+  white-space: pre-wrap;
+
+  p {
+    margin-bottom: 2rem;
+  }
+
+  blockquote {
+    border-left: 2px solid v.$accent;
+    padding-left: 2rem;
+    margin: 3rem 0;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.5);
+  }
+}
+
+.poemFooter {
+  margin-top: 6rem;
+  padding-top: 3rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  @media (max-width: v.$mobile) {
+    flex-direction: column;
+    gap: 2rem;
+  }
 }
 
 .tags {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
-.content {
-  font-size: 1.05rem;
-  line-height: 1.85;
-  color: rgba(255, 255, 255, 0.8);
+.interactions {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
 
-  h1, h2, h3, h4 { font-family: v.$font-serif; font-weight: 300; }
-  p { margin: 0 0 1.4em; }
-  em { font-style: italic; }
-  strong { font-weight: 600; }
-  blockquote {
-    border-left: 2px solid rgba(255, 255, 255, 0.15);
-    padding-left: 20px;
-    margin: 24px 0;
-    color: rgba(255, 255, 255, 0.5);
+  @media (max-width: v.$mobile) {
+    flex-direction: column;
+    width: 100%;
+    align-items: stretch;
   }
-  code {
-    font-family: v.$font-mono;
-    font-size: 0.85em;
-    background: rgba(255, 255, 255, 0.06);
-    padding: 2px 6px;
+}
+
+.saveBtn {
+  @include m.font-heading;
+  font-size: 0.8rem;
+  padding: 1.2rem 2.5rem;
+  cursor: pointer;
+  transition: all 0.3s v.$ease-out;
+  text-transform: uppercase;
+  background: v.$white;
+  color: v.$black;
+  border: none;
+
+  &:hover {
+    background: v.$accent;
+    color: v.$white;
+    transform: translateY(-4px);
   }
-  pre {
-    background: rgba(255, 255, 255, 0.04);
-    padding: 20px;
-    overflow-x: auto;
-    margin: 24px 0;
-    code { background: none; padding: 0; }
+
+  &.saved {
+    background: v.$accent;
+    color: v.$white;
   }
 }
 
 .navigation {
+  margin-top: 6rem;
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 4rem;
+
+  @media (max-width: v.$mobile) {
+    grid-template-columns: 1fr;
+    padding-top: 2rem;
+  }
+}
+
+.navLink {
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-direction: column;
+  gap: 0.5rem;
+  text-decoration: none;
+  transition: transform 0.3s v.$ease-out;
 
-  .navBtn {
-    font-family: v.$font-mono;
-    font-size: 0.72rem;
-    text-transform: lowercase;
-    color: rgba(255, 255, 255, 0.4);
-    text-decoration: none;
-    transition: color 0.2s;
-    max-width: 45%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  &:hover {
+    transform: translateY(-5px);
 
-    &:hover {
+    .navTitle {
       color: v.$accent;
     }
   }
+}
 
-  .spacer {
-    flex: 1;
+.navLabel {
+  @include m.font-body;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.navTitle {
+  @include m.font-heading;
+  font-size: 1.2rem;
+  color: v.$white;
+  transition: color 0.2s;
+}
+
+.navSpacer {
+  background: rgba(255, 255, 255, 0.1);
+  height: 100%;
+
+  @media (max-width: v.$mobile) {
+    display: none;
   }
 }
 
-.footer {
-  margin-top: 60px;
-  padding-top: 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+.sidebar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
+  flex-direction: column;
+  gap: 4rem;
 }
 
-.footerActions {
+.authorCard {
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
-  align-items: center;
-  gap: 16px;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.back {
-  font-family: v.$font-mono;
-  font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.3);
+.avatar {
+  width: 50px;
+  height: 50px;
+  background: v.$accent;
+  color: v.$white;
+  border-radius: 50%;
+  @include m.flex-center;
+  font-family: v.$font-serif;
+  font-size: 1.5rem;
+}
+
+.authorBio {
+  @include m.font-body;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 1rem;
+}
+
+.viewProfile {
+  @include m.font-heading;
+  font-size: 0.75rem;
+  color: v.$white;
   text-decoration: none;
-  transition: color 0.2s;
+  border-bottom: 1px solid v.$accent;
+  padding-bottom: 2px;
+  width: fit-content;
+  transition: opacity 0.2s;
 
   &:hover {
-    color: rgba(255, 255, 255, 0.7);
+    opacity: 0.7;
   }
 }
 
-.idHint {
-  font-family: v.$font-mono;
-  font-size: 0.62rem;
-  color: rgba(255, 255, 255, 0.15);
-  margin: 0;
-
-  code {
-    color: rgba(255, 255, 255, 0.2);
-  }
-}

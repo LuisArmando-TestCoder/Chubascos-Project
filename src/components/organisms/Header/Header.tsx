@@ -15,6 +15,28 @@ export function Header() {
 
   return (
     <>
+      <div className={styles.hamWrapper} onClick={() => setMenuOpen(!menuOpen)}>
+        <svg
+          className={`${styles.ham} ${styles.hamRotate} ${styles.ham4} ${menuOpen ? styles.active : ''}`}
+          viewBox="0 0 100 100"
+          width="60"
+          aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+        >
+          <path
+            className={`${styles.line} ${styles.top}`}
+            d="m 70,33 h -40 c 0,0 -8.5,-0.149796 -8.5,8.5 0,8.649796 8.5,8.5 8.5,8.5 h 20 v -20"
+          />
+          <path
+            className={`${styles.line} ${styles.middle}`}
+            d="m 70,50 h -40"
+          />
+          <path
+            className={`${styles.line} ${styles.bottom}`}
+            d="m 30,67 h 40 c 0,0 8.5,0.149796 8.5,-8.5 0,-8.649796 -8.5,-8.5 -8.5,-8.5 h -20 v 20"
+          />
+        </svg>
+      </div>
+
       <header className={styles.header} role="banner">
         <div className={styles.inner}>
           <Link href="/" className={styles.logo} aria-label="Chubascos - inicio">
@@ -34,17 +56,6 @@ export function Header() {
             >
               {session.isLoggedIn ? 'Panel' : i18n.common.login}
             </Link>
-            <button
-              className={`${styles.hamburger} ${menuOpen ? styles.active : ''}`}
-              onClick={() => setMenuOpen(true)}
-              aria-label="Abrir menú"
-              aria-expanded={menuOpen}
-              aria-controls="main-menu"
-            >
-              <span />
-              <span />
-              <span />
-            </button>
           </nav>
         </div>
       </header>

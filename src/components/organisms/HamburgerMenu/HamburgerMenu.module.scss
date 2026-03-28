@@ -7,50 +7,126 @@
   z-index: 200;
   background: v.$black;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding: 80px 8vw;
+  padding: 0 5vw;
   overflow: hidden;
 }
 
-.closeBtn {
-  position: absolute;
-  top: 28px;
-  right: 5vw;
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: color 0.2s;
-  padding: 8px;
-
-  &:hover {
-    color: #fff;
-  }
-}
-
-.nav {
+.navContent {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
+  gap: 4rem;
+  padding-left: 2rem;
+  z-index: 2;
 
-.link {
-  font-family: v.$font-serif;
-  font-size: clamp(2rem, 7vw, 5rem);
-  font-weight: 300;
-  letter-spacing: -0.03em;
-  color: rgba(255, 255, 255, 0.75);
-  text-decoration: none;
-  display: block;
-  padding: 6px 0;
-  transition: color 0.2s, opacity 0.2s;
-  line-height: 1.1;
-
-  &:hover {
-    color: v.$white;
-    opacity: 1;
+  @media (max-width: v.$tablet) {
+    padding-left: 0;
+    align-items: center;
+    gap: 3rem;
   }
 }
+
+.primaryNav,
+.secondaryNav {
+  display: flex;
+  flex-direction: column;
+}
+
+.primaryNav {
+  gap: 1rem;
+}
+
+.secondaryNav {
+  gap: 0.5rem;
+}
+
+.sectionLabel {
+  @include m.font-body;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.25);
+  margin-bottom: 0.5rem;
+}
+
+.linkWrapper {
+  width: fit-content;
+  padding-left: 2rem;
+  margin-left: -2rem; // Keep alignment but allow for hover movement
+
+  &:hover .primaryLink {
+    opacity: 1;
+    transform: translateX(2rem);
+    color: v.$accent;
+
+    &::before {
+      width: 1.5rem;
+      left: -1.5rem;
+    }
+  }
+
+  @media (max-width: v.$tablet) {
+    padding-left: 0;
+    margin-left: 0;
+    &:hover .primaryLink {
+      transform: none;
+    }
+  }
+}
+
+.primaryLink {
+  @include m.font-heading;
+  font-size: clamp(3rem, 8vw, 6.5rem);
+  color: v.$white;
+  text-decoration: none;
+  opacity: 0.35;
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  cursor: pointer;
+  display: inline-block;
+  line-height: 1;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 0;
+    height: 2px;
+    background: v.$accent;
+    transition: width 0.3s ease, left 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    transform: translateY(-50%);
+  }
+
+  @media (max-width: v.$tablet) {
+    font-size: clamp(2.5rem, 10vw, 4rem);
+    &::before {
+      display: none;
+    }
+  }
+}
+
+.secondaryLink {
+  @include m.font-heading;
+  font-size: clamp(1rem, 2vw, 1.5rem);
+  color: v.$white;
+  text-decoration: none;
+  opacity: 0.4;
+  transition: all 0.3s ease;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 0.9;
+    color: v.$accent;
+    transform: translateX(0.5rem);
+  }
+
+  @media (max-width: v.$tablet) {
+    text-align: center;
+    &:hover {
+      transform: none;
+    }
+  }
+}
+

@@ -1,32 +1,39 @@
 'use client';
-import { motion, useReducedMotion } from 'framer-motion';
-import i18n from '@/utils/i18n';
-import styles from './HomeTemplate.module.scss';
-
-const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
+import { useScroll, useTransform } from 'framer-motion';
+import { useRef } from 'react';
+import styles from './hero/Hero.module.scss';
+import { HeroBackground } from './hero/HeroBackground';
+import { HeroTitle } from './hero/HeroTitle';
+import { ScrollIndicator } from './hero/ScrollIndicator';
 
 export function HeroSection() {
-  const prefersReduced = useReducedMotion();
+  const containerRef = useRef<HTMLElement>(null);
+  
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end start"]
+  });
+  
+  const scale = useTransform(scrollYProgress, [0, 1], [1, 1.2]);
+  const opacityVideo = useTransform(scrollYProgress, [0, 0.8, 1], [1, 0.5, 0]);
+  const opacityContent = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
 
   return (
-    <section className={styles.hero}>
-      <div className={styles.heroContent}>
-        <motion.h1
-          className={styles.heroTitle}
-          initial={prefersReduced ? false : { opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, ease }}
-        >
-          {i18n.home.hero.title}
-        </motion.h1>
-        <motion.p
-          className={styles.heroSub}
-          initial={prefersReduced ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1, delay: 0.4 }}
-        >
-          {i18n.home.hero.subtitle}
-        </motion.p>
+    <section 
+      ref={containerRef} 
+      className={styles.heroWrapper}
+    >
+      <div className={styles.stickyContainer}>
+        <HeroBackground 
+          scale={scale}
+          opacity={opacityVideo}
+        />
+        
+        <HeroTitle 
+          opacity={opacityContent}
+        />
+
+        <ScrollIndicator opacity={opacityContent} />
       </div>
     </section>
   );

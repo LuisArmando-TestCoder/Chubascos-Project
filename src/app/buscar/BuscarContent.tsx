@@ -29,6 +29,7 @@ export function BuscarContent() {
   const [eventCursor, setEventCursor] = useState<string | null>(null);
   const [userCursor, setUserCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadTagSuggestions = useCallback(async (prefix: string) => {
@@ -39,6 +40,7 @@ export function BuscarContent() {
   const search = useCallback(async (tag: string, tab: TabType, reset = true) => {
     if (!tag) return;
     setLoading(true);
+    setHasSearched(true);
     if (tab === 'posts') {
       const result = await searchPostsByTag(tag, 10, reset ? undefined : postCursor || undefined);
       setPosts((prev) => reset ? result.items : [...prev, ...result.items]);
@@ -48,7 +50,7 @@ export function BuscarContent() {
       setEvents((prev) => reset ? result.items : [...prev, ...result.items]);
       setEventCursor(result.nextCursor);
     } else {
-      const result = await searchUsers(tag, 10, reset ? undefined : userCursor || undefined);
+      const result = await searchUsersByTag(tag, 10, reset ? undefined : userCursor || undefined);
       setUsers((prev) => reset ? result.items : [...prev, ...result.items]);
       setUserCursor(result.nextCursor);
     }
@@ -124,6 +126,13 @@ export function BuscarContent() {
 
           {!selectedTag && !loading && (
             <p className={styles.hint}>Selecciona una etiqueta para empezar a buscar.</p>
+          )}
+
+          {hasSearched && !loading && selectedTag && 
+            ((activeTab === 'posts' && posts.length === 0) || 
+             (activeTab === 'events' && events.length === 0) || 
+             (activeTab === 'users' && users.length === 0)) && (
+            <p className={styles.hint}>No se encontraron resultados para esta etiqueta en la categoría seleccionada.</p>
           )}
 
           {activeTab === 'posts' && posts.length > 0 && (

@@ -6,7 +6,7 @@ import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { sendNotificationEmail } from '@/utils/sendEmail';
 import { PostSchema, EventSchema, ShaderSchema } from '@/utils/validation';
 import { generateSlug } from '@/utils/generateSlug';
-import type { Post, Event, Shader, Tag, User } from '@/types';
+import type { Post, Event, Shader, Tag, User, SerializedTimestamp } from '@/types';
 
 const serialize = (obj: any): any => {
   if (!obj || typeof obj !== 'object') return obj;
@@ -89,7 +89,7 @@ export async function getUserProfile(userId: string): Promise<User | null> {
   if (!db) return null;
   const doc = await db.collection('users').doc(userId).get();
   if (!doc.exists) return null;
-  return { id: doc.id, ...doc.data() } as User;
+  return { id: doc.id, ...serialize(doc.data()) } as User;
 }
 
 export async function getUserPosts(
@@ -132,12 +132,12 @@ export async function getPost(userId: string, slugOrId: string): Promise<Post | 
 
   if (!bySlug.empty) {
     const doc = bySlug.docs[0];
-    return { id: doc.id, ...doc.data() } as Post;
+    return { id: doc.id, ...serialize(doc.data()) } as Post;
   }
 
   // Fallback to direct ID
   const byId = await db.collection('users').doc(userId).collection('posts').doc(slugOrId).get();
-  if (byId.exists) return { id: byId.id, ...byId.data() } as Post;
+  if (byId.exists) return { id: byId.id, ...serialize(byId.data()) } as Post;
 
   return null;
 }
@@ -146,7 +146,16 @@ export async function getEvent(eventId: string): Promise<Event | null> {
   if (!db) return null;
   const doc = await db.collection('events').doc(eventId).get();
   if (!doc.exists) return null;
-  return { id: doc.id, ...doc.data() } as Event;
+  return { id: doc.id, ...serialize(doc.data()) } as Event;
+}
+
+export async function getTagsByIds(ids: string[]): Promise<Tag[]> {
+  if (!db || !ids || ids.length === 0) return [];
+  // Firestore 'in' queries limited to 10-30 items
+  const snapshot = await db.collection('tags')
+    .where(admin.firestore.FieldPath.documentId(), 'in', ids.slice(0, 30))
+    .get();
+  return snapshot.docs.map(toData) as Tag[];
 }
 
 export async function getTags(limitNum: number = 50, prefix?: string): Promise<Tag[]> {
@@ -194,6 +203,16 @@ export async function searchUsers(
   cursor?: string
 ): Promise<{ items: User[]; nextCursor: string | null }> {
   if (!db) return { items: [], nextCursor: null };
+
+  // First check if query is a tag ID (from tag cloud)
+  const tagSnapshot = await db.collection('tags').doc(query).get();
+  if (tagSnapshot.exists) {
+    // If it's a tag, search users who have posts with this tag
+    // Since users don't have direct tagIds yet, we'll search users collection by username as fallback
+    // Or if we want to truly find "poets" by tag, we'd need a different schema.
+    // For now, let's treat the query as a potential username.
+  }
+
   const lower = query.toLowerCase();
   const end = lower.replace(/.$/, (c) => String.fromCharCode(c.charCodeAt(0) + 1));
 
@@ -214,16 +233,43 @@ export async function searchUsers(
   return { items, nextCursor };
 }
 
+export async function searchUsersByTag(
+  tagId: string,
+  limitNum: number = PAGE_SIZE,
+  cursor?: string
+): Promise<{ items: User[]; nextCursor: string | null }> {
+  if (!db) return { items: [], nextCursor: null };
+
+  // This is a complex query because tagIds are on posts, not users.
+  // We'll search for posts with the tag, and get unique user IDs.
+  const postsSnapshot = await db.collection('live_feed')
+    .where('tagIds', 'array-contains', tagId)
+    .limit(limitNum * 2) // Fetch more to account for duplicate users
+    .get();
+
+  const userIds = Array.from(new Set(postsSnapshot.docs.map(doc => doc.data().userId)));
+
+  if (userIds.length === 0) return { items: [], nextCursor: null };
+
+  // Fetch user profiles for these IDs
+  // Firestore 'in' queries are limited to 10-30 items
+  const usersSnapshot = await db.collection('users')
+    .where(admin.firestore.FieldPath.documentId(), 'in', userIds.slice(0, 10))
+    .get();
+
+  const items = usersSnapshot.docs.map(toData) as User[];
+  return { items, nextCursor: null };
+}
+
 export async function searchPostsByTag(
   tagId: string,
   limitNum: number = PAGE_SIZE,
   cursor?: string
 ): Promise<{ items: Post[]; nextCursor: string | null }> {
   if (!db) return { items: [], nextCursor: null };
+  // live_feed only contains indexed+visible posts
   let q: admin.firestore.Query = db.collection('live_feed')
     .where('tagIds', 'array-contains', tagId)
-    .where('isVisible', '==', true)
-    .where('isIndexed', '==', true)
     .orderBy('updatedAt', 'desc')
     .limit(limitNum);
 
@@ -267,7 +313,6 @@ export async function getPreviousPost(userId: string, currentUpdatedAt: admin.fi
     : new admin.firestore.Timestamp(currentUpdatedAt.seconds, currentUpdatedAt.nanoseconds);
 
   const snapshot = await db.collection('users').doc(userId).collection('posts')
-    .where('isVisible', '==', true)
     .where('updatedAt', '<', ts)
     .orderBy('updatedAt', 'desc')
     .limit(1)
@@ -284,7 +329,6 @@ export async function getNextPost(userId: string, currentUpdatedAt: admin.firest
     : new admin.firestore.Timestamp(currentUpdatedAt.seconds, currentUpdatedAt.nanoseconds);
 
   const snapshot = await db.collection('users').doc(userId).collection('posts')
-    .where('isVisible', '==', true)
     .where('updatedAt', '>', ts)
     .orderBy('updatedAt', 'asc')
     .limit(1)
@@ -295,44 +339,34 @@ export async function getNextPost(userId: string, currentUpdatedAt: admin.firest
 }
 
 export async function getSavedItems(
-  userEmail: string,
-  type: 'posts' | 'users' | 'events',
-  limitNum: number = PAGE_SIZE,
-  cursor?: string
+  userIds: string[],
+  type: 'posts' | 'users' | 'events'
 ) {
-  if (!db) return { items: [], nextCursor: null };
-  const collectionName = type === 'posts' ? 'saved_posts' : type === 'users' ? 'following_users' : 'saved_events';
-  let query = db.collection('users').doc(userEmail).collection(collectionName)
-    .orderBy('savedAt', 'desc')
-    .limit(limitNum);
-
-  if (cursor) {
-    const cursorDoc = await db.collection('users').doc(userEmail).collection(collectionName).doc(cursor).get();
-    if (cursorDoc.exists) query = query.startAfter(cursorDoc);
+  if (!db || !userIds || userIds.length === 0) return { items: [] };
+  
+  const items: any[] = [];
+  // Firestore 'in' query has a limit of 10-30 IDs
+  const chunks = [];
+  for (let i = 0; i < userIds.length; i += 10) {
+    chunks.push(userIds.slice(i, i + 10));
   }
 
-  const snapshot = await query.get();
-  const savedRefs = snapshot.docs.map((doc: QueryDocumentSnapshot) => doc.id);
-  
-  // Now fetch the actual data for these items
-  const items: any[] = [];
-  if (savedRefs.length > 0) {
-    if (type === 'posts') {
-      // Posts are in sub-collections, need to fetch from live_feed or individually
-      // Using live_feed for simplicity if available
-      const feedSnapshot = await db.collection('live_feed').where(admin.firestore.FieldPath.documentId(), 'in', savedRefs).get();
-      items.push(...feedSnapshot.docs.map(toData));
-    } else if (type === 'users') {
-      const usersSnapshot = await db.collection('users').where(admin.firestore.FieldPath.documentId(), 'in', savedRefs).get();
-      items.push(...usersSnapshot.docs.map(toData));
+    for (const chunk of chunks) {
+      let chunkSnapshot;
+      if (type === 'posts') {
+        chunkSnapshot = await db.collection('live_feed').where(admin.firestore.FieldPath.documentId(), 'in', chunk).get();
+      } else if (type === 'users') {
+      chunkSnapshot = await db.collection('users').where(admin.firestore.FieldPath.documentId(), 'in', chunk).get();
     } else if (type === 'events') {
-      const eventsSnapshot = await db.collection('events').where(admin.firestore.FieldPath.documentId(), 'in', savedRefs).get();
-      items.push(...eventsSnapshot.docs.map(toData));
+      chunkSnapshot = await db.collection('events').where(admin.firestore.FieldPath.documentId(), 'in', chunk).get();
+    }
+    
+    if (chunkSnapshot) {
+      items.push(...chunkSnapshot.docs.map(toData));
     }
   }
 
-  const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
-  return { items, nextCursor };
+  return { items };
 }
 
 // ─── WRITE ────────────────────────────────────────────────────────────────────

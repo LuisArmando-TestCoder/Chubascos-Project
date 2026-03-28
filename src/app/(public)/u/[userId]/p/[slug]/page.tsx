@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getPost, getUserProfile, getShader } from '@/actions/data';
+import { getPost, getUserProfile, getShader, getTagsByIds } from '@/actions/data';
 import { PostDetailTemplate } from '@/components/templates/PostDetailTemplate/PostDetailTemplate';
 import { Footer } from '@/components/organisms/Footer/Footer';
 
@@ -27,10 +27,15 @@ export default async function PostDetailPage({ params }: Props) {
   const { userId, slug } = await params;
   const [post, user] = await Promise.all([getPost(userId, slug), getUserProfile(userId)]);
   if (!post) notFound();
-  const shader = post.shaderId ? await getShader(post.shaderId) : null;
+  
+  const [shader, tags] = await Promise.all([
+    post.shaderId ? getShader(post.shaderId) : Promise.resolve(null),
+    getTagsByIds(post.tagIds || [])
+  ]);
+
   return (
     <>
-      <PostDetailTemplate post={post} author={user!} shader={shader} />
+      <PostDetailTemplate post={post} author={user!} shader={shader} tags={tags} />
       <Footer />
     </>
   );

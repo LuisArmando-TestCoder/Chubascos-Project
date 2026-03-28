@@ -1,185 +1,228 @@
 @use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
 
 .page {
-  padding-top: v.$header-height;
   min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding-top: v.$header-height;
+  overflow-x: hidden;
+
+  @media (max-width: v.$tablet) {
+    display: flex;
+    flex-direction: column;
+    padding-top: 80px;
+  }
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 350px);
+  gap: clamp(2rem, 6vw, 6rem);
+  padding: 80px 4vw;
+
+  @media (max-width: v.$laptop) {
+    grid-template-columns: 1fr;
+    gap: 4rem;
+    padding: 60px 2rem;
+  }
+
+  @media (max-width: v.$tablet) {
+    padding: 40px 1.5rem;
+  }
 }
 
 .article {
-  max-width: 700px;
-  margin: 0 auto;
-  padding: 60px 5vw 100px;
+  max-width: 900px;
 }
 
 .header {
-  margin-bottom: 40px;
-  padding-bottom: 32px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 4rem;
 }
 
-.dateLine {
+.meta {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 3rem;
+  margin-bottom: 2rem;
+  
+  @media (max-width: v.$mobile) {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
 }
 
-.day {
-  font-family: v.$font-mono;
-  font-size: 0.75rem;
-  color: v.$accent;
-  letter-spacing: 0.08em;
+.label {
+  @include m.font-body;
+  font-size: 0.65rem;
   text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.2);
+  display: block;
+  margin-bottom: 0.5rem;
 }
 
-.hour {
-  font-family: v.$font-mono;
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.35);
+.day, .hour, .price {
+  @include m.font-heading;
+  font-size: 1.2rem;
+  color: v.$white;
 }
 
 .title {
-  font-family: v.$font-serif;
-  font-size: clamp(2rem, 5vw, 3.5rem);
-  font-weight: 300;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-  margin: 0 0 16px;
+  @include m.font-heading;
+  font-size: clamp(3rem, 8vw, 6rem);
+  line-height: 0.95;
+  margin: 0 0 3rem;
+  letter-spacing: -0.04em;
+  color: v.$white;
+}
+
+.locationBlock, .priceBlock {
+  margin-bottom: 2.5rem;
 }
 
 .place {
-  font-family: v.$font-mono;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.4);
-  margin: 0 0 8px;
-}
-
-.price {
-  font-family: v.$font-mono;
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
+  @include m.font-body;
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.8);
   margin: 0;
 }
 
-.description {
-  margin-bottom: 32px;
+.mainInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
+}
 
-  p {
-    font-size: 0.95rem;
-    line-height: 1.75;
-    color: rgba(255, 255, 255, 0.65);
-    margin: 0;
-  }
+.descText {
+  @include m.font-body;
+  font-size: 1.15rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.6);
+  max-width: 65ch;
+  white-space: pre-wrap;
 }
 
 .tags {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 32px;
-}
-
-.links, .contactsSection {
-  margin-bottom: 28px;
-
-  ul {
-    list-style: none;
-    padding: 0;
-    margin: 8px 0 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-}
-
-.linksTitle {
-  font-family: v.$font-mono;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: rgba(255, 255, 255, 0.25);
-  margin: 0;
-}
-
-.link {
-  font-family: v.$font-mono;
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.4);
-  text-decoration: none;
-  word-break: break-all;
-  transition: color 0.2s;
-
-  &:hover {
-    color: rgba(255, 255, 255, 0.8);
-  }
-}
-
-.contactItem {
-  font-family: v.$font-mono;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.footer {
-  margin-top: 48px;
-  padding-top: 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.footerActions {
-  display: flex;
   gap: 10px;
-  align-items: center;
+  flex-wrap: wrap;
+}
+
+.interaction {
+  margin-top: 6rem;
+  padding-top: 3rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.actions {
+  display: flex;
+  gap: 1.5rem;
+  
+  @media (max-width: v.$mobile) {
+    flex-direction: column;
+  }
+}
+
+.saveBtn, .qrBtn {
+  @include m.font-heading;
+  font-size: 0.8rem;
+  padding: 1.2rem 2.5rem;
+  cursor: pointer;
+  transition: all 0.3s v.$ease-out;
+  text-transform: uppercase;
 }
 
 .saveBtn {
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.5);
-  font-family: v.$font-mono;
-  font-size: 0.7rem;
-  padding: 8px 16px;
-  cursor: pointer;
-  text-transform: lowercase;
-  letter-spacing: 0.08em;
-  transition: border-color 0.2s, color 0.2s;
+  background: v.$white;
+  color: v.$black;
+  border: none;
 
-  &:hover, &.saved {
-    color: v.$accent;
-    border-color: v.$accent;
+  &:hover {
+    background: v.$accent;
+    color: v.$white;
+    transform: translateY(-4px);
+  }
+
+  &.saved {
+    background: v.$accent;
+    color: v.$white;
   }
 }
 
 .qrBtn {
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.3);
-  font-family: v.$font-mono;
-  font-size: 0.65rem;
-  padding: 6px 12px;
-  cursor: pointer;
-  text-transform: lowercase;
-  transition: border-color 0.2s, color 0.2s;
+  background: transparent;
+  color: v.$white;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 
   &:hover {
-    color: rgba(255, 255, 255, 0.6);
-    border-color: rgba(255, 255, 255, 0.25);
+    border-color: v.$white;
+    transform: translateY(-4px);
   }
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
+}
+
+.sidebarSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sidebarTitle {
+  @include m.font-body;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.linksList, .contactsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.externalLink {
+  @include m.font-heading;
+  font-size: 0.9rem;
+  color: v.$white;
+  text-decoration: none;
+  opacity: 0.5;
+  transition: opacity 0.2s, transform 0.2s;
+  
+  &:hover {
+    opacity: 1;
+    transform: translateX(8px);
+    color: v.$accent;
+  }
+}
+
+.contactItem {
+  @include m.font-body;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.organizerSection {
+  margin-top: auto;
+  padding-top: 4rem;
 }
 
 .ownerLink {
-  font-family: v.$font-mono;
-  font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.3);
+  @include m.font-heading;
+  font-size: 0.85rem;
+  color: v.$white;
   text-decoration: none;
-  transition: color 0.2s;
+  opacity: 0.4;
+  transition: opacity 0.2s;
 
   &:hover {
-    color: rgba(255, 255, 255, 0.7);
+    opacity: 1;
+    color: v.$accent;
   }
 }
+

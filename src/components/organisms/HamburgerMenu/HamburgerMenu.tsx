@@ -10,12 +10,15 @@ interface HamburgerMenuProps {
   onClose: () => void;
 }
 
-const links = [
+const primaryLinks = [
   { href: '/buscar', label: 'Buscar' },
+  { href: '/entrar', label: 'Entrar' },
   { href: '/guardados', label: 'Guardados' },
+];
+
+const secondaryLinks = [
   { href: '/normas', label: 'Normas de comunidad' },
   { href: '/privacidad', label: 'Tu obra, tu derecho' },
-  { href: '/entrar', label: 'Entrar' },
 ];
 
 const ease1: [number, number, number, number] = [0.76, 0, 0.24, 1];
@@ -58,7 +61,7 @@ export function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
   return (
     <AnimatePresence>
       {isOpen && (
-        <FocusTrap>
+        <FocusTrap focusTrapOptions={{ allowOutsideClick: true }}>
           <motion.div
             className={styles.overlay}
             variants={menuVariants}
@@ -69,27 +72,40 @@ export function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
             aria-modal="true"
             aria-label="Menú de navegación"
           >
-            <button
-              className={styles.closeBtn}
-              onClick={onClose}
-              aria-label="Cerrar menú"
-            >
-              ✕
-            </button>
-            <motion.nav
-              className={styles.nav}
-              variants={listVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              {links.map((link) => (
-                <motion.div key={link.href} variants={itemVariants}>
-                  <Link href={link.href} className={styles.link} onClick={onClose}>
-                    {link.label}
-                  </Link>
-                </motion.div>
-              ))}
-            </motion.nav>
+            <div className={styles.navContent}>
+              <motion.nav
+                className={styles.primaryNav}
+                variants={listVariants}
+                initial="hidden"
+                animate="visible"
+              >
+                <p className={styles.sectionLabel}>Descubrir</p>
+                {primaryLinks.map((link) => (
+                  <motion.div key={link.href} variants={itemVariants} className={styles.linkWrapper}>
+                    <Link href={link.href} className={styles.primaryLink} onClick={onClose}>
+                      {link.label}
+                    </Link>
+                  </motion.div>
+                ))}
+              </motion.nav>
+
+              <motion.nav
+                className={styles.secondaryNav}
+                variants={listVariants}
+                initial="hidden"
+                animate="visible"
+              >
+                <p className={styles.sectionLabel}>Legal & Comunidad</p>
+                {secondaryLinks.map((link) => (
+                  <motion.div key={link.href} variants={itemVariants}>
+                    <Link href={link.href} className={styles.secondaryLink} onClick={onClose}>
+                      {link.label}
+                    </Link>
+                  </motion.div>
+                ))}
+              </motion.nav>
+            </div>
+
           </motion.div>
         </FocusTrap>
       )}
