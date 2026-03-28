@@ -1,38 +1,55 @@
 import * as admin from 'firebase-admin';
 
 /**
- * Robustly repairs common issues in the FIREBASE_SERVICE_ACCOUNT JSON string:
+ * Robustly repairs the FIREBASE_SERVICE_ACCOUNT JSON string.
  *
- * 1. Strips optional surrounding single quotes added by some .env formats
- * 2. Inside the "private_key" value, fixes:
- *    - Literal newlines (bare \n characters) → JSON-escaped \n
- *    - Backslash+space (\ ) → \n  (common copy-paste corruption)
- *    - Backslash+r+n (\r\n) → \n
+ * The most common production issue: the "private_key" value contains invalid
+ * JSON escape sequences (e.g. backslash+space `\ `, bare newlines, CRLF, etc.)
+ * because the key was copy-pasted or stored without proper escaping.
+ *
+ * Strategy: instead of a single regex we walk the string with indexOf to
+ * precisely extract the key value, fix every invalid escape, then reassemble.
  */
 function repairServiceAccountJson(raw: string): string {
   let json = raw.trim();
 
-  // Remove wrapping single quotes if present (some .env parsers keep them)
+  // Strip optional surrounding single quotes left by some .env parsers
   if (json.startsWith("'") && json.endsWith("'")) {
     json = json.slice(1, -1);
   }
 
-  // ── Fix private_key field ─────────────────────────────────────────────────
-  // Strategy: extract everything between the opening and closing PEM markers,
-  // normalise line endings, then rebuild the key as a valid JSON string value.
-  json = json.replace(
-    /"private_key"\s*:\s*"([\s\S]*?)(?<!\\)"/,
-    (_match, keyBody: string) => {
-      const fixed = keyBody
-        .replace(/\\r\\n/g, '\\n')   // literal \r\n sequences
-        .replace(/\r\n/g, '\\n')     // real CRLF inside the string
-        .replace(/\r/g, '\\n')       // real CR
-        .replace(/\n/g, '\\n')       // real LF
-        .replace(/\\ /g, '\\n')      // backslash+space corruption
-        .replace(/\\n\\n/g, '\\n');  // collapse accidental doubles
-      return `"private_key":"${fixed}"`;
+  // ── Locate and repair the private_key value ───────────────────────────────
+  const KEY_PREFIX = '"private_key":"';
+  const prefixIdx = json.indexOf(KEY_PREFIX);
+  if (prefixIdx !== -1) {
+    const valueStart = prefixIdx + KEY_PREFIX.length;
+
+    // Walk forward until the closing `"`.
+    // Private keys are PEM/base64 — they never contain a literal double-quote,
+    // so the first `"` we hit is the closing delimiter.
+    let valueEnd = valueStart;
+    while (valueEnd < json.length && json[valueEnd] !== '"') {
+      valueEnd++;
     }
-  );
+
+    const rawKeyValue = json.slice(valueStart, valueEnd);
+
+    const fixedKeyValue = rawKeyValue
+      // Normalise actual newline characters first (they break JSON)
+      .replace(/\r\n/g, '\\n')          // Windows CRLF
+      .replace(/\r/g,   '\\n')          // old Mac CR
+      .replace(/\n/g,   '\\n')          // Unix LF
+      // Fix common copy-paste corruption: backslash followed by a space or tab
+      .replace(/\\ /g,  '\\n')          // `\ ` → `\n`
+      .replace(/\\\t/g, '\\n')          // `\  ` (tab variant) → `\n`
+      // Collapse any double-escaped newlines introduced by the steps above
+      .replace(/(\\n){2,}/g, '\\n')
+      // Safety net: any remaining `\X` where X is not a valid JSON escape char
+      // gets replaced with `\n` (most likely a corrupted line-break)
+      .replace(/\\([^"\\\/bfnrtu\n])/g, '\\n');
+
+    json = json.slice(0, valueStart) + fixedKeyValue + json.slice(valueEnd);
+  }
 
   return json;
 }
@@ -61,7 +78,7 @@ export function initAdmin() {
 
   if (projectId && clientEmail && rawKey) {
     try {
-      // Netlify / Vercel store the key with literal \n that must be expanded
+      // Netlify / Vercel store the key with literal `\n` that must be expanded
       const privateKey = rawKey.replace(/\\n/g, '\n');
       admin.initializeApp({
         credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
@@ -75,7 +92,7 @@ export function initAdmin() {
 
   console.error(
     '❌ Firebase Admin could not be initialized.\n' +
-    '   Set FIREBASE_SERVICE_ACCOUNT (full JSON) or the three individual vars:\n' +
+    '   Set FIREBASE_SERVICE_ACCOUNT (full JSON) or the individual vars:\n' +
     '   FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY'
   );
 }
