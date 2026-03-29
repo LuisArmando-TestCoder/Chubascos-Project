@@ -1,5 +1,7 @@
 import nodemailer from 'nodemailer';
 
+console.log(`[SMTP] Configurando Nodemailer. Host: ${process.env.SMTP_HOST}, Puerto: ${process.env.SMTP_PORT}, Usuario: ${process.env.SMTP_USER ? 'Definido' : 'No definido'}`);
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT),
@@ -74,5 +76,13 @@ export async function sendOtpEmail(email: string, otp: string) {
     `,
   };
 
-  return transporter.sendMail(mailOptions);
+  try {
+    console.log(`[SMTP] Intentando enviar correo a: ${email}`);
+    const result = await transporter.sendMail(mailOptions);
+    console.log(`✅ [SMTP] Correo enviado exitosamente a: ${email}. ID: ${result.messageId}`);
+    return result;
+  } catch (error: any) {
+    console.error(`❌ [SMTP] Fallo al enviar el correo a: ${email}. Detalle del error:`, error.message || error);
+    throw error;
+  }
 }

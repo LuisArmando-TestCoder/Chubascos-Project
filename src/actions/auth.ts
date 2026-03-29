@@ -51,10 +51,15 @@ export async function requestOtp(email: string) {
       requestCount: (otpData?.windowStart && now - otpData.windowStart < 15 * 60 * 1000) ? (otpData.requestCount || 0) + 1 : 1,
       windowStart,
     });
+    console.log(`✅ [Auth] Documento guardado en Firestore para: ${normalized}`);
+    
     await sendOtpEmail(normalized, otp);
+    console.log(`✅ [Auth] Email enviado exitosamente a: ${normalized}`);
+    
     return { success: true };
-  } catch (error) {
-    return { success: false, error: 'Error al enviar.' };
+  } catch (error: any) {
+    console.error(`❌ [Auth] Error en requestOtp:`, error);
+    return { success: false, error: `Error interno: ${error.message || 'Error desconocido'}` };
   }
 }
 
@@ -118,8 +123,9 @@ export async function verifyOtp(email: string, otp: string) {
     session.sessionVersion = sessionVersion;
     await session.save();
     return { success: true };
-  } catch (error) {
-    return { success: false, error: 'Error al verificar.' };
+  } catch (error: any) {
+    console.error(`❌ [Auth] Error en verifyOtp:`, error);
+    return { success: false, error: `Error interno al verificar: ${error.message || 'Error desconocido'}` };
   }
 }
 
