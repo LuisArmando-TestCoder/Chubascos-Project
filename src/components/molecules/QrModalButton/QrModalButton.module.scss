@@ -11,6 +11,7 @@
   text-transform: lowercase;
   letter-spacing: 0.06em;
   transition: border-color 0.2s, color 0.2s;
+  backdrop-filter: blur(20px);
 
   &:hover {
     color: rgba(255, 255, 255, 0.6);
