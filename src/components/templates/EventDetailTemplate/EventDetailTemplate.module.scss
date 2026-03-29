@@ -123,7 +123,7 @@
   }
 }
 
-.saveBtn, .qrBtn {
+.saveBtn, .editBtn, .qrBtn {
   @include m.font-heading;
   font-size: 0.8rem;
   padding: 1.2rem 2.5rem;
@@ -132,10 +132,15 @@
   text-transform: uppercase;
 }
 
-.saveBtn {
+.saveBtn,
+.editBtn {
   background: v.$white;
   color: v.$black;
   border: none;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     background: v.$accent;

@@ -2,7 +2,10 @@
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { QrModalButton } from '@/components/molecules/QrModalButton/QrModalButton';
+import { useState, useEffect } from 'react';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { useSession } from '@/hooks/useSession';
+import { getPreviousPost, getNextPost } from '@/actions/data';
 import { TagPill } from '@/components/atoms/TagPill/TagPill';
 import { UserSidebar } from '@/components/organisms/UserSidebar/UserSidebar';
 import { formatDate } from '@/utils/formatDate';
@@ -24,9 +27,31 @@ interface PostDetailTemplateProps {
   nextPost: Post | null;
 }
 
-export function PostDetailTemplate({ post, author, shader, tags = [], prevPost, nextPost }: PostDetailTemplateProps) {
+export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: initialPrev, nextPost: initialNext }: PostDetailTemplateProps) {
+  const [prevPost, setPrevPost] = useState<Post | null>(initialPrev);
+  const [nextPost, setNextPost] = useState<Post | null>(initialNext);
   const { isPostSaved, savePost, unsavePost } = useSavedItems();
+  const { session } = useSession();
   const isSaved = isPostSaved(post.id);
+  const isOwner = session.isLoggedIn && session.userId === post.userId;
+
+  // Client-side fallback: if server returned null for prev/next, retry asynchronously
+  useEffect(() => {
+    if (initialPrev !== null && initialNext !== null) return;
+    let cancelled = false;
+    async function loadMissing() {
+      const [prev, next] = await Promise.all([
+        initialPrev === null ? getPreviousPost(post.userId, post.updatedAt) : Promise.resolve(initialPrev),
+        initialNext === null ? getNextPost(post.userId, post.updatedAt) : Promise.resolve(initialNext),
+      ]);
+      if (cancelled) return;
+      if (prev) setPrevPost(prev);
+      if (next) setNextPost(next);
+    }
+    loadMissing();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const authorName = author.username || author.email.split('@')[0];
   const postUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ''}/u/${post.userId}/p/${post.slug}`;
@@ -80,28 +105,34 @@ export function PostDetailTemplate({ post, author, shader, tags = [], prevPost, 
             </div>
 
             <div className={styles.interactions}>
-              <button
-                className={`${styles.saveBtn} ${isSaved ? styles.saved : ''}`}
-                onClick={() => isSaved ? unsavePost(post.id) : savePost(post.id)}
-              >
-                {isSaved ? 'Guardado' : 'Guardar'}
-              </button>
+              {isOwner ? (
+                <Link href={`/dashboard?edit=post&id=${post.id}`} className={styles.editBtn}>
+                  Editar Poema
+                </Link>
+              ) : (
+                <button
+                  className={`${styles.saveBtn} ${isSaved ? styles.saved : ''}`}
+                  onClick={() => isSaved ? unsavePost(post.id) : savePost(post.id)}
+                >
+                  {isSaved ? 'Guardado' : 'Guardar Poema'}
+                </button>
+              )}
               <QrModalButton url={postUrl} label={post.title} />
             </div>
           </footer>
 
           <nav className={styles.navigation}>
-            {prevPost && (
-              <Link href={`/u/${post.userId}/p/${prevPost.slug}`} className={styles.navLink}>
+            {nextPost && (
+              <Link href={`/u/${post.userId}/p/${nextPost.slug}`} className={styles.navLink}>
                 <span className={styles.navLabel}>Anterior</span>
-                <span className={styles.navTitle}>{prevPost.title}</span>
+                <span className={styles.navTitle}>{nextPost.title}</span>
               </Link>
             )}
             <div className={styles.navSpacer} />
-            {nextPost && (
-              <Link href={`/u/${post.userId}/p/${nextPost.slug}`} className={styles.navLink}>
+            {prevPost && (
+              <Link href={`/u/${post.userId}/p/${prevPost.slug}`} className={styles.navLink}>
                 <span className={styles.navLabel}>Siguiente</span>
-                <span className={styles.navTitle}>{nextPost.title}</span>
+                <span className={styles.navTitle}>{prevPost.title}</span>
               </Link>
             )}
           </nav>

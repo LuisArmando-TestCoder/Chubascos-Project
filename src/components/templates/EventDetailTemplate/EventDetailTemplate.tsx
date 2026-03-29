@@ -5,6 +5,7 @@ import { QrModal } from '@/components/organisms/QrModal/QrModal';
 import { TagPill } from '@/components/atoms/TagPill/TagPill';
 import { formatDate } from '@/utils/formatDate';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { useSession } from '@/hooks/useSession';
 import i18n from '@/utils/i18n';
 import type { Event, Tag } from '@/types';
 
@@ -18,7 +19,9 @@ interface EventDetailTemplateProps {
 export function EventDetailTemplate({ event, tags = [] }: EventDetailTemplateProps) {
   const [qrOpen, setQrOpen] = useState(false);
   const { isEventSaved, saveEvent, unsaveEvent } = useSavedItems();
+  const { session } = useSession();
   const isSaved = isEventSaved(event.id);
+  const isOwner = session.isLoggedIn && session.userId === event.ownerUserId;
   const eventUrl = typeof window !== 'undefined' ? `${window.location.origin}/e/${event.id}` : `/e/${event.id}`;
 
   return (
@@ -76,12 +79,18 @@ export function EventDetailTemplate({ event, tags = [] }: EventDetailTemplatePro
 
           <section className={styles.interaction}>
              <div className={styles.actions}>
-              <button
-                className={`${styles.saveBtn} ${isSaved ? styles.saved : ''}`}
-                onClick={() => isSaved ? unsaveEvent(event.id) : saveEvent(event.id)}
-              >
-                {isSaved ? 'Agendado' : 'Guardar Evento'}
-              </button>
+              {isOwner ? (
+                <Link href={`/dashboard?edit=event&id=${event.id}`} className={styles.editBtn}>
+                  Editar Evento
+                </Link>
+              ) : (
+                <button
+                  className={`${styles.saveBtn} ${isSaved ? styles.saved : ''}`}
+                  onClick={() => isSaved ? unsaveEvent(event.id) : saveEvent(event.id)}
+                >
+                  {isSaved ? 'Agendado' : 'Guardar Evento'}
+                </button>
+              )}
               <button className={styles.qrBtn} onClick={() => setQrOpen(true)}>
                 Obtener Pase QR
               </button>

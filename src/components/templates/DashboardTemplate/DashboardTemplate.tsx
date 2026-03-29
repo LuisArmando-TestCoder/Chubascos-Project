@@ -7,11 +7,11 @@ import { Button } from '@/components/atoms/Button/Button';
 import { ShaderEditor, DEFAULT_SHADER } from '@/components/organisms/ShaderEditor/ShaderEditor';
 import { Footer } from '@/components/organisms/Footer/Footer';
 import {
-  createPost, updateUserProfile, createEvent, createShader
+  createPost, updatePost, updateUserProfile, createEvent, updateEvent, createShader
 } from '@/actions/data';
 import { logout } from '@/actions/auth';
 import { generateSlug } from '@/utils/generateSlug';
-import type { User } from '@/types';
+import type { User, Post, Event } from '@/types';
 import { useProfileStore } from '@/store/profile';
 import { useSavedStore } from '@/store/saved';
 import styles from './DashboardTemplate.module.scss';
@@ -20,12 +20,29 @@ const ShaderCanvas = dynamic(() => import('@/components/organisms/ShaderCanvas/S
 
 interface DashboardTemplateProps {
   user: User;
+  editPost?: Post | null;
+  editEvent?: Event | null;
 }
 
 type DashTab = 'perfil' | 'nuevo-poema' | 'nuevo-evento';
 
-export function DashboardTemplate({ user }: DashboardTemplateProps) {
-  const [activeTab, setActiveTab] = useState<DashTab>('perfil');
+function timestampToDateString(ts: any): string {
+  if (!ts) return '';
+  const secs = typeof ts?.seconds === 'number' ? ts.seconds : 0;
+  if (!secs) return '';
+  const d = new Date(secs * 1000);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+export function DashboardTemplate({ user, editPost, editEvent }: DashboardTemplateProps) {
+  const [activeTab, setActiveTab] = useState<DashTab>(() => {
+    if (editPost) return 'nuevo-poema';
+    if (editEvent) return 'nuevo-evento';
+    return 'perfil';
+  });
   const name = user.username || user.email.split('@')[0];
 
   // Profile state
@@ -41,26 +58,28 @@ export function DashboardTemplate({ user }: DashboardTemplateProps) {
   const [profileMsg, setProfileMsg] = useState('');
   const [profileLoading, setProfileLoading] = useState(false);
 
-  // Post state
-  const [postTitle, setPostTitle] = useState('');
-  const [postContent, setPostContent] = useState('');
-  const [postSlug, setPostSlug] = useState('');
+  // Post state — pre-fill from editPost if provided
+  const [editingPostId, setEditingPostId] = useState<string | null>(editPost?.id || null);
+  const [postTitle, setPostTitle] = useState(editPost?.title || '');
+  const [postContent, setPostContent] = useState(editPost?.content || '');
+  const [postSlug, setPostSlug] = useState(editPost?.slug || '');
   const [postTags, setPostTags] = useState('');
-  const [postVisible, setPostVisible] = useState(true);
-  const [postIndexed, setPostIndexed] = useState(true);
+  const [postVisible, setPostVisible] = useState(editPost ? (editPost as any).isVisible !== false : true);
+  const [postIndexed, setPostIndexed] = useState(editPost ? (editPost as any).isIndexed !== false : true);
   const [postShaderCode, setPostShaderCode] = useState('');
   const [shaderPreviewCode, setShaderPreviewCode] = useState(DEFAULT_SHADER);
   const [showShaderEditor, setShowShaderEditor] = useState(false);
   const [postMsg, setPostMsg] = useState('');
   const [postLoading, setPostLoading] = useState(false);
 
-  // Event state
-  const [eventTitle, setEventTitle] = useState('');
-  const [eventDesc, setEventDesc] = useState('');
-  const [eventDay, setEventDay] = useState('');
-  const [eventHour, setEventHour] = useState('');
-  const [eventPlace, setEventPlace] = useState('');
-  const [eventPrice, setEventPrice] = useState('');
+  // Event state — pre-fill from editEvent if provided
+  const [editingEventId, setEditingEventId] = useState<string | null>(editEvent?.id || null);
+  const [eventTitle, setEventTitle] = useState(editEvent?.title || '');
+  const [eventDesc, setEventDesc] = useState(editEvent?.description || '');
+  const [eventDay, setEventDay] = useState(editEvent ? timestampToDateString(editEvent.day) : '');
+  const [eventHour, setEventHour] = useState(editEvent?.hour || '');
+  const [eventPlace, setEventPlace] = useState(editEvent?.place || '');
+  const [eventPrice, setEventPrice] = useState(editEvent?.price !== undefined ? String(editEvent.price) : '');
   const [eventMsg, setEventMsg] = useState('');
   const [eventLoading, setEventLoading] = useState(false);
 
@@ -71,75 +90,106 @@ export function DashboardTemplate({ user }: DashboardTemplateProps) {
     setProfileLoading(false);
   }, [user.id, bio, username, contacts]);
 
-  const handlePostCreate = useCallback(async () => {
+  const handlePostSave = useCallback(async () => {
     if (!postTitle || !postContent) {
       setPostMsg('Título y contenido son obligatorios.');
       return;
     }
     setPostLoading(true);
     const tagIds = postTags.split(',').map((t) => t.trim()).filter(Boolean);
-    const slug = postSlug || generateSlug(postTitle);
 
-    // If shader code provided, create shader first
-    let shaderId: string | undefined;
-    if (postShaderCode) {
-      const shaderResult = await createShader(user.id, {
-        name: postTitle,
-        glslCode: postShaderCode,
-        isPublic: false,
+    if (editingPostId) {
+      // Update existing post
+      const result = await updatePost(user.id, editingPostId, {
+        title: postTitle,
+        content: postContent,
+        slug: postSlug || generateSlug(postTitle),
+        tagIds,
+        isVisible: postVisible,
+        isIndexed: postIndexed,
       });
-      if (shaderResult.success) shaderId = shaderResult.id;
-    }
+      setPostMsg(result.success ? 'Poema actualizado.' : (result.error || 'Error.'));
+    } else {
+      // Create new post
+      const slug = postSlug || generateSlug(postTitle);
 
-    const result = await createPost(user.id, {
-      title: postTitle,
-      content: postContent,
-      slug,
-      tagIds,
-      shaderId,
-      isVisible: postVisible,
-      isIndexed: postIndexed,
-    });
+      let shaderId: string | undefined;
+      if (postShaderCode) {
+        const shaderResult = await createShader(user.id, {
+          name: postTitle,
+          glslCode: postShaderCode,
+          isPublic: false,
+        });
+        if (shaderResult.success) shaderId = shaderResult.id;
+      }
 
-    setPostMsg(result.success ? `Poema publicado. Slug: ${result.slug}` : (result.error || 'Error.'));
-    if (result.success) {
-      setPostTitle('');
-      setPostContent('');
-      setPostSlug('');
-      setPostTags('');
-      setPostShaderCode('');
+      const result = await createPost(user.id, {
+        title: postTitle,
+        content: postContent,
+        slug,
+        tagIds,
+        shaderId,
+        isVisible: postVisible,
+        isIndexed: postIndexed,
+      });
+
+      setPostMsg(result.success ? `Poema publicado. Slug: ${result.slug}` : (result.error || 'Error.'));
+      if (result.success) {
+        setPostTitle('');
+        setPostContent('');
+        setPostSlug('');
+        setPostTags('');
+        setPostShaderCode('');
+        setEditingPostId(null);
+      }
     }
     setPostLoading(false);
-  }, [user.id, postTitle, postContent, postSlug, postTags, postVisible, postIndexed, postShaderCode]);
+  }, [user.id, editingPostId, postTitle, postContent, postSlug, postTags, postVisible, postIndexed, postShaderCode]);
 
-  const handleEventCreate = useCallback(async () => {
+  const handleEventSave = useCallback(async () => {
     if (!eventTitle || !eventDay || !eventHour || !eventPlace) {
       setEventMsg('Título, día, hora y lugar son obligatorios.');
       return;
     }
     setEventLoading(true);
-    const result = await createEvent(user.id, {
-      title: eventTitle,
-      description: eventDesc,
-      day: new Date(eventDay),
-      hour: eventHour,
-      place: eventPlace,
-      price: eventPrice !== '' ? parseFloat(eventPrice) : undefined,
-      urls: [],
-      contacts: [],
-      tagIds: [],
-    });
-    setEventMsg(result.success ? 'Evento creado.' : (result.error || 'Error.'));
-    if (result.success) {
-      setEventTitle('');
-      setEventDesc('');
-      setEventDay('');
-      setEventHour('');
-      setEventPlace('');
-      setEventPrice('');
+
+    if (editingEventId) {
+      // Update existing event
+      const result = await updateEvent(user.id, editingEventId, {
+        title: eventTitle,
+        description: eventDesc,
+        day: new Date(eventDay),
+        hour: eventHour,
+        place: eventPlace,
+        price: eventPrice !== '' ? parseFloat(eventPrice) : undefined,
+      });
+      setEventMsg(result.success ? 'Evento actualizado.' : (result.error || 'Error.'));
+    } else {
+      // Create new event
+      const result = await createEvent(user.id, {
+        title: eventTitle,
+        description: eventDesc,
+        day: new Date(eventDay),
+        hour: eventHour,
+        place: eventPlace,
+        price: eventPrice !== '' ? parseFloat(eventPrice) : undefined,
+        urls: [],
+        contacts: [],
+        tagIds: [],
+      });
+      setEventMsg(result.success ? 'Evento creado.' : (result.error || 'Error.'));
+      if (result.success) {
+        setEventTitle('');
+        setEventDesc('');
+        setEventDay('');
+        setEventHour('');
+        setEventPlace('');
+        setEventPrice('');
+        setEditingEventId(null);
+      }
     }
     setEventLoading(false);
-  }, [user.id, eventTitle, eventDesc, eventDay, eventHour, eventPlace, eventPrice]);
+  }, [user.id, editingEventId, eventTitle, eventDesc, eventDay, eventHour, eventPlace, eventPrice]);
 
   const handleLogout = async () => {
     await logout();
@@ -188,7 +238,11 @@ export function DashboardTemplate({ user }: DashboardTemplateProps) {
                   className={`${styles.tab} ${activeTab === tab ? styles.activeTab : ''}`}
                   onClick={() => setActiveTab(tab)}
                 >
-                  {tab === 'perfil' ? 'Perfil' : tab === 'nuevo-poema' ? 'Nuevo poema' : 'Nuevo evento'}
+                  {tab === 'perfil'
+                    ? 'Perfil'
+                    : tab === 'nuevo-poema'
+                      ? (editingPostId ? 'Editar poema' : 'Nuevo poema')
+                      : (editingEventId ? 'Editar evento' : 'Nuevo evento')}
                 </button>
               ))}
             </nav>
@@ -240,38 +294,42 @@ export function DashboardTemplate({ user }: DashboardTemplateProps) {
                   </label>
                 </div>
 
-                <div className={styles.shaderSection}>
-                  <button
-                    className={styles.shaderToggle}
-                    onClick={() => setShowShaderEditor(!showShaderEditor)}
-                    aria-expanded={showShaderEditor}
-                    aria-label="Togglear editor de shader"
-                  >
-                    {showShaderEditor ? '— Quitar shader' : '+ Añadir shader (alquimia)'}
-                  </button>
-                  <AnimatePresence>
-                    {showShaderEditor && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                      >
-                        <ShaderEditor
-                          initialCode={postShaderCode || DEFAULT_SHADER}
-                          onSave={(code) => { setPostShaderCode(code); setShowShaderEditor(false); }}
-                          onClose={() => setShowShaderEditor(false)}
-                          onCodeChange={setShaderPreviewCode}
-                        />
-                      </motion.div>
+                {!editingPostId && (
+                  <div className={styles.shaderSection}>
+                    <button
+                      className={styles.shaderToggle}
+                      onClick={() => setShowShaderEditor(!showShaderEditor)}
+                      aria-expanded={showShaderEditor}
+                      aria-label="Togglear editor de shader"
+                    >
+                      {showShaderEditor ? '— Quitar shader' : '+ Añadir shader (alquimia)'}
+                    </button>
+                    <AnimatePresence>
+                      {showShaderEditor && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                        >
+                          <ShaderEditor
+                            initialCode={postShaderCode || DEFAULT_SHADER}
+                            onSave={(code) => { setPostShaderCode(code); setShowShaderEditor(false); }}
+                            onClose={() => setShowShaderEditor(false)}
+                            onCodeChange={setShaderPreviewCode}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    {postShaderCode && !showShaderEditor && (
+                      <p className={styles.shaderActive}>✦ Shader activo</p>
                     )}
-                  </AnimatePresence>
-                  {postShaderCode && !showShaderEditor && (
-                    <p className={styles.shaderActive}>✦ Shader activo</p>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {postMsg && <p className={styles.msg}>{postMsg}</p>}
-                <Button onClick={handlePostCreate} loading={postLoading}>Publicar poema</Button>
+                <Button onClick={handlePostSave} loading={postLoading}>
+                  {editingPostId ? 'Actualizar poema' : 'Publicar poema'}
+                </Button>
               </motion.div>
             )}
 
@@ -304,7 +362,9 @@ export function DashboardTemplate({ user }: DashboardTemplateProps) {
                   <input id="eventPrice" type="number" className={styles.input} value={eventPrice} onChange={(e) => setEventPrice(e.target.value)} placeholder="0" min="0" />
                 </div>
                 {eventMsg && <p className={styles.msg}>{eventMsg}</p>}
-                <Button onClick={handleEventCreate} loading={eventLoading}>Crear evento</Button>
+                <Button onClick={handleEventSave} loading={eventLoading}>
+                  {editingEventId ? 'Actualizar evento' : 'Crear evento'}
+                </Button>
               </motion.div>
             )}
           </AnimatePresence>
