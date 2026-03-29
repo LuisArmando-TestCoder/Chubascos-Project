@@ -2,14 +2,11 @@
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { QrModalButton } from '@/components/molecules/QrModalButton/QrModalButton';
-import { useState, useEffect } from 'react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { TagPill } from '@/components/atoms/TagPill/TagPill';
 import { UserSidebar } from '@/components/organisms/UserSidebar/UserSidebar';
 import { formatDate } from '@/utils/formatDate';
 import { sanitizeMarkdown } from '@/utils/sanitizeMarkdown';
-import { getPreviousPost, getNextPost } from '@/actions/data';
-import i18n from '@/utils/i18n';
 import type { Post, User, Shader, Tag } from '@/types';
 import styles from './PostDetailTemplate.module.scss';
 
@@ -23,25 +20,13 @@ interface PostDetailTemplateProps {
   author: User;
   shader: Shader | null;
   tags?: Tag[];
+  prevPost: Post | null;
+  nextPost: Post | null;
 }
 
-export function PostDetailTemplate({ post, author, shader, tags = [] }: PostDetailTemplateProps) {
-  const [prevPost, setPrevPost] = useState<Post | null>(null);
-  const [nextPost, setNextPost] = useState<Post | null>(null);
+export function PostDetailTemplate({ post, author, shader, tags = [], prevPost, nextPost }: PostDetailTemplateProps) {
   const { isPostSaved, savePost, unsavePost } = useSavedItems();
   const isSaved = isPostSaved(post.id);
-
-  useEffect(() => {
-    async function loadNeighbors() {
-      const [prev, next] = await Promise.all([
-        getPreviousPost(post.userId, post.updatedAt),
-        getNextPost(post.userId, post.updatedAt)
-      ]);
-      setPrevPost(prev);
-      setNextPost(next);
-    }
-    loadNeighbors();
-  }, [post.userId, post.updatedAt]);
 
   const authorName = author.username || author.email.split('@')[0];
   const postUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ''}/u/${post.userId}/p/${post.slug}`;
