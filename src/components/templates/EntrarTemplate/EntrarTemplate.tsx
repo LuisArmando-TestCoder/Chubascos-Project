@@ -20,9 +20,9 @@ export default function EntrarTemplate() {
     const res = await requestOtp(email);
     if (res.success) {
       setStep('otp');
-      setMessage('Te hemos enviado un código a tu correo.');
+      setMessage(i18n.auth.otpSubtitle.replace('{email}', email));
     } else {
-      setError(res.error || 'Algo salió mal.');
+      setError(res.error || i18n.common.error);
     }
     setLoading(false);
   };
@@ -35,7 +35,7 @@ export default function EntrarTemplate() {
     if (res.success) {
       window.location.href = '/dashboard';
     } else {
-      setError(res.error || 'Código incorrecto.');
+      setError(res.error || i18n.auth.errorInvalidOtp);
     }
     setLoading(false);
   };
@@ -66,9 +66,9 @@ export default function EntrarTemplate() {
       >
         <div className={styles.authSection}>
           <header className={styles.header}>
-            <h1 className={styles.title}>Entrar a Chubascos</h1>
+            <h1 className={styles.title}>{i18n.auth.title}</h1>
             <p className={styles.subtitle}>
-              {step === 'email' ? 'Introduce tu email para recibir un código de acceso.' : `Enviamos un código a ${email}`}
+              {step === 'email' ? i18n.auth.subtitle : i18n.auth.otpSubtitle.replace('{email}', email)}
             </p>
           </header>
 
@@ -85,7 +85,7 @@ export default function EntrarTemplate() {
                   <input
                     className={styles.input}
                     type="email"
-                    placeholder="tu@email.com"
+                    placeholder={i18n.auth.emailPlaceholder}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -102,7 +102,7 @@ export default function EntrarTemplate() {
                   <input
                     className={styles.input}
                     type="text"
-                    placeholder="Código de 6 dígitos"
+                    placeholder={i18n.auth.otpPlaceholder}
                     maxLength={6}
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
@@ -116,13 +116,13 @@ export default function EntrarTemplate() {
             {message && <p className={styles.message}>{message}</p>}
 
             <button className={styles.button} type="submit" disabled={loading}>
-              {loading ? 'Cargando...' : (step === 'email' ? 'Enviar código' : 'Verificar')}
+              {loading ? i18n.common.loading : (step === 'email' ? i18n.auth.sendOtp : i18n.auth.verify)}
             </button>
           </form>
 
           {step === 'otp' && (
             <button className={styles.back} type="button" onClick={() => setStep('email')}>
-              Usar otro correo
+              {i18n.common.back}
             </button>
           )}
         </div>

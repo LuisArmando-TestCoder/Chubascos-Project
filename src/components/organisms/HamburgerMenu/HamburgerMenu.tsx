@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import FocusTrap from 'focus-trap-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import i18n from '@/utils/i18n';
 import styles from './HamburgerMenu.module.scss';
 
 interface HamburgerMenuProps {
@@ -13,13 +14,13 @@ interface HamburgerMenuProps {
 }
 
 const primaryLinks = [
-  { href: '/buscar', label: 'Buscar' },
-  { href: '/guardados', label: 'Guardados' },
+  { href: '/buscar', label: i18n.common.search },
+  { href: '/guardados', label: i18n.common.saved },
 ];
 
 const secondaryLinks = [
-  { href: '/normas', label: 'Normas de comunidad' },
-  { href: '/privacidad', label: 'Tu obra, tu derecho' },
+  { href: '/normas', label: i18n.norms.communityTitle },
+  { href: '/privacidad', label: i18n.norms.rightsTitle },
 ];
 
 const ease1: [number, number, number, number] = [0.76, 0, 0.24, 1];
@@ -80,7 +81,7 @@ export function HamburgerMenu({ isOpen, onClose, isLoggedIn = false, email = '' 
                 initial="hidden"
                 animate="visible"
               >
-                <p className={styles.sectionLabel}>Descubrir</p>
+                <p className={styles.sectionLabel}>{i18n.common.explore}</p>
                 {primaryLinks.map((link) => (
                   <motion.div key={link.href} variants={itemVariants} className={styles.linkWrapper}>
                     <Link href={link.href} className={styles.primaryLink} onClick={onClose}>
@@ -92,11 +93,11 @@ export function HamburgerMenu({ isOpen, onClose, isLoggedIn = false, email = '' 
                 <motion.div variants={itemVariants} className={styles.loginWrapper}>
                   {isLoggedIn ? (
                     <Link href="/dashboard" className={styles.loginLink} onClick={onClose}>
-                      Panel →
+                      {i18n.common.profile} →
                     </Link>
                   ) : (
                     <Link href="/entrar" className={styles.loginLink} onClick={onClose}>
-                      Entrar
+                      {i18n.common.login}
                     </Link>
                   )}
                 </motion.div>

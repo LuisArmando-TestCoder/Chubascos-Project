@@ -7,8 +7,8 @@ export function Footer() {
   return (
     <footer className={styles.footer}>
       <div className={styles.inner}>
-        <p className={styles.brand}>CHUBASCOS</p>
-        <p className={styles.sub}>Lluvias repentinas dejando charcos</p>
+        <p className={styles.brand}>{i18n.home.hero.title}</p>
+        <p className={styles.sub}>{i18n.home.hero.subtitle}</p>
         <nav className={styles.nav} aria-label="Pie de página">
           <Link href="/normas">{i18n.footer.norms}</Link>
           <Link href="/privacidad">{i18n.footer.privacy}</Link>
