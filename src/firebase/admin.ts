@@ -100,7 +100,7 @@ export function initAdmin() {
 // Auto-init on import
 initAdmin();
 
-export const db   = admin.apps.length ? admin.firestore() : (null as any);
-export const auth = admin.apps.length ? admin.auth()      : (null as any);
+export const db   = admin.apps.length ? admin.firestore() : null;
+export const auth = admin.apps.length ? admin.auth()      : null;
 export const getDb   = () => admin.apps.length ? admin.firestore() : null;
 export const getAuth = () => admin.apps.length ? admin.auth()      : null;
