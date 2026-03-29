@@ -7,11 +7,11 @@ import { Button } from '@/components/atoms/Button/Button';
 import { ShaderEditor, DEFAULT_SHADER } from '@/components/organisms/ShaderEditor/ShaderEditor';
 import { Footer } from '@/components/organisms/Footer/Footer';
 import {
-  createPost, updatePost, updateUserProfile, createEvent, updateEvent, createShader, getTags, deletePost, deleteEvent
+  createPost, updatePost, updateUserProfile, createEvent, updateEvent, createShader, updateShader, getTags, deletePost, deleteEvent
 } from '@/actions/data';
 import { logout } from '@/actions/auth';
 import { generateSlug } from '@/utils/generateSlug';
-import type { User, Post, Event, Tag } from '@/types';
+import type { User, Post, Event, Tag, Shader } from '@/types';
 import { useProfileStore } from '@/store/profile';
 import { useSavedStore } from '@/store/saved';
 import styles from './DashboardTemplate.module.scss';
@@ -21,6 +21,7 @@ const ShaderCanvas = dynamic(() => import('@/components/organisms/ShaderCanvas/S
 interface DashboardTemplateProps {
   user: User;
   editPost?: Post | null;
+  editShader?: Shader | null;
   editEvent?: Event | null;
   editPrevPost?: Post | null;
   editNextPost?: Post | null;
@@ -41,7 +42,7 @@ function timestampToDateString(ts: any): string {
   return `${y}-${m}-${day}`;
 }
 
-export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, editNextPost, editPrevEvent, editNextEvent }: DashboardTemplateProps) {
+export function DashboardTemplate({ user, editPost, editShader, editEvent, editPrevPost, editNextPost, editPrevEvent, editNextEvent }: DashboardTemplateProps) {
   const [activeTab, setActiveTab] = useState<DashTab>(() => {
     if (editPost) return 'nuevo-poema';
     if (editEvent) return 'nuevo-evento';
@@ -94,8 +95,10 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
   }, [editPost?.id]);
   const [postVisible, setPostVisible] = useState(editPost ? (editPost as any).isVisible !== false : true);
   const [postIndexed, setPostIndexed] = useState(editPost ? (editPost as any).isIndexed !== false : true);
-  const [postShaderCode, setPostShaderCode] = useState('');
-  const [shaderPreviewCode, setShaderPreviewCode] = useState(DEFAULT_SHADER);
+  // editingShaderId tracks the existing shader to update when editing a post
+  const [editingShaderId, setEditingShaderId] = useState<string | null>((editPost as any)?.shaderId || null);
+  const [postShaderCode, setPostShaderCode] = useState(editShader?.glslCode || '');
+  const [shaderPreviewCode, setShaderPreviewCode] = useState(editShader?.glslCode || DEFAULT_SHADER);
   const [showShaderEditor, setShowShaderEditor] = useState(false);
   const [postMsg, setPostMsg] = useState('');
   const [postLoading, setPostLoading] = useState(false);
@@ -150,13 +153,35 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
     setPostLoading(true);
 
     if (editingPostId) {
-      // Update existing post
+      // Update existing post — also handle shader save/update
       const slug = postSlug || generateSlug(postTitle);
+
+      let shaderId: string | undefined = editingShaderId || undefined;
+
+      if (postShaderCode) {
+        if (editingShaderId) {
+          // Update existing shader
+          await updateShader(user.id, editingShaderId, { glslCode: postShaderCode, name: postTitle });
+        } else {
+          // Create a new shader for this post
+          const shaderResult = await createShader(user.id, {
+            name: postTitle,
+            glslCode: postShaderCode,
+            isPublic: false,
+          });
+          if (shaderResult.success) {
+            shaderId = shaderResult.id;
+            setEditingShaderId(shaderResult.id || null);
+          }
+        }
+      }
+
       const result = await updatePost(user.id, editingPostId, {
         title: postTitle,
         content: postContent,
         slug,
         tagIds: postTags,
+        shaderId,
         isVisible: postVisible,
         isIndexed: postIndexed,
       });
@@ -204,7 +229,7 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
       }
     }
     setPostLoading(false);
-  }, [user.id, editingPostId, postTitle, postContent, postSlug, postTags, postVisible, postIndexed, postShaderCode]);
+  }, [user.id, editingPostId, editingShaderId, postTitle, postContent, postSlug, postTags, postVisible, postIndexed, postShaderCode]);
 
   const handleDeleteEvent = async () => {
     if (!editingEventId) return;
@@ -396,37 +421,39 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
                   </label>
                 </div>
 
-                {!editingPostId && (
-                  <div className={styles.shaderSection}>
-                    <button
-                      className={styles.shaderToggle}
-                      onClick={() => setShowShaderEditor(!showShaderEditor)}
-                      aria-expanded={showShaderEditor}
-                      aria-label="Togglear editor de shader"
-                    >
-                      {showShaderEditor ? '— Quitar shader' : '+ Añadir shader (alquimia)'}
-                    </button>
-                    <AnimatePresence>
-                      {showShaderEditor && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                        >
-                          <ShaderEditor
-                            initialCode={postShaderCode || DEFAULT_SHADER}
-                            onSave={(code) => { setPostShaderCode(code); setShowShaderEditor(false); }}
-                            onClose={() => setShowShaderEditor(false)}
-                            onCodeChange={setShaderPreviewCode}
-                          />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                    {postShaderCode && !showShaderEditor && (
-                      <p className={styles.shaderActive}>✦ Shader activo</p>
+                <div className={styles.shaderSection}>
+                  <button
+                    className={styles.shaderToggle}
+                    onClick={() => setShowShaderEditor(!showShaderEditor)}
+                    aria-expanded={showShaderEditor}
+                    aria-label="Togglear editor de shader"
+                  >
+                    {showShaderEditor
+                      ? '— Cerrar editor'
+                      : postShaderCode
+                        ? '✦ Editar shader (alquimia)'
+                        : '+ Añadir shader (alquimia)'}
+                  </button>
+                  <AnimatePresence>
+                    {showShaderEditor && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                      >
+                        <ShaderEditor
+                          initialCode={postShaderCode || DEFAULT_SHADER}
+                          onSave={(code) => { setPostShaderCode(code); setShowShaderEditor(false); }}
+                          onClose={() => setShowShaderEditor(false)}
+                          onCodeChange={setShaderPreviewCode}
+                        />
+                      </motion.div>
                     )}
-                  </div>
-                )}
+                  </AnimatePresence>
+                  {postShaderCode && !showShaderEditor && (
+                    <p className={styles.shaderActive}>✦ Shader activo</p>
+                  )}
+                </div>
 
                 {postMsg && <p className={styles.msg}>{postMsg}</p>}
                 {savedPostSlug && (

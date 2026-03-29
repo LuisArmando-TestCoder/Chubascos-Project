@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getSession } from '@/actions/auth';
-import { getUserProfile, getPost, getEvent, getPreviousPost, getNextPost, getUserEvents } from '@/actions/data';
+import { getUserProfile, getPost, getEvent, getShader, getPreviousPost, getNextPost, getUserEvents } from '@/actions/data';
 import { DashboardTemplate } from '@/components/templates/DashboardTemplate/DashboardTemplate';
-import type { Post, Event } from '@/types';
+import type { Post, Event, Shader } from '@/types';
 
 export const metadata: Metadata = {
   title: 'Panel | Chubascos',
@@ -22,6 +22,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   const { edit, id } = await searchParams;
 
   let editPost: Post | null = null;
+  let editShader: Shader | null = null;
   let editEvent: Event | null = null;
   let editPrevPost: Post | null = null;
   let editNextPost: Post | null = null;
@@ -32,13 +33,16 @@ export default async function DashboardPage({ searchParams }: Props) {
     const post = await getPost(session.userId, id);
     if (post && post.userId === session.userId) {
       editPost = post;
-      // Fetch adjacent posts for navigation (newest=anterior, older=siguiente)
-      const [prev, next] = await Promise.all([
+      // Fetch adjacent posts + shader in parallel
+      const shaderId = (post as any).shaderId as string | undefined;
+      const [prev, next, shader] = await Promise.all([
         getPreviousPost(session.userId, post.updatedAt),
         getNextPost(session.userId, post.updatedAt),
+        shaderId ? getShader(shaderId) : Promise.resolve(null),
       ]);
       editPrevPost = prev; // older post → "Siguiente"
       editNextPost = next; // newer post → "Anterior"
+      editShader = shader;
     }
   } else if (edit === 'event' && id) {
     const event = await getEvent(id);
@@ -57,6 +61,7 @@ export default async function DashboardPage({ searchParams }: Props) {
       key={editPost?.id || editEvent?.id || 'dashboard'}
       user={user}
       editPost={editPost}
+      editShader={editShader}
       editEvent={editEvent}
       editPrevPost={editPrevPost}
       editNextPost={editNextPost}
