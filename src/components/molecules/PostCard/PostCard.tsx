@@ -35,7 +35,11 @@ export function PostCard({ post, authorName, tags = [], showAuthor = false, badg
             <TagPill key={tag.id} value={tag.value} tagId={tag.id} size="sm" />
           ))}
         </div>
-        <time className={styles.date} dateTime={String(post.updatedAt)}>
+        <time className={styles.date} dateTime={
+          post.updatedAt && typeof post.updatedAt === 'object' && 'seconds' in (post.updatedAt as any)
+            ? new Date((post.updatedAt as any).seconds * 1000).toISOString()
+            : String(post.updatedAt)
+        }>
           {post.updatedAt ? formatDate(post.updatedAt) : ''}
         </time>
       </footer>
