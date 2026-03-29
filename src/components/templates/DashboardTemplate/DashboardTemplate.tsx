@@ -95,6 +95,7 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
   const [postMsg, setPostMsg] = useState('');
   const [postLoading, setPostLoading] = useState(false);
   const [isDeletingPost, setIsDeletingPost] = useState(false);
+  const [deletePostConfirm, setDeletePostConfirm] = useState(false);
   const [savedPostSlug, setSavedPostSlug] = useState<string | null>(editPost?.slug || null);
 
   // Event state — pre-fill from editEvent if provided
@@ -108,6 +109,7 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
   const [eventMsg, setEventMsg] = useState('');
   const [eventLoading, setEventLoading] = useState(false);
   const [isDeletingEvent, setIsDeletingEvent] = useState(false);
+  const [deleteEventConfirm, setDeleteEventConfirm] = useState(false);
 
   const handleProfileSave = useCallback(async () => {
     setProfileLoading(true);
@@ -118,8 +120,6 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
 
   const handleDeletePost = async () => {
     if (!editingPostId) return;
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este poema permanentemente?')) return;
-    
     setIsDeletingPost(true);
     const result = await deletePost(user.id, editingPostId);
     if (result.success) {
@@ -127,6 +127,7 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
     } else {
       setPostMsg(result.error || 'Error al eliminar poema.');
       setIsDeletingPost(false);
+      setDeletePostConfirm(false);
     }
   };
 
@@ -196,8 +197,6 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
 
   const handleDeleteEvent = async () => {
     if (!editingEventId) return;
-    if (!window.confirm('¿Estás seguro de que quieres cancelar y eliminar este evento permanentemente?')) return;
-    
     setIsDeletingEvent(true);
     const result = await deleteEvent(user.id, editingEventId);
     if (result.success) {
@@ -205,6 +204,7 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
     } else {
       setEventMsg(result.error || 'Error al eliminar evento.');
       setIsDeletingEvent(false);
+      setDeleteEventConfirm(false);
     }
   };
 
@@ -429,16 +429,6 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
                   <Button onClick={handlePostSave} loading={postLoading}>
                     {editingPostId ? 'Actualizar poema' : 'Publicar poema'}
                   </Button>
-                  {editingPostId && (
-                    <button 
-                      className={styles.deleteBtn} 
-                      onClick={handleDeletePost}
-                      disabled={isDeletingPost}
-                      type="button"
-                    >
-                      {isDeletingPost ? 'Eliminando...' : 'Eliminar poema'}
-                    </button>
-                  )}
                 </div>
 
                 {editingPostId && (editNextPost || editPrevPost) && (
@@ -455,6 +445,40 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
                       </Link>
                     )}
                   </nav>
+                )}
+
+                {editingPostId && (
+                  <div className={styles.dangerZone}>
+                    {!deletePostConfirm ? (
+                      <button
+                        className={styles.dangerTrigger}
+                        type="button"
+                        onClick={() => setDeletePostConfirm(true)}
+                      >
+                        Eliminar poema
+                      </button>
+                    ) : (
+                      <div className={styles.dangerConfirm}>
+                        <span className={styles.dangerWarning}>¿Eliminar permanentemente?</span>
+                        <button
+                          className={styles.dangerConfirmBtn}
+                          type="button"
+                          onClick={handleDeletePost}
+                          disabled={isDeletingPost}
+                        >
+                          {isDeletingPost ? 'Eliminando...' : 'Sí, eliminar'}
+                        </button>
+                        <button
+                          className={styles.dangerCancelBtn}
+                          type="button"
+                          onClick={() => setDeletePostConfirm(false)}
+                          disabled={isDeletingPost}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
               </motion.div>
             )}
@@ -493,16 +517,6 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
                   <Button onClick={handleEventSave} loading={eventLoading}>
                     {editingEventId ? 'Actualizar evento' : 'Crear evento'}
                   </Button>
-                  {editingEventId && (
-                    <button 
-                      className={styles.deleteBtn} 
-                      onClick={handleDeleteEvent}
-                      disabled={isDeletingEvent}
-                      type="button"
-                    >
-                      {isDeletingEvent ? 'Cancelando...' : 'Cancelar evento'}
-                    </button>
-                  )}
                 </div>
 
                 {editingEventId && (editNextEvent || editPrevEvent) && (
@@ -519,6 +533,40 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
                       </Link>
                     )}
                   </nav>
+                )}
+
+                {editingEventId && (
+                  <div className={styles.dangerZone}>
+                    {!deleteEventConfirm ? (
+                      <button
+                        className={styles.dangerTrigger}
+                        type="button"
+                        onClick={() => setDeleteEventConfirm(true)}
+                      >
+                        Cancelar y eliminar evento
+                      </button>
+                    ) : (
+                      <div className={styles.dangerConfirm}>
+                        <span className={styles.dangerWarning}>¿Eliminar permanentemente?</span>
+                        <button
+                          className={styles.dangerConfirmBtn}
+                          type="button"
+                          onClick={handleDeleteEvent}
+                          disabled={isDeletingEvent}
+                        >
+                          {isDeletingEvent ? 'Eliminando...' : 'Sí, eliminar'}
+                        </button>
+                        <button
+                          className={styles.dangerCancelBtn}
+                          type="button"
+                          onClick={() => setDeleteEventConfirm(false)}
+                          disabled={isDeletingEvent}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
               </motion.div>
             )}

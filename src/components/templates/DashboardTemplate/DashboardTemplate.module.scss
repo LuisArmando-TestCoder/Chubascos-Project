@@ -290,16 +290,51 @@
   }
 }
 
-.deleteBtn {
-  background: transparent;
-  border: 1px solid rgba(232, 107, 107, 0.3);
+.dangerZone {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.dangerTrigger {
+  background: none;
+  border: none;
+  padding: 0;
+  color: rgba(255, 255, 255, 0.18);
+  font-family: v.$font-mono;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  cursor: pointer;
+  transition: color 0.2s;
+
+  &:hover {
+    color: rgba(232, 107, 107, 0.6);
+  }
+}
+
+.dangerConfirm {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dangerWarning {
+  font-family: v.$font-mono;
+  font-size: 0.65rem;
+  color: rgba(232, 107, 107, 0.7);
+  letter-spacing: 0.05em;
+}
+
+.dangerConfirmBtn {
+  background: none;
+  border: 1px solid rgba(232, 107, 107, 0.4);
   color: #e86b6b;
   font-family: v.$font-mono;
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 14px 24px;
-  border-radius: 4px;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  padding: 5px 12px;
   cursor: pointer;
   transition: all 0.2s;
 
@@ -309,7 +344,28 @@
   }
 
   &:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.dangerCancelBtn {
+  background: none;
+  border: none;
+  padding: 5px 0;
+  color: rgba(255, 255, 255, 0.25);
+  font-family: v.$font-mono;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: color 0.2s;
+
+  &:hover:not(:disabled) {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  &:disabled {
+    opacity: 0.4;
     cursor: not-allowed;
   }
 }
