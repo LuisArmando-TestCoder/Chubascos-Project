@@ -86,7 +86,12 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
   const [postTitle, setPostTitle] = useState(editPost?.title || '');
   const [postContent, setPostContent] = useState(editPost?.content || '');
   const [postSlug, setPostSlug] = useState(editPost?.slug || '');
-  const [postTags, setPostTags] = useState<string[]>(editPost?.tagIds || []);
+  const [postTags, setPostTags] = useState<string[]>(editPost?.tagIds ?? []);
+
+  // Sync postTags when editing a different post (safety net)
+  useEffect(() => {
+    setPostTags(editPost?.tagIds ?? []);
+  }, [editPost?.id]);
   const [postVisible, setPostVisible] = useState(editPost ? (editPost as any).isVisible !== false : true);
   const [postIndexed, setPostIndexed] = useState(editPost ? (editPost as any).isIndexed !== false : true);
   const [postShaderCode, setPostShaderCode] = useState('');
@@ -106,10 +111,16 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
   const [eventHour, setEventHour] = useState(editEvent?.hour || '');
   const [eventPlace, setEventPlace] = useState(editEvent?.place || '');
   const [eventPrice, setEventPrice] = useState(editEvent?.price !== undefined ? String(editEvent.price) : '');
+  const [eventTags, setEventTags] = useState<string[]>(editEvent?.tagIds ?? []);
   const [eventMsg, setEventMsg] = useState('');
   const [eventLoading, setEventLoading] = useState(false);
   const [isDeletingEvent, setIsDeletingEvent] = useState(false);
   const [deleteEventConfirm, setDeleteEventConfirm] = useState(false);
+
+  // Sync eventTags when editing a different event (safety net)
+  useEffect(() => {
+    setEventTags(editEvent?.tagIds ?? []);
+  }, [editEvent?.id]);
 
   const handleProfileSave = useCallback(async () => {
     setProfileLoading(true);
@@ -224,6 +235,7 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
         hour: eventHour,
         place: eventPlace,
         price: eventPrice !== '' ? parseFloat(eventPrice) : undefined,
+        tagIds: eventTags,
       });
       setEventMsg(result.success ? 'Evento actualizado.' : (result.error || 'Error.'));
     } else {
@@ -237,7 +249,7 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
         price: eventPrice !== '' ? parseFloat(eventPrice) : undefined,
         urls: [],
         contacts: [],
-        tagIds: [],
+        tagIds: eventTags,
       });
       setEventMsg(result.success ? 'Evento creado.' : (result.error || 'Error.'));
       if (result.success) {
@@ -247,11 +259,12 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
         setEventHour('');
         setEventPlace('');
         setEventPrice('');
+        setEventTags([]);
         setEditingEventId(null);
       }
     }
     setEventLoading(false);
-  }, [user.id, editingEventId, eventTitle, eventDesc, eventDay, eventHour, eventPlace, eventPrice]);
+  }, [user.id, editingEventId, eventTitle, eventDesc, eventDay, eventHour, eventPlace, eventPrice, eventTags]);
 
   const handleLogout = async () => {
     await logout();
@@ -510,6 +523,37 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
                 <div className={styles.field}>
                   <label className={styles.label} htmlFor="eventPrice">Precio (0 para entrada libre)</label>
                   <input id="eventPrice" type="number" className={styles.input} value={eventPrice} onChange={(e) => setEventPrice(e.target.value)} placeholder="0" min="0" />
+                </div>
+                <div className={styles.field}>
+                  <label className={styles.label}>Etiquetas (máx 4)</label>
+                  <div className={styles.tagsContainer}>
+                    {tagsLoading ? (
+                      <p>Cargando etiquetas...</p>
+                    ) : (
+                      <div className={styles.tagList}>
+                        {availableTags.map(tag => {
+                          const isSelected = eventTags.includes(tag.id);
+                          return (
+                            <button
+                              key={tag.id}
+                              type="button"
+                              onClick={() => {
+                                if (isSelected) {
+                                  setEventTags(prev => prev.filter(id => id !== tag.id));
+                                } else if (eventTags.length < 4) {
+                                  setEventTags(prev => [...prev, tag.id]);
+                                }
+                              }}
+                              className={`${styles.tagButton} ${isSelected ? styles.tagSelected : ''}`}
+                              disabled={!isSelected && eventTags.length >= 4}
+                            >
+                              #{tag.value || tag.slug}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 {eventMsg && <p className={styles.msg}>{eventMsg}</p>}
                 
