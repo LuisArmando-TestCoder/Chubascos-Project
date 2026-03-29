@@ -95,6 +95,7 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
   const [postMsg, setPostMsg] = useState('');
   const [postLoading, setPostLoading] = useState(false);
   const [isDeletingPost, setIsDeletingPost] = useState(false);
+  const [savedPostSlug, setSavedPostSlug] = useState<string | null>(editPost?.slug || null);
 
   // Event state — pre-fill from editEvent if provided
   const [editingEventId, setEditingEventId] = useState<string | null>(editEvent?.id || null);
@@ -138,15 +139,21 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
 
     if (editingPostId) {
       // Update existing post
+      const slug = postSlug || generateSlug(postTitle);
       const result = await updatePost(user.id, editingPostId, {
         title: postTitle,
         content: postContent,
-        slug: postSlug || generateSlug(postTitle),
+        slug,
         tagIds: postTags,
         isVisible: postVisible,
         isIndexed: postIndexed,
       });
-      setPostMsg(result.success ? 'Poema actualizado.' : (result.error || 'Error.'));
+      if (result.success) {
+        setSavedPostSlug(editPost?.slug || slug);
+        setPostMsg('Poema actualizado.');
+      } else {
+        setPostMsg(result.error || 'Error.');
+      }
     } else {
       // Create new post
       const slug = postSlug || generateSlug(postTitle);
@@ -171,14 +178,17 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
         isIndexed: postIndexed,
       });
 
-      setPostMsg(result.success ? `Poema publicado. Slug: ${result.slug}` : (result.error || 'Error.'));
       if (result.success) {
+        setSavedPostSlug(result.slug ?? null);
+        setPostMsg('Poema publicado.');
         setPostTitle('');
         setPostContent('');
         setPostSlug('');
         setPostTags([]);
         setPostShaderCode('');
         setEditingPostId(null);
+      } else {
+        setPostMsg(result.error || 'Error.');
       }
     }
     setPostLoading(false);
@@ -406,6 +416,14 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
                 )}
 
                 {postMsg && <p className={styles.msg}>{postMsg}</p>}
+                {savedPostSlug && (
+                  <Link
+                    href={`/u/${encodeURIComponent(user.id)}/p/${savedPostSlug}`}
+                    className={styles.viewPostLink}
+                  >
+                    Ver el poema →
+                  </Link>
+                )}
                 
                 <div className={styles.actionRow}>
                   <Button onClick={handlePostSave} loading={postLoading}>

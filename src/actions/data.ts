@@ -191,7 +191,7 @@ export async function getShader(shaderId: string): Promise<Shader | null> {
   if (!db) return null;
   const doc = await db.collection('shaders').doc(shaderId).get();
   if (!doc.exists) return null;
-  return { id: doc.id, ...doc.data() } as Shader;
+  return { id: doc.id, ...serialize(doc.data()) } as Shader;
 }
 
 export async function getPublicShaders(limitNum: number = PAGE_SIZE, cursor?: string): Promise<{ items: Shader[]; nextCursor: string | null }> {

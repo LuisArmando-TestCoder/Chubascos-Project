@@ -347,3 +347,20 @@
   width: 1px;
   background: rgba(255, 255, 255, 0.08);
 }
+
+.viewPostLink {
+  display: inline-block;
+  font-family: v.$font-mono;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: v.$accent;
+  text-decoration: none;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(v.$accent, 0.3);
+  transition: border-color 0.2s, opacity 0.2s;
+
+  &:hover {
+    border-bottom-color: v.$accent;
+    opacity: 0.8;
+  }
+}
