@@ -1,6 +1,7 @@
 @use '@/styles/variables' as v;
 
 .pill {
+  backdrop-filter: blur(20px);
   display: inline-flex;
   align-items: center;
   border: 1px solid rgba(255, 255, 255, 0.18);

@@ -124,14 +124,16 @@
 }
 
 .poemFooter {
-  position: sticky;
-  bottom: 0;
-  margin-top: 6rem;
-  padding-top: 3rem;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  margin: 0;
+  padding: 3rem;
+  display: flex;
+  position: sticky;
+  bottom: 0;
+  place-items: center;
+
 
   @media (max-width: v.$mobile) {
     flex-direction: column;
