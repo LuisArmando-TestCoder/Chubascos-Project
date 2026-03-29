@@ -21,12 +21,33 @@ export default function GuardadosPage() {
     async function load() {
       setLoading(true);
       const ids = activeTab === 'posts' ? posts : activeTab === 'users' ? users : events;
+      
+      if (ids.length === 0) {
+        setItems([]);
+        setLoading(false);
+        return;
+      }
+
       const result = await getSavedItems(ids, activeTab);
       setItems(result.items);
+
+      // Cleanup missing items from local storage
+      if (result.items.length < ids.length) {
+        const foundIds = new Set(result.items.map(item => item.id));
+        ids.forEach(id => {
+          if (!foundIds.has(id)) {
+            if (activeTab === 'posts') unsavePost(id);
+            else if (activeTab === 'users') unsaveUser(id);
+            else unsaveEvent(id);
+          }
+        });
+      }
+
       setLoading(false);
     }
     load();
-  }, [activeTab, posts, users, events]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, posts.join(','), users.join(','), events.join(',')]);
 
   return (
     <main className={styles.page}>

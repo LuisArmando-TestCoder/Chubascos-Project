@@ -16,6 +16,7 @@ interface SavedState {
   unsaveUser: (id: string) => void;
   saveEvent: (id: string) => void;
   unsaveEvent: (id: string) => void;
+  clearAll: () => void;
 }
 
 export const useSavedStore = create<SavedState>()(
@@ -42,6 +43,7 @@ export const useSavedStore = create<SavedState>()(
         })),
       unsaveEvent: (id) =>
         set((state) => ({ events: state.events.filter((e) => e !== id) })),
+      clearAll: () => set({ posts: [], users: [], events: [] }),
     }),
     { name: 'chubascos_saved' }
   )

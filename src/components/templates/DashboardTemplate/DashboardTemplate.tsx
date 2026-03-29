@@ -13,6 +13,7 @@ import { logout } from '@/actions/auth';
 import { generateSlug } from '@/utils/generateSlug';
 import type { User } from '@/types';
 import { useProfileStore } from '@/store/profile';
+import { useSavedStore } from '@/store/saved';
 import styles from './DashboardTemplate.module.scss';
 
 const ShaderCanvas = dynamic(() => import('@/components/organisms/ShaderCanvas/ShaderCanvas'), { ssr: false });
@@ -143,6 +144,7 @@ export function DashboardTemplate({ user }: DashboardTemplateProps) {
   const handleLogout = async () => {
     await logout();
     setProfile({ isLoggedIn: false, userId: '', email: '', username: '' });
+    useSavedStore.getState().clearAll();
     window.location.href = '/';
   };
 
