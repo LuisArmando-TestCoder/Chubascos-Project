@@ -27,7 +27,7 @@ const i18n = {
   home: {
     hero: {
       title: 'CHUBASCOS',
-      subtitle: 'Lluvias repentinas dejando charcos de poesía.',
+      subtitle: 'Lluvias repentinas dejando charcos.',
       cta: 'Empezar a escribir',
     },
     liveFeed: {
