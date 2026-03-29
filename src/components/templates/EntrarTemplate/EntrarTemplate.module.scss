@@ -233,7 +233,6 @@
   &:hover:not(:disabled) {
     background: v.$accent;
     color: v.$white;
-    transform: translateY(-2px);
     box-shadow: 0 8px 24px rgba(v.$accent, 0.3);
   }
 

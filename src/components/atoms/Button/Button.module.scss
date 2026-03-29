@@ -23,11 +23,9 @@
 
   &:not(:disabled):hover {
     opacity: 0.85;
-    transform: translateY(-1px);
   }
 
   &:not(:disabled):active {
-    transform: translateY(0);
   }
 
   &.sm {

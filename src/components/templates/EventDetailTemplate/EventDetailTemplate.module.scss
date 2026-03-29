@@ -145,7 +145,6 @@
   &:hover {
     background: v.$accent;
     color: v.$white;
-    transform: translateY(-4px);
   }
 
   &.saved {
@@ -161,7 +160,6 @@
 
   &:hover {
     border-color: v.$white;
-    transform: translateY(-4px);
   }
 }
 
