@@ -81,6 +81,22 @@
   opacity: 0.6;
 }
 
+@keyframes tagSpin {
+  to { transform: rotate(360deg); }
+}
+
+.tagSpinner {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  border-top-color: currentColor;
+  opacity: 0.35;
+  animation: tagSpin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
 .tabs {
   display: flex;
   gap: 0;

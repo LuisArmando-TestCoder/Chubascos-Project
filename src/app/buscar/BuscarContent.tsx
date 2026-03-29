@@ -31,6 +31,7 @@ export function BuscarContent() {
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [usersLoaded, setUsersLoaded] = useState(false);
+  const [tagUsersCount, setTagUsersCount] = useState<Record<string, number>>({});
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadTagSuggestions = useCallback(async (prefix: string) => {
@@ -77,6 +78,8 @@ export function BuscarContent() {
       setUsers(result.items);
       setUserCursor(result.nextCursor);
       setUsersLoaded(true);
+      // Aggregate poets count into the tag badge total
+      setTagUsersCount((prev) => ({ ...prev, [selectedTag]: result.items.length }));
     }).catch(() => { setUsersLoaded(true); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTag]);
@@ -115,19 +118,22 @@ export function BuscarContent() {
           {tags.length > 0 && (
             <div className={styles.tagCloud}>
               {tags.map((tag) => {
-                // Badge shows posts + events only (stable, from DB)
-                // Poets count is dynamic and shown in the tab labels instead
-                const totalCount = (tag.usedByPosts || 0) + (tag.usedByEvents || 0);
-                if (totalCount === 0) return null;
+                const isSelected = selectedTag === tag.id;
+                // Total count (posts + events + poets) only shown when the tag is selected
+                const totalCount = (tag.usedByPosts || 0) + (tag.usedByEvents || 0) + (tagUsersCount[tag.id] || 0);
+                // Hide tags that have no content at all
+                const baseCount = (tag.usedByPosts || 0) + (tag.usedByEvents || 0);
+                if (baseCount === 0 && !isSelected) return null;
                 return (
                   <button
                     key={tag.id}
-                    className={`${styles.tagBtn} ${selectedTag === tag.id ? styles.active : ''}`}
+                    className={`${styles.tagBtn} ${isSelected ? styles.active : ''}`}
                     onClick={() => setSelectedTag(tag.id)}
-                    aria-pressed={selectedTag === tag.id}
+                    aria-pressed={isSelected}
                   >
                     #{tag.value}
-                    <span className={styles.tagCount}>{totalCount}</span>
+                    {isSelected && !usersLoaded && <span className={styles.tagSpinner} aria-hidden="true" />}
+                    {isSelected && usersLoaded && <span className={styles.tagCount}>{totalCount}</span>}
                   </button>
                 );
               })}
