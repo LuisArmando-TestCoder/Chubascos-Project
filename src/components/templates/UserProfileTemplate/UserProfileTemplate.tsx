@@ -3,9 +3,8 @@ import { useState, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { PostCard } from '@/components/molecules/PostCard/PostCard';
 import { EventCard } from '@/components/molecules/EventCard/EventCard';
-import { QrModal } from '@/components/organisms/QrModal/QrModal';
+import { UserSidebar } from '@/components/organisms/UserSidebar/UserSidebar';
 import { getUserPosts } from '@/actions/data';
-import { useSavedItems } from '@/hooks/useSavedItems';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import i18n from '@/utils/i18n';
 import type { User, Post, Event } from '@/types';
@@ -28,12 +27,7 @@ export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCur
   const [posts, setPosts] = useState<Post[]>(initialPosts);
   const [cursor, setCursor] = useState<string | null>(initialCursor);
   const [loading, setLoading] = useState(false);
-  const [qrOpen, setQrOpen] = useState(false);
   const [showExpiredEvents, setShowExpiredEvents] = useState(false);
-  const { isUserSaved, saveUser, unsaveUser } = useSavedItems();
-  const isSaved = isUserSaved(user.id);
-  const name = user.username || user.email.split('@')[0];
-  const profileUrl = typeof window !== 'undefined' ? `${window.location.origin}/u/${user.id}` : `/u/${user.id}`;
 
   const upcomingEvents = useMemo(() => initialEvents.filter((e) => !isEventExpired(e)), [initialEvents]);
   const expiredEvents = useMemo(() => initialEvents.filter((e) => isEventExpired(e)), [initialEvents]);
@@ -52,39 +46,9 @@ export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCur
   return (
     <main className={styles.page}>
       <div className={styles.contentGrid}>
+        <UserSidebar user={user} />
+
         <article className={styles.profileArticle}>
-          <header className={styles.profileHeader}>
-            <div className={styles.avatarBlock}>
-              <div className={styles.avatar}>{name.slice(0, 1).toUpperCase()}</div>
-              <span className={styles.label}>Perfil Verificado</span>
-            </div>
-
-            <h1 className={styles.name}>{name}</h1>
-
-            <div className={styles.bioBlock}>
-              <span className={styles.label}>Biografía</span>
-              {user.bio ? (
-                <div className={styles.bioText}>{user.bio}</div>
-              ) : (
-                <p className={styles.emptyBio}>Este poeta aún no ha compartido su historia.</p>
-              )}
-            </div>
-
-            <div className={styles.interaction}>
-              <div className={styles.actions}>
-                <button
-                  className={`${styles.saveBtn} ${isSaved ? styles.saved : ''}`}
-                  onClick={() => isSaved ? unsaveUser(user.id) : saveUser(user.id)}
-                >
-                  {isSaved ? 'Siguiendo' : 'Seguir Poeta'}
-                </button>
-                <button className={styles.qrBtn} onClick={() => setQrOpen(true)}>
-                  Compartir Perfil
-                </button>
-              </div>
-            </div>
-          </header>
-
           {/* Poems section */}
           <section className={styles.poemsSection}>
             <div className={styles.sectionHeader}>
@@ -170,37 +134,7 @@ export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCur
             </section>
           )}
         </article>
-
-        <aside className={styles.sidebar}>
-          {user.contacts?.length > 0 && (
-            <section className={styles.sidebarSection}>
-              <h3 className={styles.sidebarTitle}>Canales digitales</h3>
-              <div className={styles.linksList}>
-                {user.contacts.map((c, i) => (
-                  <a key={i} href={c.url} target="_blank" rel="noopener noreferrer" className={styles.externalLink}>
-                    {c.label} →
-                  </a>
-                ))}
-              </div>
-            </section>
-          )}
-
-          <div className={styles.statsSection}>
-            <div className={styles.statItem}>
-              <span className={styles.label}>Publicaciones</span>
-              <span className={styles.statValue}>{posts.length}</span>
-            </div>
-            {initialEvents.length > 0 && (
-              <div className={styles.statItem}>
-                <span className={styles.label}>Eventos</span>
-                <span className={styles.statValue}>{initialEvents.length}</span>
-              </div>
-            )}
-          </div>
-        </aside>
       </div>
-
-      <QrModal isOpen={qrOpen} onClose={() => setQrOpen(false)} url={profileUrl} label={name} />
     </main>
   );
 }

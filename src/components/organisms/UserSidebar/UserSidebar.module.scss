@@ -1,0 +1,174 @@
+@use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
+
+.sidebar {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
+  position: sticky;
+  top: calc(v.$header-height + 40px);
+  align-self: start;
+}
+
+.profileHeader {
+  margin-bottom: 6rem;
+}
+
+.avatarBlock {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+  background: v.$accent;
+  color: v.$white;
+  border-radius: 50%;
+  @include m.flex-center;
+  font-family: v.$font-serif;
+  font-size: 1.8rem;
+  font-weight: 300;
+}
+
+.label {
+  @include m.font-body;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.2);
+  display: block;
+}
+
+.name {
+  @include m.font-heading;
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1;
+  margin: 0 0 2rem;
+  letter-spacing: -0.02em;
+  color: v.$white;
+}
+
+.bioBlock {
+  margin-bottom: 3rem;
+}
+
+.bioText {
+  @include m.font-body;
+  font-size: 1.25rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 55ch;
+  white-space: pre-wrap;
+}
+
+.emptyBio {
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.interaction {
+  margin-top: 3rem;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 1.2rem;
+}
+
+.saveBtn,
+.qrBtn {
+  @include m.font-heading;
+  font-size: 0.8rem;
+  padding: 1.2rem 2.5rem;
+  cursor: pointer;
+  transition: all 0.3s v.$ease-out;
+  text-transform: uppercase;
+}
+
+.saveBtn,
+.editBtn {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  @include m.font-heading;
+  font-size: 0.8rem;
+  padding: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s v.$ease-out;
+  text-transform: uppercase;
+  background: v.$white;
+  color: v.$black;
+  border: none;
+  text-align: center;
+  width: 100%;
+
+  &:hover {
+    background: v.$accent;
+    color: v.$white;
+    transform: translateY(-4px);
+  }
+
+  &.saved {
+    background: v.$accent;
+    color: v.$white;
+  }
+}
+
+.qrBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  background: transparent;
+  color: v.$white;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+
+  &:hover {
+    border-color: v.$white;
+    transform: translateY(-4px);
+  }
+}
+
+.sidebarSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sidebarTitle {
+  @include m.font-body;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.linksList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.externalLink {
+  @include m.font-heading;
+  font-size: 0.9rem;
+  color: v.$white;
+  text-decoration: none;
+  opacity: 0.5;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+
+  &:hover {
+    opacity: 1;
+    transform: translateX(8px);
+    color: v.$accent;
+  }
+}

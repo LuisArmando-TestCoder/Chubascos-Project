@@ -5,6 +5,7 @@ import { QrModalButton } from '@/components/molecules/QrModalButton/QrModalButto
 import { useState, useEffect } from 'react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { TagPill } from '@/components/atoms/TagPill/TagPill';
+import { UserSidebar } from '@/components/organisms/UserSidebar/UserSidebar';
 import { formatDate } from '@/utils/formatDate';
 import { sanitizeMarkdown } from '@/utils/sanitizeMarkdown';
 import { getPreviousPost, getNextPost } from '@/actions/data';
@@ -55,6 +56,8 @@ export function PostDetailTemplate({ post, author, shader, tags = [] }: PostDeta
       )}
 
       <div className={styles.contentGrid}>
+        <UserSidebar user={author} />
+
         <article className={styles.poemArticle}>
           <header className={styles.poemHeader}>
             <div className={styles.meta}>
@@ -117,19 +120,6 @@ export function PostDetailTemplate({ post, author, shader, tags = [] }: PostDeta
               </Link>
             )}
           </nav>
-
-          <aside className={styles.sidebar}>
-            <div className={styles.authorCard}>
-              <div className={styles.avatar}>{authorName.slice(0, 1).toUpperCase()}</div>
-              <div className={styles.authorInfo}>
-                <span className={styles.label}>Sobre el autor</span>
-                <p className={styles.authorBio}>{author.bio || 'Poeta en constante búsqueda.'}</p>
-                <Link href={`/u/${post.userId}`} className={styles.viewProfile}>
-                  Ver perfil completo
-                </Link>
-              </div>
-            </div>
-          </aside>
         </article>
       </div>
     </main>

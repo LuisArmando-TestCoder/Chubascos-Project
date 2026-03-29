@@ -6,7 +6,6 @@
   display: flex;
   justify-content: center;
   padding-top: v.$header-height;
-  overflow-x: hidden;
   position: relative;
 
   @media (max-width: v.$tablet) {
@@ -25,21 +24,30 @@
 
 .contentGrid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 4rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 10;
   padding: 80px 4vw;
 
   @media (max-width: v.$laptop) {
     padding: 60px 2rem;
+    gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   }
 
   @media (max-width: v.$tablet) {
     padding: 40px 1.5rem;
+    display: flex;
+    flex-direction: column-reverse;
   }
 }
 
 .poemArticle {
-  max-width: 900px;
+  width: 100%;
 }
 
 .poemHeader {
@@ -228,8 +236,6 @@
   display: flex;
   flex-direction: column;
   gap: 4rem;
-  max-width: 900px;
-  margin-top: 4rem;
 }
 
 .authorCard {

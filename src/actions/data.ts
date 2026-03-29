@@ -101,6 +101,15 @@ export async function getUserProfile(userId: string): Promise<User | null> {
   return { id: doc.id, ...serialize(doc.data()) } as User;
 }
 
+/** Fallback: look up a user by their email field when doc-ID lookup fails */
+export async function getUserProfileByEmail(email: string): Promise<User | null> {
+  if (!db) return null;
+  const snap = await db.collection('users').where('email', '==', email.toLowerCase().trim()).limit(1).get();
+  if (snap.empty) return null;
+  const doc = snap.docs[0];
+  return { id: doc.id, ...serialize(doc.data()) } as User;
+}
+
 export async function getUserPosts(
   userId: string,
   limitNum: number = PAGE_SIZE,

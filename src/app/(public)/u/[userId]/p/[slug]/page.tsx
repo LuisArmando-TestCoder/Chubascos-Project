@@ -9,7 +9,8 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { userId, slug } = await params;
+  const { userId: rawId, slug } = await params;
+  const userId = decodeURIComponent(rawId);
   const [post, user] = await Promise.all([getPost(userId, slug), getUserProfile(userId)]);
   if (!post) return { title: 'Poema no encontrado | Chubascos' };
   const authorName = user?.username || user?.email.split('@')[0] || userId;
@@ -24,7 +25,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function PostDetailPage({ params }: Props) {
-  const { userId, slug } = await params;
+  const { userId: rawId, slug } = await params;
+  const userId = decodeURIComponent(rawId);
   const [post, user] = await Promise.all([getPost(userId, slug), getUserProfile(userId)]);
   if (!post) notFound();
   
