@@ -82,7 +82,18 @@ export function initAdmin() {
   if (projectId && clientEmail && rawKey) {
     try {
       // Netlify / Vercel store the key with literal `\n` that must be expanded
-      const privateKey = rawKey.replace(/\\n/g, '\n');
+      let privateKey = rawKey.replace(/\\n/g, '\n');
+      
+      // Auto-repair keys that were copy-pasted into Netlify with spaces instead of newlines
+      if (!privateKey.includes('\n') || privateKey.includes('-----BEGIN PRIVATE KEY----- ')) {
+        const body = privateKey
+          .replace('-----BEGIN PRIVATE KEY-----', '')
+          .replace('-----END PRIVATE KEY-----', '')
+          .replace(/\s+/g, '\n')
+          .trim();
+        privateKey = `-----BEGIN PRIVATE KEY-----\n${body}\n-----END PRIVATE KEY-----`;
+      }
+
       admin.initializeApp({
         credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
       });
