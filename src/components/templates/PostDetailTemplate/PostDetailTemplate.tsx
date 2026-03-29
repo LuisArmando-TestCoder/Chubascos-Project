@@ -84,7 +84,7 @@ export function PostDetailTemplate({ post, author, shader, tags = [], prevPost, 
                 className={`${styles.saveBtn} ${isSaved ? styles.saved : ''}`}
                 onClick={() => isSaved ? unsavePost(post.id) : savePost(post.id)}
               >
-                {isSaved ? 'Guardado' : 'Guardar Poema'}
+                {isSaved ? 'Guardado' : 'Guardar'}
               </button>
               <QrModalButton url={postUrl} label={post.title} />
             </div>
