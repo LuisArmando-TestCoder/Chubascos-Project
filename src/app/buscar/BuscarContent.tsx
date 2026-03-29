@@ -6,7 +6,7 @@ import { PostCard } from '@/components/molecules/PostCard/PostCard';
 import { EventCard } from '@/components/molecules/EventCard/EventCard';
 import { UserCard } from '@/components/molecules/UserCard/UserCard';
 import { Footer } from '@/components/organisms/Footer/Footer';
-import { getTags, searchPostsByTag, searchEventsByTag, searchExpiredEventsByTag, searchUsersByTag } from '@/actions/data';
+import { getTags, getTagsByIds, searchPostsByTag, searchEventsByTag, searchExpiredEventsByTag, searchUsersByTag } from '@/actions/data';
 import i18n from '@/utils/i18n';
 import type { Post, Event, User, Tag } from '@/types';
 import styles from './buscar.module.scss';
@@ -26,6 +26,19 @@ export function BuscarContent() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [tagMap, setTagMap] = useState<Record<string, Tag>>({});
+
+  // Helper: merge newly fetched tags into tagMap
+  const mergeTagsForItems = useCallback(async (items: (Post | Event)[]) => {
+    const ids = [...new Set(items.flatMap((item) => (item as any).tagIds || []))];
+    const missing = ids.filter((id) => !tagMap[id]);
+    if (missing.length === 0) return;
+    const fetched = await getTagsByIds(missing);
+    setTagMap((prev) => ({
+      ...prev,
+      ...Object.fromEntries(fetched.map((t) => [t.id, t])),
+    }));
+  }, [tagMap]);
 
   const [postCursor, setPostCursor] = useState<string | null>(null);
   const [eventCursor, setEventCursor] = useState<string | null>(null);
@@ -58,6 +71,20 @@ export function BuscarContent() {
       searchUsersByTag(tag, 10),
     ]);
 
+    // Resolve tags for all results in one batch
+    const allTagIds = [
+      ...new Set([
+        ...postsResult.items.flatMap((p) => p.tagIds || []),
+        ...eventsResult.items.flatMap((e) => e.tagIds || []),
+      ]),
+    ];
+    if (allTagIds.length > 0) {
+      const fetched = await getTagsByIds(allTagIds);
+      setTagMap(Object.fromEntries(fetched.map((t) => [t.id, t])));
+    } else {
+      setTagMap({});
+    }
+
     setPosts(postsResult.items);
     setPostCursor(postsResult.nextCursor);
     setEvents(eventsResult.items);
@@ -79,20 +106,34 @@ export function BuscarContent() {
   // Note: intentionally not auto-selecting here; we do that via the mounted effect below
   }, []);
 
+  // Helper: fetch and merge tags for new items
+  async function fetchAndMergeTags(items: (Post | Event)[], currentTagMap: Record<string, Tag>) {
+    const ids = [...new Set(items.flatMap((item) => (item as any).tagIds || []))];
+    const missing = ids.filter((id) => !currentTagMap[id]);
+    if (missing.length === 0) return;
+    const fetched = await getTagsByIds(missing);
+    setTagMap((prev) => ({
+      ...prev,
+      ...Object.fromEntries(fetched.map((t) => [t.id, t])),
+    }));
+  }
+
   // Load more per tab
   const loadMorePosts = useCallback(async () => {
     if (!selectedTag || !postCursor) return;
     const result = await searchPostsByTag(selectedTag, 10, postCursor);
+    await fetchAndMergeTags(result.items, tagMap);
     setPosts((prev) => [...prev, ...result.items]);
     setPostCursor(result.nextCursor);
-  }, [selectedTag, postCursor]);
+  }, [selectedTag, postCursor, tagMap]);
 
   const loadMoreEvents = useCallback(async () => {
     if (!selectedTag || !eventCursor) return;
     const result = await searchEventsByTag(selectedTag, 10, eventCursor);
+    await fetchAndMergeTags(result.items, tagMap);
     setEvents((prev) => [...prev, ...result.items]);
     setEventCursor(result.nextCursor);
-  }, [selectedTag, eventCursor]);
+  }, [selectedTag, eventCursor, tagMap]);
 
   const loadMoreUsers = useCallback(async () => {
     if (!selectedTag || !userCursor) return;
@@ -105,11 +146,12 @@ export function BuscarContent() {
     if (!tag) return;
     setExpiredLoading(true);
     const result = await searchExpiredEventsByTag(tag, 10, reset ? undefined : expiredEventCursor || undefined);
+    await fetchAndMergeTags(result.items, tagMap);
     setExpiredEvents((prev) => reset ? result.items : [...prev, ...result.items]);
     setExpiredEventCursor(result.nextCursor);
     setExpiredLoaded(true);
     setExpiredLoading(false);
-  }, [expiredEventCursor]);
+  }, [expiredEventCursor, tagMap]);
 
   const handleToggleExpired = useCallback(() => {
     if (!showExpiredEvents && !expiredLoaded && selectedTag) {
@@ -243,7 +285,11 @@ export function BuscarContent() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.04 }}
                 >
-                  <PostCard post={post} showAuthor />
+                  <PostCard
+                    post={post}
+                    showAuthor
+                    tags={(post.tagIds || []).map((id) => tagMap[id]).filter(Boolean) as Tag[]}
+                  />
                 </motion.div>
               ))}
               {postCursor && (
@@ -265,7 +311,10 @@ export function BuscarContent() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.04 }}
                     >
-                      <EventCard event={event} />
+                      <EventCard
+                        event={event}
+                        tags={(event.tagIds || []).map((id) => tagMap[id]).filter(Boolean) as Tag[]}
+                      />
                     </motion.div>
                   ))}
                 </div>
@@ -298,7 +347,11 @@ export function BuscarContent() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.03 }}
                     >
-                      <EventCard event={event} expired />
+                      <EventCard
+                        event={event}
+                        expired
+                        tags={(event.tagIds || []).map((id) => tagMap[id]).filter(Boolean) as Tag[]}
+                      />
                     </motion.div>
                   ))}
                   {expiredEventCursor && (

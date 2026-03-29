@@ -3,14 +3,15 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { EventCard } from '@/components/molecules/EventCard/EventCard';
 import i18n from '@/utils/i18n';
-import type { Event } from '@/types';
+import type { Event, Tag } from '@/types';
 import styles from './HomeTemplate.module.scss';
 
 interface EventsSectionProps {
   events: Event[];
+  tagMap?: Record<string, Tag>;
 }
 
-export function EventsSection({ events }: EventsSectionProps) {
+export function EventsSection({ events, tagMap = {} }: EventsSectionProps) {
   if (events.length === 0) return null;
   return (
     <section className={styles.section} aria-labelledby="events-heading">
@@ -27,7 +28,10 @@ export function EventsSection({ events }: EventsSectionProps) {
               transition={{ duration: 0.5, delay: i * 0.07, ease: [0.25, 1, 0.5, 1] }}
               viewport={{ once: true }}
             >
-              <EventCard event={event} />
+              <EventCard
+                event={event}
+                tags={(event.tagIds || []).map((id) => tagMap[id]).filter(Boolean) as Tag[]}
+              />
             </motion.div>
           ))}
         </div>

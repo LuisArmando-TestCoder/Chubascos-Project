@@ -3,14 +3,15 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { PostCard } from '@/components/molecules/PostCard/PostCard';
 import i18n from '@/utils/i18n';
-import type { Post } from '@/types';
+import type { Post, Tag } from '@/types';
 import styles from './HomeTemplate.module.scss';
 
 interface LiveFeedSectionProps {
   posts: Post[];
+  tagMap?: Record<string, Tag>;
 }
 
-export function LiveFeedSection({ posts }: LiveFeedSectionProps) {
+export function LiveFeedSection({ posts, tagMap = {} }: LiveFeedSectionProps) {
   if (posts.length === 0) return null;
   return (
     <section className={styles.section} aria-labelledby="feed-heading">
@@ -31,7 +32,11 @@ export function LiveFeedSection({ posts }: LiveFeedSectionProps) {
               transition={{ duration: 0.5, delay: i * 0.05, ease: [0.25, 1, 0.5, 1] }}
               viewport={{ once: true }}
             >
-              <PostCard post={post} showAuthor />
+              <PostCard
+                post={post}
+                showAuthor
+                tags={(post.tagIds || []).map((id) => tagMap[id]).filter(Boolean) as Tag[]}
+              />
             </motion.div>
           ))}
         </div>
