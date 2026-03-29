@@ -254,28 +254,25 @@ export async function searchUsers(
 export async function searchUsersByTag(
   tagId: string,
   limitNum: number = PAGE_SIZE,
-  _cursor?: string
+  cursor?: string
 ): Promise<{ items: User[]; nextCursor: string | null }> {
   if (!db) return { items: [], nextCursor: null };
 
-  // Search across ALL users' posts subcollections via collection group query
-  const postsSnapshot = await db.collectionGroup('posts')
+  // Users store which tags they write about directly on their user document.
+  // This is the most reliable source given how the data was seeded.
+  let q: admin.firestore.Query = db.collection('users')
     .where('tagIds', 'array-contains', tagId)
-    .where('isVisible', '==', true)
-    .limit(100) // fetch plenty to find unique user IDs
-    .get();
+    .limit(limitNum);
 
-  const userIds = Array.from(new Set(postsSnapshot.docs.map((doc: QueryDocumentSnapshot) => doc.data().userId)));
+  if (cursor) {
+    const cursorDoc = await db.collection('users').doc(cursor).get();
+    if (cursorDoc.exists) q = q.startAfter(cursorDoc);
+  }
 
-  if (userIds.length === 0) return { items: [], nextCursor: null };
-
-  // Fetch user profiles in one 'in' query (Firestore max 30)
-  const usersSnapshot = await db.collection('users')
-    .where(admin.firestore.FieldPath.documentId(), 'in', userIds.slice(0, 30))
-    .get();
-
-  const items = usersSnapshot.docs.map(toData) as User[];
-  return { items, nextCursor: null };
+  const snapshot = await q.get();
+  const items = snapshot.docs.map(toData) as User[];
+  const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
+  return { items, nextCursor };
 }
 
 export async function searchPostsByTag(
@@ -285,27 +282,46 @@ export async function searchPostsByTag(
 ): Promise<{ items: Post[]; nextCursor: string | null }> {
   if (!db) return { items: [], nextCursor: null };
 
-  // Use collection group query across ALL users' posts subcollections
-  let q: admin.firestore.Query = db.collectionGroup('posts')
+  // Most posts were seeded with empty tagIds on the post document.
+  // The reliable tag source is the user document's tagIds field.
+  // Strategy: find users who write about this tag, then fetch their recent posts.
+  const usersSnap = await db.collection('users')
     .where('tagIds', 'array-contains', tagId)
-    .where('isVisible', '==', true)
-    .orderBy('updatedAt', 'desc')
-    .limit(limitNum);
+    .limit(20)
+    .get();
 
-  if (cursor) {
-    // cursor is stored as updatedAt seconds
-    const ts = admin.firestore.Timestamp.fromMillis(parseInt(cursor) * 1000);
-    q = q.startAfter(ts);
+  if (usersSnap.empty) {
+    console.log(`✨ [Búsqueda: Poemas] Tag "${tagId}" → 0 poemas (ningún poeta asociado)`);
+    return { items: [], nextCursor: null };
   }
 
-  const snapshot = await q.get();
-  const items = snapshot.docs.map(toData) as Post[];
-  const lastDoc = snapshot.docs[snapshot.docs.length - 1];
-  const lastUpdatedAt = lastDoc?.data().updatedAt as admin.firestore.Timestamp | undefined;
-  const nextCursor = snapshot.docs.length === limitNum && lastUpdatedAt
+  // Fetch recent visible posts from each matched user in parallel
+  const cursorSeconds = cursor ? parseInt(cursor) : null;
+
+  const postSnapshots = await Promise.all(
+    usersSnap.docs.map((userDoc: QueryDocumentSnapshot) => {
+      let postsQ: admin.firestore.Query = db!.collection('users').doc(userDoc.id).collection('posts')
+        .where('isVisible', '==', true)
+        .orderBy('updatedAt', 'desc')
+        .limit(limitNum);
+      if (cursorSeconds) {
+        postsQ = postsQ.startAfter(admin.firestore.Timestamp.fromMillis(cursorSeconds * 1000));
+      }
+      return postsQ.get();
+    })
+  );
+
+  // Merge, sort by updatedAt desc, and paginate
+  const allPosts = postSnapshots.flatMap(snap => snap.docs.map(toData)) as Post[];
+  allPosts.sort((a, b) => ((b.updatedAt as any)?.seconds ?? 0) - ((a.updatedAt as any)?.seconds ?? 0));
+
+  const items = allPosts.slice(0, limitNum);
+  const lastUpdatedAt = items[items.length - 1]?.updatedAt as { seconds: number } | undefined;
+  const nextCursor = items.length === limitNum && lastUpdatedAt
     ? String(lastUpdatedAt.seconds)
     : null;
 
+  console.log(`✨ [Búsqueda: Poemas] Tag "${tagId}" → ${items.length} poemas de ${usersSnap.size} poeta(s)`);
   return { items, nextCursor };
 }
 

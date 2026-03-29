@@ -6,7 +6,7 @@ import { PostCard } from '@/components/molecules/PostCard/PostCard';
 import { EventCard } from '@/components/molecules/EventCard/EventCard';
 import { UserCard } from '@/components/molecules/UserCard/UserCard';
 import { Footer } from '@/components/organisms/Footer/Footer';
-import { getTags, searchPostsByTag, searchEventsByTag, searchExpiredEventsByTag, searchUsers, searchUsersByTag } from '@/actions/data';
+import { getTags, searchPostsByTag, searchEventsByTag, searchExpiredEventsByTag, searchUsersByTag } from '@/actions/data';
 import i18n from '@/utils/i18n';
 import type { Post, Event, User, Tag } from '@/types';
 import styles from './buscar.module.scss';
@@ -22,60 +22,84 @@ export function BuscarContent() {
   const [activeTab, setActiveTab] = useState<TabType>(initialType);
   const [selectedTag, setSelectedTag] = useState(initialTag);
   const [tags, setTags] = useState<Tag[]>([]);
+
   const [posts, setPosts] = useState<Post[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+
+  const [postCursor, setPostCursor] = useState<string | null>(null);
+  const [eventCursor, setEventCursor] = useState<string | null>(null);
+  const [userCursor, setUserCursor] = useState<string | null>(null);
+
   const [expiredEvents, setExpiredEvents] = useState<Event[]>([]);
   const [expiredEventCursor, setExpiredEventCursor] = useState<string | null>(null);
   const [showExpiredEvents, setShowExpiredEvents] = useState(false);
   const [expiredLoading, setExpiredLoading] = useState(false);
   const [expiredLoaded, setExpiredLoaded] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
-  const [postCursor, setPostCursor] = useState<string | null>(null);
-  const [eventCursor, setEventCursor] = useState<string | null>(null);
-  const [userCursor, setUserCursor] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const [usersLoaded, setUsersLoaded] = useState(false);
-  const [tagUsersCount, setTagUsersCount] = useState<Record<string, number>>({});
+
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Fetch all three tabs in parallel when a tag is selected
+  const searchAll = useCallback(async (tag: string) => {
+    if (!tag) return;
+    setLoading(true);
+    setHasSearched(true);
+    setExpiredEvents([]);
+    setExpiredEventCursor(null);
+    setShowExpiredEvents(false);
+    setExpiredLoaded(false);
+
+    const [postsResult, eventsResult, usersResult] = await Promise.all([
+      searchPostsByTag(tag, 10),
+      searchEventsByTag(tag, 10),
+      searchUsersByTag(tag, 10),
+    ]);
+
+    setPosts(postsResult.items);
+    setPostCursor(postsResult.nextCursor);
+    setEvents(eventsResult.items);
+    setEventCursor(eventsResult.nextCursor);
+    setUsers(usersResult.items);
+    setUserCursor(usersResult.nextCursor);
+
+    // Auto-switch to the first tab that actually has results
+    if (postsResult.items.length > 0) setActiveTab('posts');
+    else if (eventsResult.items.length > 0) setActiveTab('events');
+    else if (usersResult.items.length > 0) setActiveTab('users');
+
+    setLoading(false);
+  }, []);
 
   const loadTagSuggestions = useCallback(async (prefix: string) => {
     const results = await getTags(20, prefix || undefined);
     setTags(results);
+  // Note: intentionally not auto-selecting here; we do that via the mounted effect below
   }, []);
 
-  const search = useCallback(async (tag: string, tab: TabType, reset = true) => {
-    if (!tag) return;
-    setLoading(true);
-    setHasSearched(true);
-    if (tab === 'posts') {
-      const result = await searchPostsByTag(tag, 10, reset ? undefined : postCursor || undefined);
-      setPosts((prev) => reset ? result.items : [...prev, ...result.items]);
-      setPostCursor(result.nextCursor);
-    } else if (tab === 'events') {
-      const result = await searchEventsByTag(tag, 10, reset ? undefined : eventCursor || undefined);
-      setEvents((prev) => reset ? result.items : [...prev, ...result.items]);
-      setEventCursor(result.nextCursor);
-      if (reset) {
-        setExpiredEvents([]);
-        setExpiredEventCursor(null);
-        setShowExpiredEvents(false);
-        setExpiredLoaded(false);
-      }
-    } else {
-      if (tags.some(t => t.id === tag)) {
-        const result = await searchUsersByTag(tag, 10, reset ? undefined : userCursor || undefined);
-        setUsers((prev) => reset ? result.items : [...prev, ...result.items]);
-        setUserCursor(result.nextCursor);
-      } else {
-        const result = await searchUsers(tag, 10, reset ? undefined : userCursor || undefined);
-        setUsers((prev) => reset ? result.items : [...prev, ...result.items]);
-        setUserCursor(result.nextCursor);
-      }
-      setUsersLoaded(true);
-    }
-    setLoading(false);
-  }, [postCursor, eventCursor, userCursor, tags]);
+  // Load more per tab
+  const loadMorePosts = useCallback(async () => {
+    if (!selectedTag || !postCursor) return;
+    const result = await searchPostsByTag(selectedTag, 10, postCursor);
+    setPosts((prev) => [...prev, ...result.items]);
+    setPostCursor(result.nextCursor);
+  }, [selectedTag, postCursor]);
+
+  const loadMoreEvents = useCallback(async () => {
+    if (!selectedTag || !eventCursor) return;
+    const result = await searchEventsByTag(selectedTag, 10, eventCursor);
+    setEvents((prev) => [...prev, ...result.items]);
+    setEventCursor(result.nextCursor);
+  }, [selectedTag, eventCursor]);
+
+  const loadMoreUsers = useCallback(async () => {
+    if (!selectedTag || !userCursor) return;
+    const result = await searchUsersByTag(selectedTag, 10, userCursor);
+    setUsers((prev) => [...prev, ...result.items]);
+    setUserCursor(result.nextCursor);
+  }, [selectedTag, userCursor]);
 
   const loadExpiredEvents = useCallback(async (tag: string, reset = true) => {
     if (!tag) return;
@@ -94,28 +118,24 @@ export function BuscarContent() {
     setShowExpiredEvents((prev) => !prev);
   }, [showExpiredEvents, expiredLoaded, selectedTag, loadExpiredEvents]);
 
+  // On mount: load tags, then auto-select the first one if no tag is pre-selected
   useEffect(() => {
-    loadTagSuggestions('');
-  }, [loadTagSuggestions]);
+    async function init() {
+      const results = await getTags(20);
+      setTags(results);
+      if (!initialTag && results.length > 0) {
+        setSelectedTag(results[0].id);
+      }
+    }
+    init();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Preload users in background when tag is selected so count shows on all tabs
+  // When selectedTag changes, fetch all tabs at once
   useEffect(() => {
-    if (!selectedTag) return;
-    setUsersLoaded(false);
-    searchUsersByTag(selectedTag, 10).then((result) => {
-      setUsers(result.items);
-      setUserCursor(result.nextCursor);
-      setUsersLoaded(true);
-      // Aggregate poets count into the tag badge total
-      setTagUsersCount((prev) => ({ ...prev, [selectedTag]: result.items.length }));
-    }).catch(() => { setUsersLoaded(true); });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (selectedTag) searchAll(selectedTag);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTag]);
-
-  useEffect(() => {
-    if (selectedTag) search(selectedTag, activeTab);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTag, activeTab]);
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -145,44 +165,41 @@ export function BuscarContent() {
 
           {tags.length > 0 && (
             <div className={styles.tagCloud}>
-              {[...tags].sort((a, b) => (b.id === selectedTag ? 1 : 0) - (a.id === selectedTag ? 1 : 0)).map((tag) => {
-                const isSelected = selectedTag === tag.id;
-                // Total count (posts + events + poets) only shown when the tag is selected
-                const totalCount = (tag.usedByPosts || 0) + (tag.usedByEvents || 0) + (tagUsersCount[tag.id] || 0);
-                // Hide tags that have no content at all
-                const baseCount = (tag.usedByPosts || 0) + (tag.usedByEvents || 0);
-                if (baseCount === 0 && !isSelected) return null;
-                return (
-                  <button
-                    key={tag.id}
-                    className={`${styles.tagBtn} ${isSelected ? styles.active : ''}`}
-                    onClick={() => setSelectedTag(tag.id)}
-                    aria-pressed={isSelected}
-                  >
-                    #{tag.value}
-                    {isSelected && !usersLoaded && <span className={styles.tagSpinner} aria-hidden="true" />}
-                    {isSelected && usersLoaded && <span className={styles.tagCount}>{totalCount}</span>}
-                  </button>
-                );
-              })}
+              {[...tags]
+                .filter(tag => ((tag.usedByPosts || 0) + (tag.usedByEvents || 0)) > 0 || tag.id === selectedTag)
+                .sort((a, b) => (b.id === selectedTag ? 1 : 0) - (a.id === selectedTag ? 1 : 0))
+                .map((tag) => {
+                  const isSelected = selectedTag === tag.id;
+                  const totalCount = (tag.usedByPosts || 0) + (tag.usedByEvents || 0) + (isSelected ? users.length : 0);
+                  return (
+                    <button
+                      key={tag.id}
+                      className={`${styles.tagBtn} ${isSelected ? styles.active : ''}`}
+                      onClick={() => setSelectedTag(tag.id)}
+                      aria-pressed={isSelected}
+                    >
+                      #{tag.value}
+                      {isSelected && loading && <span className={styles.tagSpinner} aria-hidden="true" />}
+                      {isSelected && !loading && <span className={styles.tagCount}>{totalCount}</span>}
+                    </button>
+                  );
+                })}
             </div>
           )}
 
           <div className={styles.tabs} role="tablist">
             {(['posts', 'events', 'users'] as TabType[]).map((tab) => {
               let label = tab === 'posts' ? i18n.common.poems : tab === 'events' ? i18n.common.events : i18n.common.poets;
+              let count = tab === 'posts' ? posts.length : tab === 'events' ? events.length : users.length;
 
               if (selectedTag) {
                 const tagObj = tags.find(t => t.id === selectedTag);
                 if (tagObj) {
-                  if (tab === 'posts' && tagObj.usedByPosts !== undefined) {
-                    label += ` (${tagObj.usedByPosts})`;
-                  } else if (tab === 'events' && tagObj.usedByEvents !== undefined) {
-                    label += ` (${tagObj.usedByEvents})`;
-                  } else if (tab === 'users' && usersLoaded) {
-                    label += ` (${users.length})`;
-                  }
+                  if (tab === 'posts') count = tagObj.usedByPosts ?? posts.length;
+                  else if (tab === 'events') count = tagObj.usedByEvents ?? events.length;
+                  else count = users.length;
                 }
+                label += ` (${count})`;
               }
 
               return (
@@ -205,17 +222,19 @@ export function BuscarContent() {
             <p className={styles.hint}>Selecciona una etiqueta para empezar a buscar.</p>
           )}
 
-          {hasSearched && !loading && selectedTag &&
-            ((activeTab === 'posts' && posts.length === 0) ||
-             (activeTab === 'users' && users.length === 0)) && (
-            <p className={styles.hint}>No se encontraron resultados para esta etiqueta en la categoría seleccionada.</p>
+          {hasSearched && !loading && selectedTag && activeTab === 'posts' && posts.length === 0 && (
+            <p className={styles.hint}>No se encontraron poemas para esta etiqueta.</p>
+          )}
+
+          {hasSearched && !loading && selectedTag && activeTab === 'users' && users.length === 0 && (
+            <p className={styles.hint}>No se encontraron poetas para esta etiqueta.</p>
           )}
 
           {hasSearched && !loading && selectedTag && activeTab === 'events' && events.length === 0 && expiredEvents.length === 0 && (
             <p className={styles.hint}>No se encontraron eventos para esta etiqueta.</p>
           )}
 
-          {activeTab === 'posts' && posts.length > 0 && (
+          {!loading && activeTab === 'posts' && posts.length > 0 && (
             <div className={styles.results}>
               {posts.map((post, i) => (
                 <motion.div
@@ -228,14 +247,14 @@ export function BuscarContent() {
                 </motion.div>
               ))}
               {postCursor && (
-                <button className={styles.loadMore} onClick={() => search(selectedTag, 'posts', false)}>
+                <button className={styles.loadMore} onClick={loadMorePosts}>
                   {i18n.common.seeMore}
                 </button>
               )}
             </div>
           )}
 
-          {activeTab === 'events' && (
+          {!loading && activeTab === 'events' && (
             <div>
               {events.length > 0 && (
                 <div className={styles.resultsGrid}>
@@ -252,12 +271,11 @@ export function BuscarContent() {
                 </div>
               )}
               {eventCursor && (
-                <button className={styles.loadMore} onClick={() => search(selectedTag, 'events', false)}>
+                <button className={styles.loadMore} onClick={loadMoreEvents}>
                   Cargar más
                 </button>
               )}
 
-              {/* Expired events toggle */}
               {selectedTag && hasSearched && !loading && (
                 <div className={styles.expiredToggleRow}>
                   <button
@@ -297,7 +315,7 @@ export function BuscarContent() {
             </div>
           )}
 
-          {activeTab === 'users' && users.length > 0 && (
+          {!loading && activeTab === 'users' && users.length > 0 && (
             <div className={styles.resultsGrid}>
               {users.map((user, i) => (
                 <motion.div
@@ -310,7 +328,7 @@ export function BuscarContent() {
                 </motion.div>
               ))}
               {userCursor && (
-                <button className={styles.loadMore} onClick={() => search(selectedTag, 'users', false)}>
+                <button className={styles.loadMore} onClick={loadMoreUsers}>
                   Cargar más
                 </button>
               )}
