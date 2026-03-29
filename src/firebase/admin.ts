@@ -54,6 +54,8 @@ function repairServiceAccountJson(raw: string): string {
   return json;
 }
 
+export let initError: string | null = null;
+
 export function initAdmin() {
   if (admin.apps.length > 0) return;
 
@@ -68,6 +70,7 @@ export function initAdmin() {
       return;
     } catch (error: any) {
       console.error('⚠️  Firebase admin FIREBASE_SERVICE_ACCOUNT parse failed:', error.message);
+      initError = error.message;
     }
   }
 
@@ -87,14 +90,15 @@ export function initAdmin() {
       return;
     } catch (error: any) {
       console.error('⚠️  Firebase admin individual env vars failed:', error.message);
+      initError = error.message;
     }
   }
 
-  console.error(
-    '❌ Firebase Admin could not be initialized.\n' +
+  const msg = '❌ Firebase Admin could not be initialized.\n' +
     '   Set FIREBASE_SERVICE_ACCOUNT (full JSON) or the individual vars:\n' +
-    '   FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY'
-  );
+    '   FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY';
+  console.error(msg);
+  if (!initError) initError = "Missing env vars";
 }
 
 // Auto-init on import

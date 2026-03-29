@@ -17,7 +17,15 @@ export async function requestOtp(email: string) {
   const { sendOtpEmail } = await import('@/utils/sendEmail');
 
   const normalized = normalizeEmail(email);
-  if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!db) {
+    const { initError } = await import('@/firebase/admin');
+    const vars = [
+      process.env.FIREBASE_PROJECT_ID ? 'ID:yes' : 'ID:no',
+      process.env.FIREBASE_CLIENT_EMAIL ? 'Email:yes' : 'Email:no',
+      process.env.FIREBASE_PRIVATE_KEY ? 'Key:yes' : 'Key:no'
+    ].join(', ');
+    return { success: false, error: `Servicio no disponible. (${vars}) | Error: ${initError}` };
+  }
 
   const otpDoc = await db.collection('otps').doc(normalized).get();
   const otpData = otpDoc.data();
@@ -58,7 +66,15 @@ export async function verifyOtp(email: string, otp: string) {
 
   const normalized = normalizeEmail(email);
   const hashed = hashOtp(otp);
-  if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!db) {
+    const { initError } = await import('@/firebase/admin');
+    const vars = [
+      process.env.FIREBASE_PROJECT_ID ? 'ID:yes' : 'ID:no',
+      process.env.FIREBASE_CLIENT_EMAIL ? 'Email:yes' : 'Email:no',
+      process.env.FIREBASE_PRIVATE_KEY ? 'Key:yes' : 'Key:no'
+    ].join(', ');
+    return { success: false, error: `Servicio no disponible. (${vars}) | Error: ${initError}` };
+  }
 
   try {
     const otpRef = db.collection('otps').doc(normalized);
