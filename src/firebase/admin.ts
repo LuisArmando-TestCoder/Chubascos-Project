@@ -81,17 +81,24 @@ export function initAdmin() {
 
   if (projectId && clientEmail && rawKey) {
     try {
-      // Netlify / Vercel store the key with literal `\n` that must be expanded
-      let privateKey = rawKey.replace(/\\n/g, '\n');
+      let privateKey = rawKey.trim();
+      if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+        privateKey = privateKey.slice(1, -1);
+      }
       
-      // Auto-repair keys that were copy-pasted into Netlify with spaces instead of newlines
-      if (!privateKey.includes('\n') || privateKey.includes('-----BEGIN PRIVATE KEY----- ')) {
-        const body = privateKey
-          .replace('-----BEGIN PRIVATE KEY-----', '')
-          .replace('-----END PRIVATE KEY-----', '')
-          .replace(/\s+/g, '\n')
-          .trim();
-        privateKey = `-----BEGIN PRIVATE KEY-----\n${body}\n-----END PRIVATE KEY-----`;
+      // Auto-repair ALL keys: extract only the base64 characters, format it into 64-char chunks
+      if (privateKey.includes('BEGIN PRIVATE KEY')) {
+        const rawBody = privateKey
+          .replace(/-----BEGIN PRIVATE KEY-----/g, '')
+          .replace(/-----END PRIVATE KEY-----/g, '');
+        
+        // Strip out any non-base64 characters (spaces, newlines, rogue backslashes, etc.)
+        const cleanBody = rawBody.replace(/[^a-zA-Z0-9+/=]/g, '');
+        const chunks = cleanBody.match(/.{1,64}/g) || [];
+        
+        privateKey = `-----BEGIN PRIVATE KEY-----\n${chunks.join('\n')}\n-----END PRIVATE KEY-----`;
+      } else {
+        privateKey = privateKey.replace(/\\n/g, '\n');
       }
 
       admin.initializeApp({
