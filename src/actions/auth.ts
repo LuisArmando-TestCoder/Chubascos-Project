@@ -61,10 +61,21 @@ export async function verifyOtp(email: string, otp: string) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
 
   try {
-    const otpDoc = await db.collection('otps').doc(normalized).get();
-    if (!otpDoc.exists) return { success: false, error: 'Código no encontrado.' };
+    const otpRef = db.collection('otps').doc(normalized);
+    const otpDoc = await otpRef.get();
+    if (!otpDoc.exists) return { success: false, error: 'Código expirado o inválido.' };
     const data = otpDoc.data();
+    
+    // IP / Rate Limit Protection for OTP Verification
+    const attemptCount = data?.attemptCount || 0;
+    if (attemptCount >= 5) {
+      await otpRef.delete(); // Nuke OTP after 5 failed attempts
+      return { success: false, error: 'Demasiados intentos fallidos. Solicita otro código.' };
+    }
+
     if (data?.hashed !== hashed || Date.now() > data?.expiresAt) {
+      // Increment attempt count
+      await otpRef.update({ attemptCount: attemptCount + 1 });
       return { success: false, error: 'Código inválido.' };
     }
 

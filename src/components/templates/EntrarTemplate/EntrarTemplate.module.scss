@@ -5,35 +5,184 @@
   min-height: 100vh;
   @include m.flex-center;
   padding: 5vw;
-  background: radial-gradient(circle at top right, rgba(109, 93, 252, 0.05), transparent 40%),
-              radial-gradient(circle at bottom left, rgba(109, 93, 252, 0.05), transparent 40%);
+  background: radial-gradient(circle at top right, rgba(v.$accent, 0.08), transparent 40%),
+              radial-gradient(circle at bottom left, rgba(v.$accent, 0.05), transparent 40%);
 }
 
 .card {
   width: 100%;
-  max-width: 440px;
-  padding: 48px;
+  max-width: 960px;
+  padding: 0;
   @include m.glass;
-  border-radius: 2px; 
+  border-radius: 8px; 
+  display: flex;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+
+  @media (max-width: 768px) {
+    max-width: 440px;
+    flex-direction: column;
+  }
+}
+
+.authSection {
+  flex: 1.2;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 64px;
   text-align: center;
+
+  @media (max-width: 768px) {
+    padding: 40px 24px;
+    min-width: auto;
+  }
+}
+
+.normsSection {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  background: rgba(0, 0, 0, 0.25);
+  border-left: 1px solid rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  position: relative;
+
+  @media (max-width: 768px) {
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.03);
+  }
+}
+
+.normsContent {
+  width: 100%;
+  text-align: left;
+}
+
+.normsTitle {
+  font-family: v.$font-mono;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-weight: 600;
+  margin-bottom: 32px;
+  color: v.$accent;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(v.$accent, 0.5), transparent);
+  }
+}
+
+.normsGroup {
+  margin-bottom: 48px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.normsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  &:hover li {
+    opacity: 0.3; // Dim all items when the list is hovered
+    transform: scale(0.98);
+  }
+
+  li {
+    font-family: v.$font-sans;
+    line-height: 1.5;
+    position: relative;
+    padding-left: 20px;
+    transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    transform-origin: left center;
+
+    &::before {
+      content: '✦';
+      position: absolute;
+      left: 0;
+      top: 2px;
+      color: rgba(255, 255, 255, 0.2);
+      font-size: 0.8rem;
+      transition: color 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    a {
+      color: rgba(255, 255, 255, 0.7);
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+      display: inline-block;
+    }
+
+    &:hover {
+      opacity: 1 !important; // Bring back full opacity for hovered item
+      transform: scale(1.02) !important;
+      
+      &::before {
+        color: v.$accent;
+      }
+      
+      a {
+        color: v.$white;
+        font-weight: 500;
+      }
+    }
+  }
 }
 
 .header {
   margin-bottom: 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  
+  &::after {
+    content: '';
+    width: 40px;
+    height: 1px;
+    background: v.$accent;
+    margin: 8px auto 0;
+    opacity: 0.5;
+  }
+}
+
+.inputWrapper {
+  width: 100%;
 }
 
 .title {
-  font-size: 2.5rem;
-  letter-spacing: 0.1em;
-  margin-bottom: 8px;
+  font-family: v.$font-serif;
+  font-size: clamp(2.4rem, 5vw, 3.2rem);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-weight: 300;
+  color: v.$white;
+  margin: 0;
   @include m.text-reveal;
 }
 
 .subtitle {
-  font-size: 0.9rem;
+  font-family: v.$font-mono;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: #888;
+  letter-spacing: 0.2em;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0;
 }
 
 .form {
@@ -44,41 +193,48 @@
 
 .input {
   width: 100%;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid #2a2a2a;
-  padding: 24px;
-  color: #fcfcfc;
-  font-family: 'Geist Mono', monospace;
-  font-size: 1.1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 20px 24px;
+  color: v.$white;
+  font-family: v.$font-mono;
+  font-size: 1.05rem;
   text-align: center;
   outline: none;
   transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 
   &:focus {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: #6d5dfc;
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05);
   }
 
   &::placeholder {
-    color: #1a1a1a;
+    color: rgba(255, 255, 255, 0.2);
   }
 }
 
 .button {
   width: 100%;
-  padding: 24px;
-  background: #fcfcfc;
-  color: #050505;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  font-size: 0.9rem;
+  padding: 20px 24px;
+  background: v.$white;
+  color: v.$black;
+  border-radius: 4px;
+  font-family: v.$font-mono;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  font-size: 0.85rem;
+  text-transform: uppercase;
   cursor: pointer;
+  border: none;
   transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 
   &:hover:not(:disabled) {
-    background: #6d5dfc;
-    color: #fcfcfc;
+    background: v.$accent;
+    color: v.$white;
     transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(v.$accent, 0.3);
   }
 
   &:disabled {

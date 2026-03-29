@@ -99,6 +99,20 @@ const i18n = {
     norms: 'Normas de la comunidad',
     privacy: 'Privacidad',
   },
+  norms: {
+    communityTitle: 'Normas de comunidad',
+    rightsTitle: 'Tu obra, tu derecho',
+    items: {
+      respect: 'El respeto es absoluto. No toleramos la crueldad.',
+      authentic: 'Publica solo contenido auténtico. El plagio deshonra.',
+      consent: 'El consentimiento digital y el cuidado son esenciales.',
+      goodFaith: 'Actúa de buena fe.',
+      ownership: 'Todo lo que publicas te pertenece exclusivamente a ti.',
+      noSell: 'No vendemos ni licenciamos tu arte a terceros.',
+      privacy: 'Solo pedimos tu correo. No rastreamos tus datos de uso.',
+      delete: 'Puedes eliminar tu obra y tu cuenta en cualquier momento.'
+    }
+  },
   notifications: {
     postSubject: 'Nuevo poema de {author}: {title}',
     eventSubject: 'Nuevo evento de {author}: {title}',

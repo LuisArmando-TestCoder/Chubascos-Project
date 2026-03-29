@@ -7,11 +7,11 @@ import { Button } from '@/components/atoms/Button/Button';
 import { ShaderEditor, DEFAULT_SHADER } from '@/components/organisms/ShaderEditor/ShaderEditor';
 import { Footer } from '@/components/organisms/Footer/Footer';
 import {
-  createPost, updatePost, updateUserProfile, createEvent, updateEvent, createShader
+  createPost, updatePost, updateUserProfile, createEvent, updateEvent, createShader, getTags, deletePost, deleteEvent
 } from '@/actions/data';
 import { logout } from '@/actions/auth';
 import { generateSlug } from '@/utils/generateSlug';
-import type { User, Post, Event } from '@/types';
+import type { User, Post, Event, Tag } from '@/types';
 import { useProfileStore } from '@/store/profile';
 import { useSavedStore } from '@/store/saved';
 import styles from './DashboardTemplate.module.scss';
@@ -62,12 +62,31 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
   const [profileMsg, setProfileMsg] = useState('');
   const [profileLoading, setProfileLoading] = useState(false);
 
+  // Tags state
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [tagsLoading, setTagsLoading] = useState(false);
+
+  useEffect(() => {
+    async function loadTags() {
+      setTagsLoading(true);
+      try {
+        const tags = await getTags(100);
+        setAvailableTags(tags);
+      } catch (e) {
+        console.error('Failed to load tags', e);
+      } finally {
+        setTagsLoading(false);
+      }
+    }
+    loadTags();
+  }, []);
+
   // Post state — pre-fill from editPost if provided
   const [editingPostId, setEditingPostId] = useState<string | null>(editPost?.id || null);
   const [postTitle, setPostTitle] = useState(editPost?.title || '');
   const [postContent, setPostContent] = useState(editPost?.content || '');
   const [postSlug, setPostSlug] = useState(editPost?.slug || '');
-  const [postTags, setPostTags] = useState('');
+  const [postTags, setPostTags] = useState<string[]>(editPost?.tagIds || []);
   const [postVisible, setPostVisible] = useState(editPost ? (editPost as any).isVisible !== false : true);
   const [postIndexed, setPostIndexed] = useState(editPost ? (editPost as any).isIndexed !== false : true);
   const [postShaderCode, setPostShaderCode] = useState('');
@@ -75,6 +94,7 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
   const [showShaderEditor, setShowShaderEditor] = useState(false);
   const [postMsg, setPostMsg] = useState('');
   const [postLoading, setPostLoading] = useState(false);
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
 
   // Event state — pre-fill from editEvent if provided
   const [editingEventId, setEditingEventId] = useState<string | null>(editEvent?.id || null);
@@ -86,6 +106,7 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
   const [eventPrice, setEventPrice] = useState(editEvent?.price !== undefined ? String(editEvent.price) : '');
   const [eventMsg, setEventMsg] = useState('');
   const [eventLoading, setEventLoading] = useState(false);
+  const [isDeletingEvent, setIsDeletingEvent] = useState(false);
 
   const handleProfileSave = useCallback(async () => {
     setProfileLoading(true);
@@ -94,13 +115,26 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
     setProfileLoading(false);
   }, [user.id, bio, username, contacts]);
 
+  const handleDeletePost = async () => {
+    if (!editingPostId) return;
+    if (!window.confirm('¿Estás seguro de que quieres eliminar este poema permanentemente?')) return;
+    
+    setIsDeletingPost(true);
+    const result = await deletePost(user.id, editingPostId);
+    if (result.success) {
+      window.location.href = `/u/${encodeURIComponent(user.id)}`;
+    } else {
+      setPostMsg(result.error || 'Error al eliminar poema.');
+      setIsDeletingPost(false);
+    }
+  };
+
   const handlePostSave = useCallback(async () => {
     if (!postTitle || !postContent) {
       setPostMsg('Título y contenido son obligatorios.');
       return;
     }
     setPostLoading(true);
-    const tagIds = postTags.split(',').map((t) => t.trim()).filter(Boolean);
 
     if (editingPostId) {
       // Update existing post
@@ -108,7 +142,7 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
         title: postTitle,
         content: postContent,
         slug: postSlug || generateSlug(postTitle),
-        tagIds,
+        tagIds: postTags,
         isVisible: postVisible,
         isIndexed: postIndexed,
       });
@@ -131,7 +165,7 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
         title: postTitle,
         content: postContent,
         slug,
-        tagIds,
+        tagIds: postTags,
         shaderId,
         isVisible: postVisible,
         isIndexed: postIndexed,
@@ -142,13 +176,27 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
         setPostTitle('');
         setPostContent('');
         setPostSlug('');
-        setPostTags('');
+        setPostTags([]);
         setPostShaderCode('');
         setEditingPostId(null);
       }
     }
     setPostLoading(false);
   }, [user.id, editingPostId, postTitle, postContent, postSlug, postTags, postVisible, postIndexed, postShaderCode]);
+
+  const handleDeleteEvent = async () => {
+    if (!editingEventId) return;
+    if (!window.confirm('¿Estás seguro de que quieres cancelar y eliminar este evento permanentemente?')) return;
+    
+    setIsDeletingEvent(true);
+    const result = await deleteEvent(user.id, editingEventId);
+    if (result.success) {
+      window.location.href = `/u/${encodeURIComponent(user.id)}`;
+    } else {
+      setEventMsg(result.error || 'Error al eliminar evento.');
+      setIsDeletingEvent(false);
+    }
+  };
 
   const handleEventSave = useCallback(async () => {
     if (!eventTitle || !eventDay || !eventHour || !eventPlace) {
@@ -284,8 +332,35 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
                   <input id="postSlug" className={styles.input} value={postSlug} onChange={(e) => setPostSlug(e.target.value)} placeholder={postTitle ? generateSlug(postTitle) : 'generado-automaticamente'} />
                 </div>
                 <div className={styles.field}>
-                  <label className={styles.label} htmlFor="postTags">Etiquetas (separadas por coma, máx 4)</label>
-                  <input id="postTags" className={styles.input} value={postTags} onChange={(e) => setPostTags(e.target.value)} placeholder="poesía, lluvia, introspección" />
+                  <label className={styles.label}>Etiquetas (máx 4)</label>
+                  <div className={styles.tagsContainer}>
+                    {tagsLoading ? (
+                      <p>Cargando etiquetas...</p>
+                    ) : (
+                      <div className={styles.tagList}>
+                        {availableTags.map(tag => {
+                          const isSelected = postTags.includes(tag.id);
+                          return (
+                            <button
+                              key={tag.id}
+                              type="button"
+                              onClick={() => {
+                                if (isSelected) {
+                                  setPostTags(prev => prev.filter(id => id !== tag.id));
+                                } else if (postTags.length < 4) {
+                                  setPostTags(prev => [...prev, tag.id]);
+                                }
+                              }}
+                              className={`${styles.tagButton} ${isSelected ? styles.tagSelected : ''}`}
+                              disabled={!isSelected && postTags.length >= 4}
+                            >
+                              #{tag.value || tag.slug}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className={styles.toggleRow}>
                   <label className={styles.toggle}>
@@ -331,9 +406,22 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
                 )}
 
                 {postMsg && <p className={styles.msg}>{postMsg}</p>}
-                <Button onClick={handlePostSave} loading={postLoading}>
-                  {editingPostId ? 'Actualizar poema' : 'Publicar poema'}
-                </Button>
+                
+                <div className={styles.actionRow}>
+                  <Button onClick={handlePostSave} loading={postLoading}>
+                    {editingPostId ? 'Actualizar poema' : 'Publicar poema'}
+                  </Button>
+                  {editingPostId && (
+                    <button 
+                      className={styles.deleteBtn} 
+                      onClick={handleDeletePost}
+                      disabled={isDeletingPost}
+                      type="button"
+                    >
+                      {isDeletingPost ? 'Eliminando...' : 'Eliminar poema'}
+                    </button>
+                  )}
+                </div>
 
                 {editingPostId && (editNextPost || editPrevPost) && (
                   <nav className={styles.editNav}>
@@ -382,9 +470,22 @@ export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, edi
                   <input id="eventPrice" type="number" className={styles.input} value={eventPrice} onChange={(e) => setEventPrice(e.target.value)} placeholder="0" min="0" />
                 </div>
                 {eventMsg && <p className={styles.msg}>{eventMsg}</p>}
-                <Button onClick={handleEventSave} loading={eventLoading}>
-                  {editingEventId ? 'Actualizar evento' : 'Crear evento'}
-                </Button>
+                
+                <div className={styles.actionRow}>
+                  <Button onClick={handleEventSave} loading={eventLoading}>
+                    {editingEventId ? 'Actualizar evento' : 'Crear evento'}
+                  </Button>
+                  {editingEventId && (
+                    <button 
+                      className={styles.deleteBtn} 
+                      onClick={handleDeleteEvent}
+                      disabled={isDeletingEvent}
+                      type="button"
+                    >
+                      {isDeletingEvent ? 'Cancelando...' : 'Cancelar evento'}
+                    </button>
+                  )}
+                </div>
 
                 {editingEventId && (editNextEvent || editPrevEvent) && (
                   <nav className={styles.editNav}>
