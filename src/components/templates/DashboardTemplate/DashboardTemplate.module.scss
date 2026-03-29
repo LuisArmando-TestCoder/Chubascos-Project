@@ -238,3 +238,37 @@
   padding: 10px 14px;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
+
+.editNav {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.editNavLink {
+  font-family: v.$font-mono;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.35);
+  text-decoration: none;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.2s;
+
+  &:hover {
+    color: v.$white;
+  }
+}
+
+.editNavRight {
+  text-align: right;
+}
+
+.editNavSpacer {
+  width: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}

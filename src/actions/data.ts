@@ -254,38 +254,27 @@ export async function searchUsers(
 export async function searchUsersByTag(
   tagId: string,
   limitNum: number = PAGE_SIZE,
-  cursor?: string
+  _cursor?: string
 ): Promise<{ items: User[]; nextCursor: string | null }> {
-  console.log(`🔎 👤 [Búsqueda: Poetas] Buscando poetas con tag: "${tagId}"`);
-  if (!db) {
-    console.error('❌ [Búsqueda: Poetas] Base de datos no disponible.');
-    return { items: [], nextCursor: null };
-  }
+  if (!db) return { items: [], nextCursor: null };
 
-  // This is a complex query because tagIds are on posts, not users.
-  // We'll search for posts with the tag, and get unique user IDs.
-  const postsSnapshot = await db.collection('live_feed')
+  // Search across ALL users' posts subcollections via collection group query
+  const postsSnapshot = await db.collectionGroup('posts')
     .where('tagIds', 'array-contains', tagId)
-    .limit(limitNum * 2) // Fetch more to account for duplicate users
+    .where('isVisible', '==', true)
+    .limit(100) // fetch plenty to find unique user IDs
     .get();
 
   const userIds = Array.from(new Set(postsSnapshot.docs.map((doc: QueryDocumentSnapshot) => doc.data().userId)));
 
-  if (userIds.length === 0) {
-    console.log(`⚠️  [Búsqueda: Poetas] Ningún poeta ha escrito sobre el tag "${tagId}".`);
-    return { items: [], nextCursor: null };
-  }
+  if (userIds.length === 0) return { items: [], nextCursor: null };
 
-  console.log(`👥 [Búsqueda: Poetas] Identificados ${userIds.length} poetas únicos para el tag "${tagId}". Solicitando perfiles...`);
-
-  // Fetch user profiles for these IDs
-  // Firestore 'in' queries are limited to 10-30 items
+  // Fetch user profiles in one 'in' query (Firestore max 30)
   const usersSnapshot = await db.collection('users')
-    .where(admin.firestore.FieldPath.documentId(), 'in', userIds.slice(0, 10))
+    .where(admin.firestore.FieldPath.documentId(), 'in', userIds.slice(0, 30))
     .get();
 
   const items = usersSnapshot.docs.map(toData) as User[];
-  console.log(`🌟 [Búsqueda: Poetas] Perfiles recuperados con éxito: ${items.length}`);
   return { items, nextCursor: null };
 }
 
@@ -294,30 +283,29 @@ export async function searchPostsByTag(
   limitNum: number = PAGE_SIZE,
   cursor?: string
 ): Promise<{ items: Post[]; nextCursor: string | null }> {
-  console.log(`🔎 📝 [Búsqueda: Poemas] Buscando poemas con tag: "${tagId}" | Límite: ${limitNum} | Cursor: ${cursor || 'Inicio'}`);
-  if (!db) {
-    console.error('❌ [Búsqueda: Poemas] Base de datos no disponible.');
-    return { items: [], nextCursor: null };
-  }
-  
-  // live_feed only contains indexed+visible posts
-  let q: admin.firestore.Query = db.collection('live_feed')
+  if (!db) return { items: [], nextCursor: null };
+
+  // Use collection group query across ALL users' posts subcollections
+  let q: admin.firestore.Query = db.collectionGroup('posts')
     .where('tagIds', 'array-contains', tagId)
+    .where('isVisible', '==', true)
     .orderBy('updatedAt', 'desc')
     .limit(limitNum);
 
   if (cursor) {
-    const cursorDoc = await db.collection('live_feed').doc(cursor).get();
-    if (cursorDoc.exists) {
-      console.log(`⏭️  [Búsqueda: Poemas] Paginando a partir del cursor: ${cursor}`);
-      q = q.startAfter(cursorDoc);
-    }
+    // cursor is stored as updatedAt seconds
+    const ts = admin.firestore.Timestamp.fromMillis(parseInt(cursor) * 1000);
+    q = q.startAfter(ts);
   }
 
   const snapshot = await q.get();
   const items = snapshot.docs.map(toData) as Post[];
-  const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
-  console.log(`✨ [Búsqueda: Poemas] Encontrados ${items.length} poemas bajo el tag "${tagId}".`);
+  const lastDoc = snapshot.docs[snapshot.docs.length - 1];
+  const lastUpdatedAt = lastDoc?.data().updatedAt as admin.firestore.Timestamp | undefined;
+  const nextCursor = snapshot.docs.length === limitNum && lastUpdatedAt
+    ? String(lastUpdatedAt.seconds)
+    : null;
+
   return { items, nextCursor };
 }
 

@@ -22,6 +22,10 @@ interface DashboardTemplateProps {
   user: User;
   editPost?: Post | null;
   editEvent?: Event | null;
+  editPrevPost?: Post | null;
+  editNextPost?: Post | null;
+  editPrevEvent?: Event | null;
+  editNextEvent?: Event | null;
 }
 
 type DashTab = 'perfil' | 'nuevo-poema' | 'nuevo-evento';
@@ -37,7 +41,7 @@ function timestampToDateString(ts: any): string {
   return `${y}-${m}-${day}`;
 }
 
-export function DashboardTemplate({ user, editPost, editEvent }: DashboardTemplateProps) {
+export function DashboardTemplate({ user, editPost, editEvent, editPrevPost, editNextPost, editPrevEvent, editNextEvent }: DashboardTemplateProps) {
   const [activeTab, setActiveTab] = useState<DashTab>(() => {
     if (editPost) return 'nuevo-poema';
     if (editEvent) return 'nuevo-evento';
@@ -330,6 +334,22 @@ export function DashboardTemplate({ user, editPost, editEvent }: DashboardTempla
                 <Button onClick={handlePostSave} loading={postLoading}>
                   {editingPostId ? 'Actualizar poema' : 'Publicar poema'}
                 </Button>
+
+                {editingPostId && (editNextPost || editPrevPost) && (
+                  <nav className={styles.editNav}>
+                    {editNextPost && (
+                      <Link href={`/dashboard?edit=post&id=${editNextPost.id}`} className={styles.editNavLink}>
+                        ← {editNextPost.title}
+                      </Link>
+                    )}
+                    <div className={styles.editNavSpacer} />
+                    {editPrevPost && (
+                      <Link href={`/dashboard?edit=post&id=${editPrevPost.id}`} className={`${styles.editNavLink} ${styles.editNavRight}`}>
+                        {editPrevPost.title} →
+                      </Link>
+                    )}
+                  </nav>
+                )}
               </motion.div>
             )}
 
@@ -365,6 +385,22 @@ export function DashboardTemplate({ user, editPost, editEvent }: DashboardTempla
                 <Button onClick={handleEventSave} loading={eventLoading}>
                   {editingEventId ? 'Actualizar evento' : 'Crear evento'}
                 </Button>
+
+                {editingEventId && (editNextEvent || editPrevEvent) && (
+                  <nav className={styles.editNav}>
+                    {editNextEvent && (
+                      <Link href={`/dashboard?edit=event&id=${editNextEvent.id}`} className={styles.editNavLink}>
+                        ← {editNextEvent.title}
+                      </Link>
+                    )}
+                    <div className={styles.editNavSpacer} />
+                    {editPrevEvent && (
+                      <Link href={`/dashboard?edit=event&id=${editPrevEvent.id}`} className={`${styles.editNavLink} ${styles.editNavRight}`}>
+                        {editPrevEvent.title} →
+                      </Link>
+                    )}
+                  </nav>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

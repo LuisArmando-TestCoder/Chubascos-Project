@@ -207,6 +207,7 @@
   gap: 0.5rem;
   text-decoration: none;
   transition: transform 0.3s v.$ease-out;
+  line-height: 1;
 
   &:hover {
     transform: translateY(-5px);
