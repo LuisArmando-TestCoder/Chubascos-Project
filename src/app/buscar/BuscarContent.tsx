@@ -6,7 +6,7 @@ import { PostCard } from '@/components/molecules/PostCard/PostCard';
 import { EventCard } from '@/components/molecules/EventCard/EventCard';
 import { UserCard } from '@/components/molecules/UserCard/UserCard';
 import { Footer } from '@/components/organisms/Footer/Footer';
-import { getTags, searchPostsByTag, searchEventsByTag, searchUsers, searchUsersByTag } from '@/actions/data';
+import { getTags, searchPostsByTag, searchEventsByTag, searchExpiredEventsByTag, searchUsers, searchUsersByTag } from '@/actions/data';
 import i18n from '@/utils/i18n';
 import type { Post, Event, User, Tag } from '@/types';
 import styles from './buscar.module.scss';
@@ -24,6 +24,11 @@ export function BuscarContent() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
+  const [expiredEvents, setExpiredEvents] = useState<Event[]>([]);
+  const [expiredEventCursor, setExpiredEventCursor] = useState<string | null>(null);
+  const [showExpiredEvents, setShowExpiredEvents] = useState(false);
+  const [expiredLoading, setExpiredLoading] = useState(false);
+  const [expiredLoaded, setExpiredLoaded] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [postCursor, setPostCursor] = useState<string | null>(null);
   const [eventCursor, setEventCursor] = useState<string | null>(null);
@@ -51,6 +56,12 @@ export function BuscarContent() {
       const result = await searchEventsByTag(tag, 10, reset ? undefined : eventCursor || undefined);
       setEvents((prev) => reset ? result.items : [...prev, ...result.items]);
       setEventCursor(result.nextCursor);
+      if (reset) {
+        setExpiredEvents([]);
+        setExpiredEventCursor(null);
+        setShowExpiredEvents(false);
+        setExpiredLoaded(false);
+      }
     } else {
       if (tags.some(t => t.id === tag)) {
         const result = await searchUsersByTag(tag, 10, reset ? undefined : userCursor || undefined);
@@ -65,6 +76,23 @@ export function BuscarContent() {
     }
     setLoading(false);
   }, [postCursor, eventCursor, userCursor, tags]);
+
+  const loadExpiredEvents = useCallback(async (tag: string, reset = true) => {
+    if (!tag) return;
+    setExpiredLoading(true);
+    const result = await searchExpiredEventsByTag(tag, 10, reset ? undefined : expiredEventCursor || undefined);
+    setExpiredEvents((prev) => reset ? result.items : [...prev, ...result.items]);
+    setExpiredEventCursor(result.nextCursor);
+    setExpiredLoaded(true);
+    setExpiredLoading(false);
+  }, [expiredEventCursor]);
+
+  const handleToggleExpired = useCallback(() => {
+    if (!showExpiredEvents && !expiredLoaded && selectedTag) {
+      loadExpiredEvents(selectedTag, true);
+    }
+    setShowExpiredEvents((prev) => !prev);
+  }, [showExpiredEvents, expiredLoaded, selectedTag, loadExpiredEvents]);
 
   useEffect(() => {
     loadTagSuggestions('');
@@ -117,7 +145,7 @@ export function BuscarContent() {
 
           {tags.length > 0 && (
             <div className={styles.tagCloud}>
-              {tags.map((tag) => {
+              {[...tags].sort((a, b) => (b.id === selectedTag ? 1 : 0) - (a.id === selectedTag ? 1 : 0)).map((tag) => {
                 const isSelected = selectedTag === tag.id;
                 // Total count (posts + events + poets) only shown when the tag is selected
                 const totalCount = (tag.usedByPosts || 0) + (tag.usedByEvents || 0) + (tagUsersCount[tag.id] || 0);
@@ -179,9 +207,12 @@ export function BuscarContent() {
 
           {hasSearched && !loading && selectedTag &&
             ((activeTab === 'posts' && posts.length === 0) ||
-             (activeTab === 'events' && events.length === 0) ||
              (activeTab === 'users' && users.length === 0)) && (
             <p className={styles.hint}>No se encontraron resultados para esta etiqueta en la categoría seleccionada.</p>
+          )}
+
+          {hasSearched && !loading && selectedTag && activeTab === 'events' && events.length === 0 && expiredEvents.length === 0 && (
+            <p className={styles.hint}>No se encontraron eventos para esta etiqueta.</p>
           )}
 
           {activeTab === 'posts' && posts.length > 0 && (
@@ -204,22 +235,64 @@ export function BuscarContent() {
             </div>
           )}
 
-          {activeTab === 'events' && events.length > 0 && (
-            <div className={styles.resultsGrid}>
-              {events.map((event, i) => (
-                <motion.div
-                  key={event.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                >
-                  <EventCard event={event} />
-                </motion.div>
-              ))}
+          {activeTab === 'events' && (
+            <div>
+              {events.length > 0 && (
+                <div className={styles.resultsGrid}>
+                  {events.map((event, i) => (
+                    <motion.div
+                      key={event.id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                    >
+                      <EventCard event={event} />
+                    </motion.div>
+                  ))}
+                </div>
+              )}
               {eventCursor && (
                 <button className={styles.loadMore} onClick={() => search(selectedTag, 'events', false)}>
                   Cargar más
                 </button>
+              )}
+
+              {/* Expired events toggle */}
+              {selectedTag && hasSearched && !loading && (
+                <div className={styles.expiredToggleRow}>
+                  <button
+                    className={styles.expiredToggle}
+                    onClick={handleToggleExpired}
+                    aria-expanded={showExpiredEvents}
+                  >
+                    {showExpiredEvents ? '▲ Ocultar expirados' : '▼ Ver eventos expirados'}
+                    {expiredLoading && <span className={styles.tagSpinner} aria-hidden="true" />}
+                  </button>
+                </div>
+              )}
+
+              {showExpiredEvents && expiredEvents.length > 0 && (
+                <div className={styles.resultsGrid}>
+                  {expiredEvents.map((event, i) => (
+                    <motion.div
+                      key={event.id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.03 }}
+                    >
+                      <EventCard event={event} expired />
+                    </motion.div>
+                  ))}
+                  {expiredEventCursor && (
+                    <button className={styles.loadMore} onClick={() => loadExpiredEvents(selectedTag, false)}>
+                      Cargar más expirados
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {showExpiredEvents && expiredLoaded && expiredEvents.length === 0 && (
+                <p className={styles.hint}>No hay eventos expirados para esta etiqueta.</p>
               )}
             </div>
           )}

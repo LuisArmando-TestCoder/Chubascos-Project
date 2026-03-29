@@ -12,7 +12,6 @@ interface HamburgerMenuProps {
 
 const primaryLinks = [
   { href: '/buscar', label: 'Buscar' },
-  { href: '/entrar', label: 'Entrar' },
   { href: '/guardados', label: 'Guardados' },
 ];
 
@@ -87,6 +86,11 @@ export function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
                     </Link>
                   </motion.div>
                 ))}
+                <motion.div variants={itemVariants} className={styles.loginWrapper}>
+                  <Link href="/entrar" className={styles.loginLink} onClick={onClose}>
+                    Entrar
+                  </Link>
+                </motion.div>
               </motion.nav>
 
               <motion.nav

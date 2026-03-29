@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import { getUserProfile, getUserPosts } from '@/actions/data';
+import { getUserProfile, getUserPosts, getUserEvents } from '@/actions/data';
 import { UserProfileTemplate } from '@/components/templates/UserProfileTemplate/UserProfileTemplate';
 import { Footer } from '@/components/organisms/Footer/Footer';
 
@@ -23,14 +23,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function UserProfilePage({ params }: Props) {
   const { userId } = await params;
-  const [user, postsResult] = await Promise.all([
+  const [user, postsResult, events] = await Promise.all([
     getUserProfile(userId),
     getUserPosts(userId, 10),
+    getUserEvents(userId),
   ]);
   if (!user) notFound();
   return (
     <>
-      <UserProfileTemplate user={user} initialPosts={postsResult.items} nextCursor={postsResult.nextCursor} />
+      <UserProfileTemplate user={user} initialPosts={postsResult.items} nextCursor={postsResult.nextCursor} initialEvents={events} />
       <Footer />
     </>
   );

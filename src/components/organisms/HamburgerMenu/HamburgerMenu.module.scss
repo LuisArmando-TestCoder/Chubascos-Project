@@ -107,6 +107,36 @@
   }
 }
 
+.loginWrapper {
+  margin-top: 2rem;
+}
+
+.loginLink {
+  @include m.font-body;
+  font-size: 0.72rem;
+  text-transform: lowercase;
+  letter-spacing: 0.12em;
+  color: v.$accent;
+  text-decoration: none;
+  border: 1px solid v.$accent;
+  padding: 0.6rem 1.4rem;
+  display: inline-block;
+  opacity: 0.75;
+  transition: opacity 0.25s ease, background 0.25s ease, color 0.25s ease;
+
+  &:hover {
+    opacity: 1;
+    background: v.$accent;
+    color: v.$black;
+  }
+
+  @media (max-width: v.$tablet) {
+    display: block;
+    text-align: center;
+    padding: 0.7rem 2rem;
+  }
+}
+
 .secondaryLink {
   @include m.font-heading;
   font-size: clamp(1rem, 2vw, 1.5rem);

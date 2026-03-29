@@ -317,14 +317,15 @@ export async function searchEventsByTag(
   limitNum: number = PAGE_SIZE,
   cursor?: string
 ): Promise<{ items: Event[]; nextCursor: string | null }> {
-  console.log(`🔎 📅 [Búsqueda: Eventos] Buscando eventos con tag: "${tagId}" | Límite: ${limitNum}`);
+  console.log(`🔎 📅 [Búsqueda: Eventos] Buscando eventos próximos con tag: "${tagId}" | Límite: ${limitNum}`);
   if (!db) {
     console.error('❌ [Búsqueda: Eventos] Base de datos no disponible.');
     return { items: [], nextCursor: null };
   }
-  
+  const now = admin.firestore.Timestamp.now();
   let q: admin.firestore.Query = db.collection('events')
     .where('tagIds', 'array-contains', tagId)
+    .where('day', '>=', now)
     .orderBy('day', 'asc')
     .limit(limitNum);
 
@@ -336,8 +337,52 @@ export async function searchEventsByTag(
   const snapshot = await q.get();
   const items = snapshot.docs.map(toData) as Event[];
   const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
-  console.log(`🎉 [Búsqueda: Eventos] Encontrados ${items.length} eventos bajo el tag "${tagId}".`);
+  console.log(`🎉 [Búsqueda: Eventos] Encontrados ${items.length} eventos próximos bajo el tag "${tagId}".`);
   return { items, nextCursor };
+}
+
+export async function searchExpiredEventsByTag(
+  tagId: string,
+  limitNum: number = PAGE_SIZE,
+  cursor?: string
+): Promise<{ items: Event[]; nextCursor: string | null }> {
+  console.log(`🔎 📅 [Búsqueda: Eventos Expirados] Tag: "${tagId}" | Límite: ${limitNum}`);
+  if (!db) return { items: [], nextCursor: null };
+  const now = admin.firestore.Timestamp.now();
+  let q: admin.firestore.Query = db.collection('events')
+    .where('tagIds', 'array-contains', tagId)
+    .where('day', '<', now)
+    .orderBy('day', 'desc')
+    .limit(limitNum);
+
+  if (cursor) {
+    const cursorDoc = await db.collection('events').doc(cursor).get();
+    if (cursorDoc.exists) q = q.startAfter(cursorDoc);
+  }
+
+  const snapshot = await q.get();
+  const items = snapshot.docs.map(toData) as Event[];
+  const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
+  console.log(`📦 [Búsqueda: Eventos Expirados] Encontrados ${items.length} eventos expirados bajo el tag "${tagId}".`);
+  return { items, nextCursor };
+}
+
+export async function getUserEvents(userId: string): Promise<Event[]> {
+  if (!db) return [];
+  const snapshot = await db.collection('events')
+    .where('ownerUserId', '==', userId)
+    .limit(50)
+    .get();
+  const events = snapshot.docs.map(toData) as Event[];
+  // Sort client-side: upcoming first (asc), then expired (desc by day)
+  const nowSec = Date.now() / 1000;
+  const upcoming = events
+    .filter((e) => ((e.day as any)?.seconds ?? 0) >= nowSec)
+    .sort((a, b) => ((a.day as any)?.seconds ?? 0) - ((b.day as any)?.seconds ?? 0));
+  const expired = events
+    .filter((e) => ((e.day as any)?.seconds ?? 0) < nowSec)
+    .sort((a, b) => ((b.day as any)?.seconds ?? 0) - ((a.day as any)?.seconds ?? 0));
+  return [...upcoming, ...expired];
 }
 
 export async function getPreviousPost(userId: string, currentUpdatedAt: admin.firestore.Timestamp | SerializedTimestamp | null): Promise<Post | null> {

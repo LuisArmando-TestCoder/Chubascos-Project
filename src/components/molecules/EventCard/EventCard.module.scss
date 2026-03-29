@@ -9,6 +9,17 @@
     border-color: rgba(255, 255, 255, 0.2);
     transform: translateY(-2px);
   }
+
+  &.expired {
+    opacity: 0.45;
+    border-color: rgba(255, 255, 255, 0.04);
+
+    &:hover {
+      opacity: 0.6;
+      border-color: rgba(255, 255, 255, 0.1);
+      transform: none;
+    }
+  }
 }
 
 .inner {
@@ -30,6 +41,18 @@
   color: v.$accent;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.expiredBadge {
+  font-family: v.$font-mono;
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 1px 6px;
+  border-radius: 2px;
+  margin-left: auto;
 }
 
 .hour {

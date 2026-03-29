@@ -59,16 +59,16 @@ export function PostDetailTemplate({ post, author, shader, tags = [] }: PostDeta
           <header className={styles.poemHeader}>
             <div className={styles.meta}>
               <div className={styles.authorBlock}>
-                 <span className={styles.label}>Escrito por</span>
-                 <Link href={`/u/${post.userId}`} className={styles.authorName}>
-                    {authorName}
-                 </Link>
+                <span className={styles.label}>Escrito por</span>
+                <Link href={`/u/${post.userId}`} className={styles.authorName}>
+                  {authorName}
+                </Link>
               </div>
               <div className={styles.dateBlock}>
-                 <span className={styles.label}>Publicado el</span>
-                 <time className={styles.date}>
-                   {post.updatedAt ? formatDate(post.updatedAt) : ''}
-                 </time>
+                <span className={styles.label}>Publicado el</span>
+                <time className={styles.date}>
+                  {post.updatedAt ? formatDate(post.updatedAt) : ''}
+                </time>
               </div>
             </div>
 
@@ -81,25 +81,25 @@ export function PostDetailTemplate({ post, author, shader, tags = [] }: PostDeta
           />
 
           <footer className={styles.poemFooter}>
-             <div className={styles.tagsSection}>
-                {tags.length > 0 && (
-                  <div className={styles.tags}>
-                    {tags.map((tag) => (
-                      <TagPill key={tag.id} tagId={tag.id} value={tag.value} size="sm" />
-                    ))}
-                  </div>
-                )}
-             </div>
+            <div className={styles.tagsSection}>
+              {tags.length > 0 && (
+                <div className={styles.tags}>
+                  {tags.map((tag) => (
+                    <TagPill key={tag.id} tagId={tag.id} value={tag.value} size="sm" />
+                  ))}
+                </div>
+              )}
+            </div>
 
-             <div className={styles.interactions}>
-                <button
-                  className={`${styles.saveBtn} ${isSaved ? styles.saved : ''}`}
-                  onClick={() => isSaved ? unsavePost(post.id) : savePost(post.id)}
-                >
-                  {isSaved ? 'Guardado' : 'Guardar Poema'}
-                </button>
-                <QrModalButton url={postUrl} label={post.title} />
-             </div>
+            <div className={styles.interactions}>
+              <button
+                className={`${styles.saveBtn} ${isSaved ? styles.saved : ''}`}
+                onClick={() => isSaved ? unsavePost(post.id) : savePost(post.id)}
+              >
+                {isSaved ? 'Guardado' : 'Guardar Poema'}
+              </button>
+              <QrModalButton url={postUrl} label={post.title} />
+            </div>
           </footer>
 
           <nav className={styles.navigation}>
@@ -117,30 +117,21 @@ export function PostDetailTemplate({ post, author, shader, tags = [] }: PostDeta
               </Link>
             )}
           </nav>
-        </article>
 
-        <aside className={styles.sidebar}>
-          <div className={styles.authorCard}>
-             <div className={styles.avatar}>{authorName.slice(0, 1).toUpperCase()}</div>
-             <div className={styles.authorInfo}>
+          <aside className={styles.sidebar}>
+            <div className={styles.authorCard}>
+              <div className={styles.avatar}>{authorName.slice(0, 1).toUpperCase()}</div>
+              <div className={styles.authorInfo}>
                 <span className={styles.label}>Sobre el autor</span>
                 <p className={styles.authorBio}>{author.bio || 'Poeta en constante búsqueda.'}</p>
                 <Link href={`/u/${post.userId}`} className={styles.viewProfile}>
                   Ver perfil completo
                 </Link>
-             </div>
-          </div>
-
-          <div className={styles.creativeEngineering}>
-            <p className={styles.title}>CHUBASCOS</p>
-            <p className={styles.text}>
-              Cada verso es un charco donde se refleja el alma. 
-              Explora, siente y conecta.
-            </p>
-          </div>
-        </aside>
+              </div>
+            </div>
+          </aside>
+        </article>
       </div>
-
     </main>
   );
 }

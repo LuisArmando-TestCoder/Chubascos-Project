@@ -152,6 +152,31 @@
   gap: 16px;
 }
 
+.expiredToggleRow {
+  margin-top: 24px;
+  margin-bottom: 4px;
+}
+
+.expiredToggle {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.25);
+  font-family: v.$font-mono;
+  font-size: 0.68rem;
+  text-transform: lowercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.2s;
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.55);
+  }
+}
+
 .loadMore {
   background: none;
   border: 1px solid rgba(255, 255, 255, 0.1);
