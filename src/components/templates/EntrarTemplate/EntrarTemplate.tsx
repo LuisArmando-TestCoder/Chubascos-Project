@@ -13,8 +13,6 @@ export default function EntrarTemplate() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [activeIndex, setActiveIndex] = useState(0);
-
   const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -40,31 +38,6 @@ export default function EntrarTemplate() {
       setError(res.error || i18n.auth.errorInvalidOtp);
     }
     setLoading(false);
-  };
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.currentTarget;
-    
-    // Dynamic item highlighting logic
-    const containerCenterY = target.getBoundingClientRect().top + (target.clientHeight / 2);
-    
-    // Find all list items inside the scrollable container
-    const items = target.querySelectorAll('li');
-    let closestIndex = 0;
-    let closestDistance = Infinity;
-
-    items.forEach((item, index) => {
-      const rect = item.getBoundingClientRect();
-      const itemCenterY = rect.top + (rect.height / 2);
-      const distance = Math.abs(containerCenterY - itemCenterY);
-      
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestIndex = index;
-      }
-    });
-
-    setActiveIndex(closestIndex);
   };
 
 
@@ -155,20 +128,15 @@ export default function EntrarTemplate() {
         </div>
 
         <div className={styles.normsSection}>
-          <div className={styles.normsContent} onScroll={handleScroll}>
-            <div className={styles.normsSpacerTop} />
-
+          <div className={styles.normsContent}>
             <div className={styles.normsGroup}>
               <h2 className={styles.normsTitle}>{i18n.norms.communityTitle}</h2>
               <ul className={styles.normsList}>
-                {normsItems.map((item, index) => {
-                  const isActive = index === activeIndex;
-                  return (
-                    <li key={index} className={isActive ? styles.activeItem : styles.dimmedItem}>
-                      <a href={item.href} target="_blank" rel="noopener noreferrer">{item.text}</a>
-                    </li>
-                  );
-                })}
+                {normsItems.map((item, index) => (
+                  <li key={index}>
+                    <a href={item.href} target="_blank" rel="noopener noreferrer">{item.text}</a>
+                  </li>
+                ))}
               </ul>
             </div>
 
@@ -176,19 +144,15 @@ export default function EntrarTemplate() {
               <h2 className={styles.normsTitle}>{i18n.norms.rightsTitle}</h2>
               <ul className={styles.normsList}>
                 {rightsItems.map((item, index) => {
-                  // Offset the index by the number of normsItems
                   const globalIndex = index + normsItems.length;
-                  const isActive = globalIndex === activeIndex;
                   return (
-                    <li key={globalIndex} className={isActive ? styles.activeItem : styles.dimmedItem}>
+                    <li key={globalIndex}>
                       <a href={item.href} target="_blank" rel="noopener noreferrer">{item.text}</a>
                     </li>
                   );
                 })}
               </ul>
             </div>
-
-            <div className={styles.normsSpacerBottom} />
           </div>
         </div>
       </motion.div>
