@@ -19,6 +19,15 @@ try {
 const db = admin.firestore();
 
 const POETRY_TAGS = [
+  // --- Tipos de poemas ---
+  { value: 'Himno', slug: 'himno' },
+  { value: 'Madrigal', slug: 'madrigal' },
+  { value: 'Égloga', slug: 'egloga' },
+  { value: 'Sátira', slug: 'satira' },
+  { value: 'Romance', slug: 'romance' },
+  { value: 'Poema Dramático', slug: 'poema-dramatico' },
+  { value: 'Caligrama', slug: 'caligrama' },
+
   // --- Estilos y formas métricas ---
   { value: 'Soneto', slug: 'soneto' },
   { value: 'Haiku', slug: 'haiku' },
