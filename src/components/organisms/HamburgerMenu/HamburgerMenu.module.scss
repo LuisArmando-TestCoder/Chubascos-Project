@@ -137,6 +137,15 @@
   }
 }
 
+.emailLabel {
+  @include m.font-body;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.2);
+  display: block;
+  margin-top: 0.75rem;
+}
+
 .secondaryLink {
   @include m.font-heading;
   font-size: clamp(1rem, 2vw, 1.5rem);

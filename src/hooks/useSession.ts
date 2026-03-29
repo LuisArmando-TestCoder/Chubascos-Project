@@ -1,25 +1,29 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useProfileStore } from '@/store/profile';
 
-interface ClientSession {
-  userId?: string;
-  email?: string;
-  isLoggedIn: boolean;
-}
-
-export function useSession(): { session: ClientSession; loading: boolean } {
-  const [session, setSession] = useState<ClientSession>({ isLoggedIn: false });
-  const [loading, setLoading] = useState(true);
+export function useSession() {
+  const { isLoggedIn, userId, email, username, loaded, setProfile } = useProfileStore();
 
   useEffect(() => {
-    fetch('/api/guard/check')
+    if (loaded) return; // already fetched
+    fetch('/api/me')
       .then((r) => r.json())
       .then((data) => {
-        setSession(data.session || { isLoggedIn: false });
-        setLoading(false);
+        setProfile({
+          isLoggedIn: data.isLoggedIn ?? false,
+          userId:     data.userId    ?? '',
+          email:      data.email     ?? '',
+          username:   data.username  ?? '',
+          loaded:     true,
+        });
       })
-      .catch(() => setLoading(false));
-  }, []);
+      .catch(() => setProfile({ isLoggedIn: false, loaded: true }));
+  }, [loaded, setProfile]);
 
-  return { session, loading };
+  return {
+    session: { isLoggedIn, userId, email },
+    username,
+    loading: !loaded,
+  };
 }

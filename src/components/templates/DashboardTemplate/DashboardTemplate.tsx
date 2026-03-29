@@ -1,8 +1,10 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/atoms/Button/Button';
-import { ShaderEditor } from '@/components/organisms/ShaderEditor/ShaderEditor';
+import { ShaderEditor, DEFAULT_SHADER } from '@/components/organisms/ShaderEditor/ShaderEditor';
 import { Footer } from '@/components/organisms/Footer/Footer';
 import {
   createPost, updateUserProfile, createEvent, createShader
@@ -10,7 +12,10 @@ import {
 import { logout } from '@/actions/auth';
 import { generateSlug } from '@/utils/generateSlug';
 import type { User } from '@/types';
+import { useProfileStore } from '@/store/profile';
 import styles from './DashboardTemplate.module.scss';
+
+const ShaderCanvas = dynamic(() => import('@/components/organisms/ShaderCanvas/ShaderCanvas'), { ssr: false });
 
 interface DashboardTemplateProps {
   user: User;
@@ -26,6 +31,12 @@ export function DashboardTemplate({ user }: DashboardTemplateProps) {
   const [bio, setBio] = useState(user.bio || '');
   const [username, setUsername] = useState(user.username || '');
   const [contacts, setContacts] = useState(user.contacts || []);
+  const { setProfile } = useProfileStore();
+
+  // Sync live username typing to the profile store → updates the header in real time
+  useEffect(() => {
+    setProfile({ username });
+  }, [username, setProfile]);
   const [profileMsg, setProfileMsg] = useState('');
   const [profileLoading, setProfileLoading] = useState(false);
 
@@ -37,6 +48,7 @@ export function DashboardTemplate({ user }: DashboardTemplateProps) {
   const [postVisible, setPostVisible] = useState(true);
   const [postIndexed, setPostIndexed] = useState(true);
   const [postShaderCode, setPostShaderCode] = useState('');
+  const [shaderPreviewCode, setShaderPreviewCode] = useState(DEFAULT_SHADER);
   const [showShaderEditor, setShowShaderEditor] = useState(false);
   const [postMsg, setPostMsg] = useState('');
   const [postLoading, setPostLoading] = useState(false);
@@ -130,19 +142,40 @@ export function DashboardTemplate({ user }: DashboardTemplateProps) {
 
   const handleLogout = async () => {
     await logout();
+    setProfile({ isLoggedIn: false, userId: '', email: '', username: '' });
     window.location.href = '/';
   };
 
   return (
     <>
-      <div className={styles.page}>
+      {/* Live shader preview as full-page background when editor is open */}
+      {showShaderEditor && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 0, opacity: 0.35, pointerEvents: 'none' }}>
+            <ShaderCanvas glslCode={shaderPreviewCode} />
+          </div>
+          {/* Backdrop blur overlay between shader and content */}
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 1,
+            backdropFilter: 'blur(48px) brightness(0.6)',
+            WebkitBackdropFilter: 'blur(48px) brightness(0.6)',
+            pointerEvents: 'none',
+          }} />
+        </>
+      )}
+      <div className={styles.page} style={{ position: 'relative', zIndex: 2, background: 'transparent' }}>
         <div className={styles.inner}>
           <header className={styles.header}>
             <div className={styles.headerTop}>
               <h1 className={styles.greeting}>Bienvenido, {name}</h1>
-              <button className={styles.logoutBtn} onClick={handleLogout} aria-label="Cerrar sesión">
-                Salir
-              </button>
+              <div className={styles.headerActions}>
+                <Link href={`/u/${encodeURIComponent(user.id)}`} className={styles.profileLink}>
+                  Ver perfil →
+                </Link>
+                <button className={styles.logoutBtn} onClick={handleLogout} aria-label="Cerrar sesión">
+                  Salir
+                </button>
+              </div>
             </div>
             <nav className={styles.tabs} role="tablist">
               {(['perfil', 'nuevo-poema', 'nuevo-evento'] as DashTab[]).map((tab) => (
@@ -222,9 +255,10 @@ export function DashboardTemplate({ user }: DashboardTemplateProps) {
                         exit={{ opacity: 0, height: 0 }}
                       >
                         <ShaderEditor
-                          initialCode={postShaderCode}
+                          initialCode={postShaderCode || DEFAULT_SHADER}
                           onSave={(code) => { setPostShaderCode(code); setShowShaderEditor(false); }}
                           onClose={() => setShowShaderEditor(false)}
+                          onCodeChange={setShaderPreviewCode}
                         />
                       </motion.div>
                     )}

@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import FocusTrap from 'focus-trap-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,6 +8,8 @@ import styles from './HamburgerMenu.module.scss';
 interface HamburgerMenuProps {
   isOpen: boolean;
   onClose: () => void;
+  isLoggedIn?: boolean;
+  email?: string;
 }
 
 const primaryLinks = [
@@ -47,7 +49,7 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: ease2 } },
 };
 
-export function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
+export function HamburgerMenu({ isOpen, onClose, isLoggedIn = false, email = '' }: HamburgerMenuProps) {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -86,11 +88,24 @@ export function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
                     </Link>
                   </motion.div>
                 ))}
+
                 <motion.div variants={itemVariants} className={styles.loginWrapper}>
-                  <Link href="/entrar" className={styles.loginLink} onClick={onClose}>
-                    Entrar
-                  </Link>
+                  {isLoggedIn ? (
+                    <Link href="/dashboard" className={styles.loginLink} onClick={onClose}>
+                      Panel →
+                    </Link>
+                  ) : (
+                    <Link href="/entrar" className={styles.loginLink} onClick={onClose}>
+                      Entrar
+                    </Link>
+                  )}
                 </motion.div>
+
+                {isLoggedIn && email && (
+                  <motion.div variants={itemVariants}>
+                    <span className={styles.emailLabel}>{email}</span>
+                  </motion.div>
+                )}
               </motion.nav>
 
               <motion.nav
@@ -109,7 +124,6 @@ export function HamburgerMenu({ isOpen, onClose }: HamburgerMenuProps) {
                 ))}
               </motion.nav>
             </div>
-
           </motion.div>
         </FocusTrap>
       )}

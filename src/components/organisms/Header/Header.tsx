@@ -10,8 +10,12 @@ import styles from './Header.module.scss';
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { posts, users, events } = useSavedStore();
-  const { session } = useSession();
+  const { session, username, loading } = useSession();
   const savedCount = posts.length + users.length + events.length;
+
+  const displayName = session.isLoggedIn
+    ? (username || session.email.split('@')[0] || 'Panel')
+    : null;
 
   return (
     <>
@@ -49,17 +53,25 @@ export function Header() {
                 <span className={styles.savedLabel}>{i18n.common.saved}</span>
               </Link>
             )}
-            <Link
-              href={session.isLoggedIn ? '/dashboard' : '/entrar'}
-              className={styles.loginBtn}
-              aria-label={session.isLoggedIn ? 'Ir al panel' : 'Entrar a la plataforma'}
-            >
-              {session.isLoggedIn ? 'Panel' : i18n.common.login}
-            </Link>
+            {!loading && (
+              <Link
+                href={session.isLoggedIn ? '/dashboard' : '/entrar'}
+                className={styles.loginBtn}
+                aria-label={session.isLoggedIn ? 'Panel de usuario' : 'Entrar a la plataforma'}
+              >
+                {displayName ?? i18n.common.login}
+              </Link>
+            )}
           </nav>
         </div>
       </header>
-      <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
+
+      <HamburgerMenu
+        isOpen={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        isLoggedIn={session.isLoggedIn}
+        email={session.email}
+      />
     </>
   );
 }

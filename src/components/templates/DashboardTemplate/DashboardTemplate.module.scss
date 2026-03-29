@@ -30,6 +30,25 @@
   margin: 0;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profileLink {
+  font-family: v.$font-mono;
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.35);
+  text-decoration: none;
+  letter-spacing: 0.06em;
+  transition: color 0.2s;
+
+  &:hover {
+    color: v.$white;
+  }
+}
+
 .logoutBtn {
   background: none;
   border: 1px solid rgba(255, 255, 255, 0.1);
