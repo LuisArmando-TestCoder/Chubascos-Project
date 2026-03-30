@@ -282,28 +282,33 @@ export async function searchPostsByTag(
 ): Promise<{ items: Post[]; nextCursor: string | null }> {
   if (!db) return { items: [], nextCursor: null };
 
-  let q: admin.firestore.Query = db.collectionGroup('posts')
-    .where('tagIds', 'array-contains', tagId)
-    .where('isVisible', '==', true)
-    .orderBy('updatedAt', 'desc')
-    .limit(limitNum);
+  try {
+    let q: admin.firestore.Query = db.collectionGroup('posts')
+      .where('tagIds', 'array-contains', tagId)
+      .where('isVisible', '==', true)
+      .orderBy('updatedAt', 'desc')
+      .limit(limitNum);
 
-  if (cursor) {
-    const cursorSeconds = parseInt(cursor);
-    if (!isNaN(cursorSeconds)) {
-      q = q.startAfter(admin.firestore.Timestamp.fromMillis(cursorSeconds * 1000));
+    if (cursor) {
+      const cursorSeconds = parseInt(cursor);
+      if (!isNaN(cursorSeconds)) {
+        q = q.startAfter(admin.firestore.Timestamp.fromMillis(cursorSeconds * 1000));
+      }
     }
+
+    const snapshot = await q.get();
+    const items = snapshot.docs.map(toData) as Post[];
+    const lastUpdatedAt = items[items.length - 1]?.updatedAt as { seconds: number } | undefined;
+    const nextCursor = items.length === limitNum && lastUpdatedAt
+      ? String(lastUpdatedAt.seconds)
+      : null;
+
+    console.log(`✨ [Búsqueda: Poemas] Tag "${tagId}" → ${items.length} poemas`);
+    return { items, nextCursor };
+  } catch (error: any) {
+    console.error('❌ [Búsqueda: Poemas] Index missing or error:', error.message);
+    return { items: [], nextCursor: null };
   }
-
-  const snapshot = await q.get();
-  const items = snapshot.docs.map(toData) as Post[];
-  const lastUpdatedAt = items[items.length - 1]?.updatedAt as { seconds: number } | undefined;
-  const nextCursor = items.length === limitNum && lastUpdatedAt
-    ? String(lastUpdatedAt.seconds)
-    : null;
-
-  console.log(`✨ [Búsqueda: Poemas] Tag "${tagId}" → ${items.length} poemas`);
-  return { items, nextCursor };
 }
 
 export async function searchEventsByTag(
@@ -316,23 +321,29 @@ export async function searchEventsByTag(
     console.error('❌ [Búsqueda: Eventos] Base de datos no disponible.');
     return { items: [], nextCursor: null };
   }
-  const now = admin.firestore.Timestamp.now();
-  let q: admin.firestore.Query = db.collection('events')
-    .where('tagIds', 'array-contains', tagId)
-    .where('day', '>=', now)
-    .orderBy('day', 'asc')
-    .limit(limitNum);
+  
+  try {
+    const now = admin.firestore.Timestamp.now();
+    let q: admin.firestore.Query = db.collection('events')
+      .where('tagIds', 'array-contains', tagId)
+      .where('day', '>=', now)
+      .orderBy('day', 'asc')
+      .limit(limitNum);
 
-  if (cursor) {
-    const cursorDoc = await db.collection('events').doc(cursor).get();
-    if (cursorDoc.exists) q = q.startAfter(cursorDoc);
+    if (cursor) {
+      const cursorDoc = await db.collection('events').doc(cursor).get();
+      if (cursorDoc.exists) q = q.startAfter(cursorDoc);
+    }
+
+    const snapshot = await q.get();
+    const items = snapshot.docs.map(toData) as Event[];
+    const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
+    console.log(`🎉 [Búsqueda: Eventos] Encontrados ${items.length} eventos próximos bajo el tag "${tagId}".`);
+    return { items, nextCursor };
+  } catch (error: any) {
+    console.error('❌ [Búsqueda: Eventos] Index missing or error:', error.message);
+    return { items: [], nextCursor: null };
   }
-
-  const snapshot = await q.get();
-  const items = snapshot.docs.map(toData) as Event[];
-  const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
-  console.log(`🎉 [Búsqueda: Eventos] Encontrados ${items.length} eventos próximos bajo el tag "${tagId}".`);
-  return { items, nextCursor };
 }
 
 export async function searchExpiredEventsByTag(
@@ -342,23 +353,29 @@ export async function searchExpiredEventsByTag(
 ): Promise<{ items: Event[]; nextCursor: string | null }> {
   console.log(`🔎 📅 [Búsqueda: Eventos Expirados] Tag: "${tagId}" | Límite: ${limitNum}`);
   if (!db) return { items: [], nextCursor: null };
-  const now = admin.firestore.Timestamp.now();
-  let q: admin.firestore.Query = db.collection('events')
-    .where('tagIds', 'array-contains', tagId)
-    .where('day', '<', now)
-    .orderBy('day', 'desc')
-    .limit(limitNum);
+  
+  try {
+    const now = admin.firestore.Timestamp.now();
+    let q: admin.firestore.Query = db.collection('events')
+      .where('tagIds', 'array-contains', tagId)
+      .where('day', '<', now)
+      .orderBy('day', 'desc')
+      .limit(limitNum);
 
-  if (cursor) {
-    const cursorDoc = await db.collection('events').doc(cursor).get();
-    if (cursorDoc.exists) q = q.startAfter(cursorDoc);
+    if (cursor) {
+      const cursorDoc = await db.collection('events').doc(cursor).get();
+      if (cursorDoc.exists) q = q.startAfter(cursorDoc);
+    }
+
+    const snapshot = await q.get();
+    const items = snapshot.docs.map(toData) as Event[];
+    const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
+    console.log(`📦 [Búsqueda: Eventos Expirados] Encontrados ${items.length} eventos expirados bajo el tag "${tagId}".`);
+    return { items, nextCursor };
+  } catch (error: any) {
+    console.error('❌ [Búsqueda: Eventos Expirados] Index missing or error:', error.message);
+    return { items: [], nextCursor: null };
   }
-
-  const snapshot = await q.get();
-  const items = snapshot.docs.map(toData) as Event[];
-  const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
-  console.log(`📦 [Búsqueda: Eventos Expirados] Encontrados ${items.length} eventos expirados bajo el tag "${tagId}".`);
-  return { items, nextCursor };
 }
 
 export async function getUserEvents(userId: string): Promise<Event[]> {

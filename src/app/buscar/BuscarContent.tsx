@@ -173,7 +173,7 @@ export function BuscarContent() {
   // On mount: load tags, then auto-select the first one if no tag is pre-selected
   useEffect(() => {
     async function init() {
-      const results = await getTags(20);
+      const results = await getTags(100);
       setTags(results);
       if (!initialTag && results.length > 0) {
         setSelectedTag(results[0].id);
@@ -215,9 +215,9 @@ export function BuscarContent() {
             />
           </div>
 
-          {tags.length > 0 && (
+          {(tags.length > 0 || Object.keys(tagMap).length > 0) && (
             <div className={styles.tagCloud}>
-              {[...tags]
+              {Array.from(new Map([...tags, ...Object.values(tagMap)].map(t => [t.id, t])).values())
                 .filter(tag => ((tag.usedByPosts || 0) + (tag.usedByEvents || 0)) > 0 || tag.id === selectedTag)
                 .sort((a, b) => (b.id === selectedTag ? 1 : 0) - (a.id === selectedTag ? 1 : 0))
                 .map((tag) => {
