@@ -76,6 +76,7 @@ export function BuscarContent() {
       ...new Set([
         ...postsResult.items.flatMap((p) => p.tagIds || []),
         ...eventsResult.items.flatMap((e) => e.tagIds || []),
+        tag // Ensure the selected tag itself is in the map
       ]),
     ];
     if (allTagIds.length > 0) {
@@ -92,10 +93,19 @@ export function BuscarContent() {
     setUsers(usersResult.items);
     setUserCursor(usersResult.nextCursor);
 
-    // Auto-switch to the first tab that actually has results
-    if (postsResult.items.length > 0) setActiveTab('posts');
-    else if (eventsResult.items.length > 0) setActiveTab('events');
-    else if (usersResult.items.length > 0) setActiveTab('users');
+    // Keep current tab if it has results, otherwise switch to the first one with results
+    setActiveTab((currentTab) => {
+      if (currentTab === 'posts' && postsResult.items.length === 0) {
+        return eventsResult.items.length > 0 ? 'events' : (usersResult.items.length > 0 ? 'users' : 'posts');
+      }
+      if (currentTab === 'events' && eventsResult.items.length === 0) {
+        return postsResult.items.length > 0 ? 'posts' : (usersResult.items.length > 0 ? 'users' : 'events');
+      }
+      if (currentTab === 'users' && usersResult.items.length === 0) {
+        return postsResult.items.length > 0 ? 'posts' : (eventsResult.items.length > 0 ? 'events' : 'users');
+      }
+      return currentTab;
+    });
 
     setLoading(false);
   }, []);
@@ -235,7 +245,7 @@ export function BuscarContent() {
               let count = tab === 'posts' ? posts.length : tab === 'events' ? events.length : users.length;
 
               if (selectedTag) {
-                const tagObj = tags.find(t => t.id === selectedTag);
+                const tagObj = tags.find(t => t.id === selectedTag) || tagMap[selectedTag];
                 if (tagObj) {
                   if (tab === 'posts') count = tagObj.usedByPosts ?? posts.length;
                   else if (tab === 'events') count = tagObj.usedByEvents ?? events.length;
