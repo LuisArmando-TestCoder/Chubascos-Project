@@ -14,12 +14,14 @@ import { generateSlug } from '@/utils/generateSlug';
 import type { User, Post, Event, Tag, Shader } from '@/types';
 import { useProfileStore } from '@/store/profile';
 import { useSavedStore } from '@/store/saved';
+import { DashboardPostsList } from './DashboardPostsList';
 import styles from './DashboardTemplate.module.scss';
 
 const ShaderCanvas = dynamic(() => import('@/components/organisms/ShaderCanvas/ShaderCanvas'), { ssr: false });
 
 interface DashboardTemplateProps {
   user: User;
+  userPosts?: Post[];
   editPost?: Post | null;
   editShader?: Shader | null;
   editEvent?: Event | null;
@@ -42,7 +44,7 @@ function timestampToDateString(ts: any): string {
   return `${y}-${m}-${day}`;
 }
 
-export function DashboardTemplate({ user, editPost, editShader, editEvent, editPrevPost, editNextPost, editPrevEvent, editNextEvent }: DashboardTemplateProps) {
+export function DashboardTemplate({ user, userPosts = [], editPost, editShader, editEvent, editPrevPost, editNextPost, editPrevEvent, editNextEvent }: DashboardTemplateProps) {
   const [activeTab, setActiveTab] = useState<DashTab>(() => {
     if (editPost) return 'nuevo-poema';
     if (editEvent) return 'nuevo-evento';
@@ -54,6 +56,7 @@ export function DashboardTemplate({ user, editPost, editShader, editEvent, editP
   const [bio, setBio] = useState(user.bio || '');
   const [username, setUsername] = useState(user.username || '');
   const [contacts, setContacts] = useState(user.contacts || []);
+  const [profileTags, setProfileTags] = useState<string[]>(user.tagIds || []);
   const { setProfile } = useProfileStore();
 
   // Sync live username typing to the profile store → updates the header in real time
@@ -127,10 +130,10 @@ export function DashboardTemplate({ user, editPost, editShader, editEvent, editP
 
   const handleProfileSave = useCallback(async () => {
     setProfileLoading(true);
-    const result = await updateUserProfile(user.id, { bio, username, contacts });
+    const result = await updateUserProfile(user.id, { bio, username, contacts, tagIds: profileTags });
     setProfileMsg(result.success ? 'Perfil actualizado.' : (result.error || 'Error.'));
     setProfileLoading(false);
-  }, [user.id, bio, username, contacts]);
+  }, [user.id, bio, username, contacts, profileTags]);
 
   const handleDeletePost = async () => {
     if (!editingPostId) return;
@@ -360,8 +363,41 @@ export function DashboardTemplate({ user, editPost, editShader, editEvent, editP
                   <textarea id="bio" className={styles.textarea} value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Escribe algo sobre ti..." rows={4} />
                   <span className={styles.charCount}>{bio.length}/500</span>
                 </div>
+                <div className={styles.field}>
+                  <label className={styles.label}>Mis etiquetas (máx 10) — aparecen en "Poetas" del buscador</label>
+                  <div className={styles.tagsContainer}>
+                    {tagsLoading ? (
+                      <p>Cargando etiquetas...</p>
+                    ) : (
+                      <div className={styles.tagList}>
+                        {availableTags.map(tag => {
+                          const isSelected = profileTags.includes(tag.id);
+                          return (
+                            <button
+                              key={tag.id}
+                              type="button"
+                              onClick={() => {
+                                if (isSelected) {
+                                  setProfileTags(prev => prev.filter(id => id !== tag.id));
+                                } else if (profileTags.length < 10) {
+                                  setProfileTags(prev => [...prev, tag.id]);
+                                }
+                              }}
+                              className={`${styles.tagButton} ${isSelected ? styles.tagSelected : ''}`}
+                              disabled={!isSelected && profileTags.length >= 10}
+                            >
+                              #{tag.value || tag.slug}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
                 {profileMsg && <p className={styles.msg}>{profileMsg}</p>}
                 <Button onClick={handleProfileSave} loading={profileLoading}>Guardar perfil</Button>
+
+                <DashboardPostsList posts={userPosts} />
               </motion.div>
             )}
 
@@ -520,6 +556,8 @@ export function DashboardTemplate({ user, editPost, editShader, editEvent, editP
                     )}
                   </div>
                 )}
+
+                <DashboardPostsList posts={userPosts} activePostId={editingPostId} />
               </motion.div>
             )}
 

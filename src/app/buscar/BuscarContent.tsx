@@ -1,17 +1,14 @@
 'use client';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { PostCard } from '@/components/molecules/PostCard/PostCard';
-import { EventCard } from '@/components/molecules/EventCard/EventCard';
-import { UserCard } from '@/components/molecules/UserCard/UserCard';
 import { Footer } from '@/components/organisms/Footer/Footer';
 import { getTags, getTagsByIds, searchPostsByTag, searchEventsByTag, searchExpiredEventsByTag, searchUsersByTag } from '@/actions/data';
 import i18n from '@/utils/i18n';
 import type { Post, Event, User, Tag } from '@/types';
 import styles from './buscar.module.scss';
-
-type TabType = 'posts' | 'events' | 'users';
+import { BuscarTagCloud } from './components/BuscarTagCloud';
+import { BuscarTabs, type TabType } from './components/BuscarTabs';
+import { BuscarResults } from './components/BuscarResults';
 
 export function BuscarContent() {
   const searchParams = useSearchParams();
@@ -215,188 +212,50 @@ export function BuscarContent() {
             />
           </div>
 
-          {(tags.length > 0 || Object.keys(tagMap).length > 0) && (
-            <div className={styles.tagCloud}>
-              {Array.from(new Map([...tags, ...Object.values(tagMap)].map(t => [t.id, t])).values())
-                .filter(tag => ((tag.usedByPosts || 0) + (tag.usedByEvents || 0)) > 0 || tag.id === selectedTag)
-                .sort((a, b) => (b.id === selectedTag ? 1 : 0) - (a.id === selectedTag ? 1 : 0))
-                .map((tag) => {
-                  const isSelected = selectedTag === tag.id;
-                  const totalCount = (tag.usedByPosts || 0) + (tag.usedByEvents || 0) + (isSelected ? users.length : 0);
-                  return (
-                    <button
-                      key={tag.id}
-                      className={`${styles.tagBtn} ${isSelected ? styles.active : ''}`}
-                      onClick={() => setSelectedTag(tag.id)}
-                      aria-pressed={isSelected}
-                    >
-                      #{tag.value}
-                      {isSelected && loading && <span className={styles.tagSpinner} aria-hidden="true" />}
-                      {isSelected && !loading && <span className={styles.tagCount}>{totalCount}</span>}
-                    </button>
-                  );
-                })}
-            </div>
-          )}
+          <BuscarTagCloud
+            tags={tags}
+            tagMap={tagMap}
+            selectedTag={selectedTag}
+            users={users}
+            loading={loading}
+            onSelectTag={setSelectedTag}
+          />
 
-          <div className={styles.tabs} role="tablist">
-            {(['posts', 'events', 'users'] as TabType[]).map((tab) => {
-              let label = tab === 'posts' ? i18n.common.poems : tab === 'events' ? i18n.common.events : i18n.common.poets;
-              let count = tab === 'posts' ? posts.length : tab === 'events' ? events.length : users.length;
+          <BuscarTabs
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            selectedTag={selectedTag}
+            tags={tags}
+            tagMap={tagMap}
+            posts={posts}
+            events={events}
+            users={users}
+          />
 
-              if (selectedTag) {
-                const tagObj = tags.find(t => t.id === selectedTag) || tagMap[selectedTag];
-                if (tagObj) {
-                  if (tab === 'posts') count = tagObj.usedByPosts ?? posts.length;
-                  else if (tab === 'events') count = tagObj.usedByEvents ?? events.length;
-                  else count = users.length;
-                }
-                label += ` (${count})`;
-              }
-
-              return (
-                <button
-                  key={tab}
-                  role="tab"
-                  aria-selected={activeTab === tab}
-                  className={`${styles.tab} ${activeTab === tab ? styles.activeTab : ''}`}
-                  onClick={() => setActiveTab(tab)}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-
-          {loading && <p className={styles.loading}>{i18n.common.loading}</p>}
-
-          {!selectedTag && !loading && (
-            <p className={styles.hint}>Selecciona una etiqueta para empezar a buscar.</p>
-          )}
-
-          {hasSearched && !loading && selectedTag && activeTab === 'posts' && posts.length === 0 && (
-            <p className={styles.hint}>No se encontraron poemas para esta etiqueta.</p>
-          )}
-
-          {hasSearched && !loading && selectedTag && activeTab === 'users' && users.length === 0 && (
-            <p className={styles.hint}>No se encontraron poetas para esta etiqueta.</p>
-          )}
-
-          {hasSearched && !loading && selectedTag && activeTab === 'events' && events.length === 0 && expiredEvents.length === 0 && (
-            <p className={styles.hint}>No se encontraron eventos para esta etiqueta.</p>
-          )}
-
-          {!loading && activeTab === 'posts' && posts.length > 0 && (
-            <div className={styles.results}>
-              {posts.map((post, i) => (
-                <motion.div
-                  key={post.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                >
-                  <PostCard
-                    post={post}
-                    showAuthor
-                    tags={(post.tagIds || []).map((id) => tagMap[id]).filter(Boolean) as Tag[]}
-                  />
-                </motion.div>
-              ))}
-              {postCursor && (
-                <button className={styles.loadMore} onClick={loadMorePosts}>
-                  {i18n.common.seeMore}
-                </button>
-              )}
-            </div>
-          )}
-
-          {!loading && activeTab === 'events' && (
-            <div>
-              {events.length > 0 && (
-                <div className={styles.resultsGrid}>
-                  {events.map((event, i) => (
-                    <motion.div
-                      key={event.id}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.04 }}
-                    >
-                      <EventCard
-                        event={event}
-                        tags={(event.tagIds || []).map((id) => tagMap[id]).filter(Boolean) as Tag[]}
-                      />
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-              {eventCursor && (
-                <button className={styles.loadMore} onClick={loadMoreEvents}>
-                  Cargar más
-                </button>
-              )}
-
-              {selectedTag && hasSearched && !loading && (
-                <div className={styles.expiredToggleRow}>
-                  <button
-                    className={styles.expiredToggle}
-                    onClick={handleToggleExpired}
-                    aria-expanded={showExpiredEvents}
-                  >
-                    {showExpiredEvents ? '▲ Ocultar expirados' : '▼ Ver eventos expirados'}
-                    {expiredLoading && <span className={styles.tagSpinner} aria-hidden="true" />}
-                  </button>
-                </div>
-              )}
-
-              {showExpiredEvents && expiredEvents.length > 0 && (
-                <div className={styles.resultsGrid}>
-                  {expiredEvents.map((event, i) => (
-                    <motion.div
-                      key={event.id}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.03 }}
-                    >
-                      <EventCard
-                        event={event}
-                        expired
-                        tags={(event.tagIds || []).map((id) => tagMap[id]).filter(Boolean) as Tag[]}
-                      />
-                    </motion.div>
-                  ))}
-                  {expiredEventCursor && (
-                    <button className={styles.loadMore} onClick={() => loadExpiredEvents(selectedTag, false)}>
-                      Cargar más expirados
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {showExpiredEvents && expiredLoaded && expiredEvents.length === 0 && (
-                <p className={styles.hint}>No hay eventos expirados para esta etiqueta.</p>
-              )}
-            </div>
-          )}
-
-          {!loading && activeTab === 'users' && users.length > 0 && (
-            <div className={styles.resultsGrid}>
-              {users.map((user, i) => (
-                <motion.div
-                  key={user.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                >
-                  <UserCard user={user} />
-                </motion.div>
-              ))}
-              {userCursor && (
-                <button className={styles.loadMore} onClick={loadMoreUsers}>
-                  Cargar más
-                </button>
-              )}
-            </div>
-          )}
+          <BuscarResults
+            activeTab={activeTab}
+            loading={loading}
+            hasSearched={hasSearched}
+            selectedTag={selectedTag}
+            query={query}
+            posts={posts}
+            postCursor={postCursor}
+            onLoadMorePosts={loadMorePosts}
+            events={events}
+            eventCursor={eventCursor}
+            onLoadMoreEvents={loadMoreEvents}
+            users={users}
+            userCursor={userCursor}
+            onLoadMoreUsers={loadMoreUsers}
+            expiredEvents={expiredEvents}
+            expiredEventCursor={expiredEventCursor}
+            showExpiredEvents={showExpiredEvents}
+            expiredLoading={expiredLoading}
+            expiredLoaded={expiredLoaded}
+            onToggleExpired={handleToggleExpired}
+            onLoadExpired={() => loadExpiredEvents(selectedTag, false)}
+            tagMap={tagMap}
+          />
         </div>
       </main>
       <Footer />

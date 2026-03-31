@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getSession } from '@/actions/auth';
-import { getUserProfile, getPost, getEvent, getShader, getPreviousPost, getNextPost, getUserEvents } from '@/actions/data';
+import { getUserProfile, getPost, getEvent, getShader, getPreviousPost, getNextPost, getUserEvents, getUserAllPosts } from '@/actions/data';
 import { DashboardTemplate } from '@/components/templates/DashboardTemplate/DashboardTemplate';
 import type { Post, Event, Shader } from '@/types';
 
@@ -56,10 +56,14 @@ export default async function DashboardPage({ searchParams }: Props) {
     }
   }
 
+  // Fetch all user posts for the profile edit list (includes invisible ones)
+  const allPosts = await getUserAllPosts(session.userId);
+
   return (
     <DashboardTemplate
       key={editPost?.id || editEvent?.id || 'dashboard'}
       user={user}
+      userPosts={allPosts}
       editPost={editPost}
       editShader={editShader}
       editEvent={editEvent}

@@ -30,6 +30,7 @@ export type User = {
   usernameLower?: string;
   bio?: string;
   contacts: Contact[];
+  tagIds?: string[];
   sessionVersion: number;
   createdAt: FirestoreTimestamp;
 };

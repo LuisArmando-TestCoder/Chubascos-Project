@@ -139,6 +139,17 @@ export async function getUserPosts(
   return { items, nextCursor };
 }
 
+/** Fetch all posts (visible + hidden) for the dashboard owner view */
+export async function getUserAllPosts(userId: string): Promise<Post[]> {
+  if (!db) return [];
+  const snapshot = await db
+    .collection('users').doc(userId).collection('posts')
+    .orderBy('updatedAt', 'desc')
+    .limit(100)
+    .get();
+  return snapshot.docs.map(toData) as Post[];
+}
+
 export async function getPost(userId: string, slugOrId: string): Promise<Post | null> {
   if (!db) return null;
 
@@ -815,6 +826,7 @@ export async function updateUserProfile(userId: string, data: {
   username?: string;
   bio?: string;
   contacts?: { label: string; url: string }[];
+  tagIds?: string[];
 }) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
 
@@ -834,6 +846,10 @@ export async function updateUserProfile(userId: string, data: {
     if (data.contacts !== undefined) {
       if (data.contacts.length > 5) return { success: false, error: 'Máximo 5 contactos.' };
       updateData.contacts = data.contacts;
+    }
+    if (data.tagIds !== undefined) {
+      if (data.tagIds.length > 10) return { success: false, error: 'Máximo 10 etiquetas en el perfil.' };
+      updateData.tagIds = data.tagIds;
     }
 
     await db.collection('users').doc(userId).update(updateData);
