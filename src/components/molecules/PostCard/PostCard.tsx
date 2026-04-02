@@ -1,19 +1,21 @@
 import Link from 'next/link';
 import { TagPill } from '@/components/atoms/TagPill/TagPill';
 import { formatDate } from '@/utils/formatDate';
-import type { Post, Tag } from '@/types';
+import type { Post, Tag, Book } from '@/types';
 import styles from './PostCard.module.scss';
 
 interface PostCardProps {
-  post: Post;
+  post: Post | Book;
   authorName?: string;
   tags?: Tag[];
   showAuthor?: boolean;
   badge?: string;
+  type?: 'post' | 'book';
 }
 
-export function PostCard({ post, authorName, tags = [], showAuthor = false, badge }: PostCardProps) {
-  const href = `/u/${post.userId}/p/${post.slug}`;
+export function PostCard({ post, authorName, tags = [], showAuthor = false, badge, type = 'post' }: PostCardProps) {
+  const char = type === 'post' ? 'p' : 'b';
+  const href = `/u/${post.userId}/${char}/${post.slug}`;
   return (
     <article className={styles.card}>
       {badge && <span className={styles.badge}>{badge}</span>}

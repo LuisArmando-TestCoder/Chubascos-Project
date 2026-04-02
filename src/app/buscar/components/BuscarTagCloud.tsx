@@ -24,7 +24,7 @@ export function BuscarTagCloud({
   );
 
   const visibleTags = mergedTags
-    .filter(tag => ((tag.usedByPosts || 0) + (tag.usedByEvents || 0)) > 0 || tag.id === selectedTag)
+    .filter(tag => ((tag.usedByPosts || 0) + (tag.usedByEvents || 0) + (tag.usedByBooks || 0)) > 0 || tag.id === selectedTag)
     .sort((a, b) => a.slug.localeCompare(b.slug));
 
   if (visibleTags.length === 0) return null;
@@ -33,7 +33,7 @@ export function BuscarTagCloud({
     <div className={styles.tagCloud}>
       {visibleTags.map((tag) => {
         const isSelected = selectedTag === tag.id;
-        const totalCount = (tag.usedByPosts || 0) + (tag.usedByEvents || 0) + (isSelected ? users.length : 0);
+        const totalCount = (tag.usedByPosts || 0) + (tag.usedByEvents || 0) + (tag.usedByBooks || 0) + (isSelected ? users.length : 0);
         return (
           <button
             key={tag.id}

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getPost, getUserProfile, getShader, getTagsByIds, getPreviousPost, getNextPost } from '@/actions/data';
+import { getPost, getUserProfile, getUserProfileByEmail, getShader, getTagsByIds, getPreviousPost, getNextPost } from '@/actions/data';
 import { PostDetailTemplate } from '@/components/templates/PostDetailTemplate/PostDetailTemplate';
 import { Footer } from '@/components/organisms/Footer/Footer';
 
@@ -11,7 +11,13 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { userId: rawId, slug } = await params;
   const userId = decodeURIComponent(rawId);
-  const [post, user] = await Promise.all([getPost(userId, slug), getUserProfile(userId)]);
+  
+  // Try to resolve user by ID or email
+  let user = await getUserProfile(userId);
+  if (!user) user = await getUserProfileByEmail(userId);
+
+  const post = await getPost(user?.id || userId, slug);
+  
   if (!post) return { title: 'Poema no encontrado | Chubascos' };
   const authorName = user?.username || user?.email.split('@')[0] || userId;
   return {
@@ -28,7 +34,12 @@ export default async function PostDetailPage({ params }: Props) {
   const { userId: rawId, slug } = await params;
   const userId = decodeURIComponent(rawId);
   console.log(`[PostDetailPage] Requested: userId=${userId}, slug=${slug}`);
-  const [post, user] = await Promise.all([getPost(userId, slug), getUserProfile(userId)]);
+
+  // Try to resolve user by ID or email
+  let user = await getUserProfile(userId);
+  if (!user) user = await getUserProfileByEmail(userId);
+
+  const post = await getPost(user?.id || userId, slug);
   
   if (!post) {
     console.error(`[PostDetailPage] Post not found for: userId=${userId}, slug=${slug}`);

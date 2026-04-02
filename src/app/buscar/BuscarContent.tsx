@@ -2,9 +2,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Footer } from '@/components/organisms/Footer/Footer';
-import { getTags, getTagsByIds, searchPostsByTag, searchEventsByTag, searchExpiredEventsByTag, searchUsersByTag } from '@/actions/data';
+import { getTags, getTagsByIds, searchPostsByTag, searchEventsByTag, searchExpiredEventsByTag, searchUsersByTag, searchBooksByTag } from '@/actions/data';
 import i18n from '@/utils/i18n';
-import type { Post, Event, User, Tag } from '@/types';
+import type { Post, Event, User, Tag, Book } from '@/types';
 import styles from './buscar.module.scss';
 import { BuscarTagCloud } from './components/BuscarTagCloud';
 import { BuscarTabs, type TabType } from './components/BuscarTabs';
@@ -21,6 +21,7 @@ export function BuscarContent() {
   const [tags, setTags] = useState<Tag[]>([]);
 
   const [posts, setPosts] = useState<Post[]>([]);
+  const [books, setBooks] = useState<Book[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [tagMap, setTagMap] = useState<Record<string, Tag>>({});
@@ -38,6 +39,7 @@ export function BuscarContent() {
   }, [tagMap]);
 
   const [postCursor, setPostCursor] = useState<string | null>(null);
+  const [bookCursor, setBookCursor] = useState<string | null>(null);
   const [eventCursor, setEventCursor] = useState<string | null>(null);
   const [userCursor, setUserCursor] = useState<string | null>(null);
 
@@ -62,8 +64,9 @@ export function BuscarContent() {
     setShowExpiredEvents(false);
     setExpiredLoaded(false);
 
-    const [postsResult, eventsResult, usersResult] = await Promise.all([
+    const [postsResult, booksResult, eventsResult, usersResult] = await Promise.all([
       searchPostsByTag(tag, 10),
+      searchBooksByTag(tag, 10),
       searchEventsByTag(tag, 10),
       searchUsersByTag(tag, 10),
     ]);
@@ -72,6 +75,7 @@ export function BuscarContent() {
     const allTagIds = [
       ...new Set([
         ...postsResult.items.flatMap((p) => p.tagIds || []),
+        ...booksResult.items.flatMap((b) => b.tagIds || []),
         ...eventsResult.items.flatMap((e) => e.tagIds || []),
         tag // Ensure the selected tag itself is in the map
       ]),
@@ -85,6 +89,8 @@ export function BuscarContent() {
 
     setPosts(postsResult.items);
     setPostCursor(postsResult.nextCursor);
+    setBooks(booksResult.items);
+    setBookCursor(booksResult.nextCursor);
     setEvents(eventsResult.items);
     setEventCursor(eventsResult.nextCursor);
     setUsers(usersResult.items);
@@ -93,13 +99,22 @@ export function BuscarContent() {
     // Keep current tab if it has results, otherwise switch to the first one with results
     setActiveTab((currentTab) => {
       if (currentTab === 'posts' && postsResult.items.length === 0) {
+        if (booksResult.items.length > 0) return 'books';
         return eventsResult.items.length > 0 ? 'events' : (usersResult.items.length > 0 ? 'users' : 'posts');
       }
+      if (currentTab === 'books' && booksResult.items.length === 0) {
+        if (postsResult.items.length > 0) return 'posts';
+        return eventsResult.items.length > 0 ? 'events' : (usersResult.items.length > 0 ? 'users' : 'books');
+      }
       if (currentTab === 'events' && eventsResult.items.length === 0) {
-        return postsResult.items.length > 0 ? 'posts' : (usersResult.items.length > 0 ? 'users' : 'events');
+        if (postsResult.items.length > 0) return 'posts';
+        if (booksResult.items.length > 0) return 'books';
+        return usersResult.items.length > 0 ? 'users' : 'events';
       }
       if (currentTab === 'users' && usersResult.items.length === 0) {
-        return postsResult.items.length > 0 ? 'posts' : (eventsResult.items.length > 0 ? 'events' : 'users');
+        if (postsResult.items.length > 0) return 'posts';
+        if (booksResult.items.length > 0) return 'books';
+        return eventsResult.items.length > 0 ? 'events' : 'users';
       }
       return currentTab;
     });
@@ -114,7 +129,7 @@ export function BuscarContent() {
   }, []);
 
   // Helper: fetch and merge tags for new items
-  async function fetchAndMergeTags(items: (Post | Event)[], currentTagMap: Record<string, Tag>) {
+  async function fetchAndMergeTags(items: (Post | Event | Book)[], currentTagMap: Record<string, Tag>) {
     const ids = [...new Set(items.flatMap((item) => (item as any).tagIds || []))];
     const missing = ids.filter((id) => !currentTagMap[id]);
     if (missing.length === 0) return;
@@ -133,6 +148,14 @@ export function BuscarContent() {
     setPosts((prev) => [...prev, ...result.items]);
     setPostCursor(result.nextCursor);
   }, [selectedTag, postCursor, tagMap]);
+
+  const loadMoreBooks = useCallback(async () => {
+    if (!selectedTag || !bookCursor) return;
+    const result = await searchBooksByTag(selectedTag, 10, bookCursor);
+    await fetchAndMergeTags(result.items, tagMap);
+    setBooks((prev) => [...prev, ...result.items]);
+    setBookCursor(result.nextCursor);
+  }, [selectedTag, bookCursor, tagMap]);
 
   const loadMoreEvents = useCallback(async () => {
     if (!selectedTag || !eventCursor) return;
@@ -228,6 +251,7 @@ export function BuscarContent() {
             tags={tags}
             tagMap={tagMap}
             posts={posts}
+            books={books}
             events={events}
             users={users}
           />
@@ -241,6 +265,9 @@ export function BuscarContent() {
             posts={posts}
             postCursor={postCursor}
             onLoadMorePosts={loadMorePosts}
+            books={books}
+            bookCursor={bookCursor}
+            onLoadMoreBooks={loadMoreBooks}
             events={events}
             eventCursor={eventCursor}
             onLoadMoreEvents={loadMoreEvents}

@@ -35,6 +35,18 @@ export type User = {
   createdAt: FirestoreTimestamp;
 };
 
+export type Book = {
+  id: string;
+  userId: string;
+  title: string;
+  content: string;
+  slug: string;
+  tagIds?: string[];
+  isVisible: boolean;
+  createdAt: FirestoreTimestamp;
+  updatedAt: FirestoreTimestamp;
+};
+
 export type Event = {
   id: string;
   ownerUserId: string;
@@ -57,6 +69,7 @@ export type Tag = {
   slug: string;
   usedByPosts: number; // counter for posts
   usedByEvents: number; // counter for events
+  usedByBooks?: number; // counter for books
 };
 
 export type Shader = {

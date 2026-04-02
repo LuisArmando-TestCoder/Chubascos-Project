@@ -52,21 +52,32 @@
 .mainTitle {
   @include m.font-heading;
   font-size: 15vw;
-  line-height: 0.9;
+  line-height: 0.85;
   letter-spacing: -0.05em;
   margin: 0;
+  display: grid;
+  flex-direction: row;
+  place-items: center;
+  gap: 1rem;
 }
 
-.subtitle {
+.inlineSubtitle {
   @include m.font-body;
-  font-size: clamp(1.2rem, 2.5vw, 3rem);
-  font-weight: 300;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  max-width: 90vw;
-  line-height: 1.2;
-  color: rgba(0, 0, 0, 0.85);
-  margin-top: 2rem;
+  font-size: 1.2rem;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  text-transform: lowercase;
+  color: v.$white;
+  opacity: 0.45;
+  line-height: 2;
+  white-space: normal;
+  max-width: 80vw;
+
+  @media (min-width: v.$tablet) {
+    font-size: 1.5vw;
+    white-space: nowrap;
+    max-width: none;
+  }
 }
 
 .scrollIndicator {

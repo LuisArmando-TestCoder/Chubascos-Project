@@ -113,21 +113,24 @@
 
 .loginLink {
   @include m.font-body;
-  font-size: 0.72rem;
-  text-transform: lowercase;
-  letter-spacing: 0.12em;
-  color: v.$accent;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: v.$white;
   text-decoration: none;
-  border: 1px solid v.$accent;
-  padding: 0.6rem 1.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.8rem 2rem;
   display: inline-block;
-  opacity: 0.75;
-  transition: opacity 0.25s ease, background 0.25s ease, color 0.25s ease;
+  transition: all 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(8px);
 
   &:hover {
-    opacity: 1;
-    background: v.$accent;
+    border-color: v.$white;
+    background: v.$white;
     color: v.$black;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1);
   }
 
   @media (max-width: v.$tablet) {

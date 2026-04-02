@@ -4,10 +4,12 @@ import { motion } from 'framer-motion';
 import { PostCard } from '@/components/molecules/PostCard/PostCard';
 import { EventCard } from '@/components/molecules/EventCard/EventCard';
 import { UserSidebar } from '@/components/organisms/UserSidebar/UserSidebar';
+import { DashboardPostsList } from '@/components/templates/DashboardTemplate/DashboardPostsList';
 import { getUserPosts, getTagsByIds } from '@/actions/data';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { useSession } from '@/hooks/useSession';
 import i18n from '@/utils/i18n';
-import type { User, Post, Event, Tag } from '@/types';
+import type { User, Post, Event, Tag, Book } from '@/types';
 import styles from './UserProfileTemplate.module.scss';
 
 interface UserProfileTemplateProps {
@@ -15,6 +17,7 @@ interface UserProfileTemplateProps {
   initialPosts: Post[];
   nextCursor: string | null;
   initialEvents: Event[];
+  initialBooks?: Book[];
   initialTagMap?: Record<string, Tag>;
 }
 
@@ -24,13 +27,15 @@ function isEventExpired(event: Event): boolean {
   return secs * 1000 < Date.now();
 }
 
-export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCursor, initialEvents, initialTagMap = {} }: UserProfileTemplateProps) {
+export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCursor, initialEvents, initialBooks = [], initialTagMap = {} }: UserProfileTemplateProps) {
   const [posts, setPosts] = useState<Post[]>(initialPosts);
   const [cursor, setCursor] = useState<string | null>(initialCursor);
   const [loading, setLoading] = useState(false);
   const [showExpiredEvents, setShowExpiredEvents] = useState(false);
   // tagMap accumulates resolved Tag objects keyed by their ID
   const [tagMap, setTagMap] = useState<Record<string, Tag>>(initialTagMap);
+  const { session } = useSession();
+  const isOwner = session.isLoggedIn && session.userId === user.id;
 
   const upcomingEvents = useMemo(() => initialEvents.filter((e) => !isEventExpired(e)), [initialEvents]);
   const expiredEvents = useMemo(() => initialEvents.filter((e) => isEventExpired(e)), [initialEvents]);
@@ -150,6 +155,24 @@ export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCur
                   )}
                 </>
               )}
+            </section>
+          )}
+
+          {/* Books section */}
+          {initialBooks.length > 0 && (
+            <section className={styles.booksSection}>
+              <div className={styles.sectionHeader}>
+                <span className={styles.label}>Publicaciones y Detalles</span>
+                <h2 className={styles.sectionTitle}>Libros</h2>
+              </div>
+
+              <DashboardPostsList 
+                items={initialBooks} 
+                type="book" 
+                title="Lista de Libros" 
+                isPublic 
+                isOwner={isOwner} 
+              />
             </section>
           )}
         </article>

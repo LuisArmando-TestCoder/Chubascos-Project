@@ -19,7 +19,6 @@
   margin: 0;
 }
 
-// The outer track
 .item {
   position: relative;
   overflow: hidden;
@@ -45,31 +44,20 @@
       height: 60%;
       background: rgba(255, 255, 255, 0.5);
     }
-
-    .link {
-      color: v.$white;
-    }
-
-    .index {
-      color: rgba(255, 255, 255, 0.6);
-    }
-
-    .arrow {
-      opacity: 1;
-      transform: none;
-    }
+    .link { color: v.$white; }
+    .index { color: rgba(255, 255, 255, 0.6); }
+    .arrow { opacity: 1; transform: none; }
+    .actionText { opacity: 1; }
   }
 
   &.itemHidden {
-    .title {
-      opacity: 0.3;
-    }
+    .title { opacity: 0.3; }
   }
 }
 
 .link {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   gap: 16px;
   padding: 13px 0 13px 20px;
   text-decoration: none;
@@ -89,19 +77,10 @@
 
   &:hover {
     color: rgba(255, 255, 255, 0.8);
-
-    &::after {
-      opacity: 1;
-    }
-
-    .arrow {
-      opacity: 1;
-      transform: translateX(0);
-    }
-
-    .index {
-      color: rgba(255, 255, 255, 0.35);
-    }
+    &::after { opacity: 1; }
+    .arrow { opacity: 1; transform: translateX(0); }
+    .index { color: rgba(255, 255, 255, 0.35); }
+    .actionText { opacity: 0.6; }
   }
 }
 
@@ -112,15 +91,22 @@
   color: rgba(255, 255, 255, 0.12);
   flex-shrink: 0;
   transition: color 0.2s;
-  line-height: 1;
-  align-self: center;
+  line-height: 1.5;
+  margin-top: 2px;
+}
+
+.contentCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
 }
 
 .title {
   font-family: v.$font-sans;
   font-size: 0.88rem;
   letter-spacing: -0.01em;
-  flex: 1;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -128,12 +114,25 @@
   transition: opacity 0.2s;
 }
 
+.details {
+  font-family: v.$font-serif;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.5);
+  max-width: 65ch;
+  
+  p { margin: 0 0 1rem; }
+  a { color: v.$accent; }
+  ul, ol { padding-left: 1.2rem; margin-bottom: 1rem; }
+}
+
 .meta {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-shrink: 0;
   margin-left: auto;
+  margin-top: 2px;
 }
 
 .badge {
@@ -147,6 +146,16 @@
   border-radius: 100px;
 }
 
+.actionText {
+  font-family: v.$font-mono;
+  font-size: 0.6rem;
+  text-transform: lowercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.3);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
 .arrow {
   font-size: 0.75rem;
   opacity: 0;
@@ -154,4 +163,32 @@
   transition: opacity 0.2s, transform 0.2s;
   color: rgba(255, 255, 255, 0.4);
   flex-shrink: 0;
+}
+
+// Layout adjustments for profile view
+.container.public {
+  margin-top: 80px;
+
+  .heading {
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.3);
+  }
+
+  .title {
+    font-size: 1.4rem;
+    font-family: v.$font-serif;
+    white-space: normal;
+    font-weight: 300;
+  }
+
+  .link {
+    padding-top: 32px;
+    padding-bottom: 32px;
+    align-items: flex-start;
+  }
+
+  .index {
+    font-size: 0.7rem;
+    margin-top: 8px;
+  }
 }

@@ -15,7 +15,7 @@ const i18n = {
     saved: 'Guardados',
     settings: 'Ajustes',
     logout: 'Cerrar sesión',
-    login: 'Entrar',
+    login: 'Ingresar',
     back: 'Volver',
     send: 'Enviar',
     join: 'Unirme',

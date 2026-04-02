@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import { getUserProfile, getUserPosts, getUserEvents, getUserProfileByEmail, getTagsByIds } from '@/actions/data';
+import { getUserProfile, getUserPosts, getUserEvents, getUserBooks, getUserProfileByEmail, getTagsByIds } from '@/actions/data';
 import { UserProfileTemplate } from '@/components/templates/UserProfileTemplate/UserProfileTemplate';
 import { Footer } from '@/components/organisms/Footer/Footer';
 import type { Tag } from '@/types';
@@ -33,9 +33,10 @@ export default async function UserProfilePage({ params }: Props) {
   if (!user) user = await getUserProfileByEmail(userId);
   if (!user) notFound();
 
-  const [postsResult, events] = await Promise.all([
+  const [postsResult, events, books] = await Promise.all([
     getUserPosts(user.id, 10),
     getUserEvents(user.id),
+    getUserBooks(user.id),
   ]);
 
   // Collect all unique tag IDs from initial posts and events, then resolve them in one batch
@@ -55,6 +56,7 @@ export default async function UserProfilePage({ params }: Props) {
         initialPosts={postsResult.items}
         nextCursor={postsResult.nextCursor}
         initialEvents={events}
+        initialBooks={books}
         initialTagMap={tagMap}
       />
       <Footer />

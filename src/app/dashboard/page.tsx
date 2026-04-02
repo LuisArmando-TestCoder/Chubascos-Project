@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getSession } from '@/actions/auth';
-import { getUserProfile, getPost, getEvent, getShader, getPreviousPost, getNextPost, getUserEvents, getUserAllPosts } from '@/actions/data';
+import { getUserProfile, getPost, getEvent, getShader, getPreviousPost, getNextPost, getUserEvents, getUserAllPosts, getUserAllBooks, getBook } from '@/actions/data';
 import { DashboardTemplate } from '@/components/templates/DashboardTemplate/DashboardTemplate';
-import type { Post, Event, Shader } from '@/types';
+import type { Post, Event, Shader, Book } from '@/types';
 
 export const metadata: Metadata = {
   title: 'Panel | Chubascos',
@@ -24,6 +24,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   let editPost: Post | null = null;
   let editShader: Shader | null = null;
   let editEvent: Event | null = null;
+  let editBook: Book | null = null;
   let editPrevPost: Post | null = null;
   let editNextPost: Post | null = null;
   let editPrevEvent: Event | null = null;
@@ -54,19 +55,29 @@ export default async function DashboardPage({ searchParams }: Props) {
       editPrevEvent = idx > 0 ? events[idx - 1] : null;
       editNextEvent = idx >= 0 && idx < events.length - 1 ? events[idx + 1] : null;
     }
+  } else if (edit === 'book' && id) {
+    const book = await getBook(session.userId, id);
+    if (book && book.userId === session.userId) {
+      editBook = book;
+    }
   }
 
   // Fetch all user posts for the profile edit list (includes invisible ones)
-  const allPosts = await getUserAllPosts(session.userId);
+  const [allPosts, allBooks] = await Promise.all([
+    getUserAllPosts(session.userId),
+    getUserAllBooks(session.userId),
+  ]);
 
   return (
     <DashboardTemplate
-      key={editPost?.id || editEvent?.id || 'dashboard'}
+      key={editPost?.id || editEvent?.id || editBook?.id || 'dashboard'}
       user={user}
       userPosts={allPosts}
+      userBooks={allBooks}
       editPost={editPost}
       editShader={editShader}
       editEvent={editEvent}
+      editBook={editBook}
       editPrevPost={editPrevPost}
       editNextPost={editNextPost}
       editPrevEvent={editPrevEvent}

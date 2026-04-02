@@ -7,11 +7,12 @@ import { Button } from '@/components/atoms/Button/Button';
 import { ShaderEditor, DEFAULT_SHADER } from '@/components/organisms/ShaderEditor/ShaderEditor';
 import { Footer } from '@/components/organisms/Footer/Footer';
 import {
-  createPost, updatePost, updateUserProfile, createEvent, updateEvent, createShader, updateShader, getTags, deletePost, deleteEvent
+  createPost, updatePost, updateUserProfile, createEvent, updateEvent, createShader, updateShader, getTags, deletePost, deleteEvent,
+  createBook, updateBook, deleteBook
 } from '@/actions/data';
 import { logout } from '@/actions/auth';
 import { generateSlug } from '@/utils/generateSlug';
-import type { User, Post, Event, Tag, Shader } from '@/types';
+import type { User, Post, Event, Tag, Shader, Book } from '@/types';
 import { useProfileStore } from '@/store/profile';
 import { useSavedStore } from '@/store/saved';
 import { DashboardPostsList } from './DashboardPostsList';
@@ -22,7 +23,9 @@ const ShaderCanvas = dynamic(() => import('@/components/organisms/ShaderCanvas/S
 interface DashboardTemplateProps {
   user: User;
   userPosts?: Post[];
+  userBooks?: Book[];
   editPost?: Post | null;
+  editBook?: Book | null;
   editShader?: Shader | null;
   editEvent?: Event | null;
   editPrevPost?: Post | null;
@@ -31,7 +34,7 @@ interface DashboardTemplateProps {
   editNextEvent?: Event | null;
 }
 
-type DashTab = 'perfil' | 'nuevo-poema' | 'nuevo-evento';
+type DashTab = 'perfil' | 'nuevo-poema' | 'nuevo-evento' | 'mis-libros';
 
 function timestampToDateString(ts: any): string {
   if (!ts) return '';
@@ -44,10 +47,11 @@ function timestampToDateString(ts: any): string {
   return `${y}-${m}-${day}`;
 }
 
-export function DashboardTemplate({ user, userPosts = [], editPost, editShader, editEvent, editPrevPost, editNextPost, editPrevEvent, editNextEvent }: DashboardTemplateProps) {
+export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPost, editBook, editShader, editEvent, editPrevPost, editNextPost, editPrevEvent, editNextEvent }: DashboardTemplateProps) {
   const [activeTab, setActiveTab] = useState<DashTab>(() => {
     if (editPost) return 'nuevo-poema';
     if (editEvent) return 'nuevo-evento';
+    if (editBook) return 'mis-libros';
     return 'perfil';
   });
   const name = user.username || user.email.split('@')[0];
@@ -127,6 +131,21 @@ export function DashboardTemplate({ user, userPosts = [], editPost, editShader, 
   useEffect(() => {
     setEventTags(editEvent?.tagIds ?? []);
   }, [editEvent?.id]);
+
+  // Book state
+  const [editingBookId, setEditingBookId] = useState<string | null>(editBook?.id || null);
+  const [bookTitle, setBookTitle] = useState(editBook?.title || '');
+  const [bookContent, setBookContent] = useState(editBook?.content || '');
+  const [bookTags, setBookTags] = useState<string[]>(editBook?.tagIds ?? []);
+  const [bookVisible, setBookVisible] = useState(editBook ? editBook.isVisible !== false : true);
+
+  useEffect(() => {
+    setBookTags(editBook?.tagIds ?? []);
+  }, [editBook?.id]);
+  const [bookMsg, setBookMsg] = useState('');
+  const [bookLoading, setBookLoading] = useState(false);
+  const [isDeletingBook, setIsDeletingBook] = useState(false);
+  const [deleteBookConfirm, setDeleteBookConfirm] = useState(false);
 
   const handleProfileSave = useCallback(async () => {
     setProfileLoading(true);
@@ -294,6 +313,53 @@ export function DashboardTemplate({ user, userPosts = [], editPost, editShader, 
     setEventLoading(false);
   }, [user.id, editingEventId, eventTitle, eventDesc, eventDay, eventHour, eventPlace, eventPrice, eventTags]);
 
+  const handleBookSave = useCallback(async () => {
+    if (!bookTitle || !bookContent) {
+      setBookMsg('Título y contenido son obligatorios.');
+      return;
+    }
+    setBookLoading(true);
+
+    if (editingBookId) {
+      const result = await updateBook(user.id, editingBookId, {
+        title: bookTitle,
+        content: bookContent,
+        tagIds: bookTags,
+        isVisible: bookVisible,
+      });
+      setBookMsg(result.success ? 'Libro actualizado.' : (result.error || 'Error.'));
+    } else {
+      const result = await createBook(user.id, {
+        title: bookTitle,
+        content: bookContent,
+        tagIds: bookTags,
+        isVisible: bookVisible,
+      });
+      if (result.success) {
+        setBookMsg('Libro publicado.');
+        setBookTitle('');
+        setBookContent('');
+        setEditingBookId(null);
+      } else {
+        setBookMsg(result.error || 'Error.');
+      }
+    }
+    setBookLoading(false);
+  }, [user.id, editingBookId, bookTitle, bookContent, bookTags, bookVisible]);
+
+  const handleDeleteBook = async () => {
+    if (!editingBookId) return;
+    setIsDeletingBook(true);
+    const result = await deleteBook(user.id, editingBookId);
+    if (result.success) {
+      window.location.href = `/u/${encodeURIComponent(user.id)}`;
+    } else {
+      setBookMsg(result.error || 'Error al eliminar libro.');
+      setIsDeletingBook(false);
+      setDeleteBookConfirm(false);
+    }
+  };
+
   const handleLogout = async () => {
     await logout();
     setProfile({ isLoggedIn: false, userId: '', email: '', username: '' });
@@ -333,7 +399,7 @@ export function DashboardTemplate({ user, userPosts = [], editPost, editShader, 
               </div>
             </div>
             <nav className={styles.tabs} role="tablist">
-              {(['perfil', 'nuevo-poema', 'nuevo-evento'] as DashTab[]).map((tab) => (
+              {(['perfil', 'nuevo-poema', 'nuevo-evento', 'mis-libros'] as DashTab[]).map((tab) => (
                 <button
                   key={tab}
                   role="tab"
@@ -345,7 +411,9 @@ export function DashboardTemplate({ user, userPosts = [], editPost, editShader, 
                     ? 'Perfil'
                     : tab === 'nuevo-poema'
                       ? (editingPostId ? 'Editar poema' : 'Nuevo poema')
-                      : (editingEventId ? 'Editar evento' : 'Nuevo evento')}
+                      : tab === 'nuevo-evento'
+                        ? (editingEventId ? 'Editar evento' : 'Nuevo evento')
+                        : (editingBookId ? 'Editar libro' : 'Nuevo libro')}
                 </button>
               ))}
             </nav>
@@ -397,7 +465,8 @@ export function DashboardTemplate({ user, userPosts = [], editPost, editShader, 
                 {profileMsg && <p className={styles.msg}>{profileMsg}</p>}
                 <Button onClick={handleProfileSave} loading={profileLoading}>Guardar perfil</Button>
 
-                <DashboardPostsList posts={userPosts} />
+                <DashboardPostsList items={userPosts} type="post" />
+                <DashboardPostsList items={userBooks} type="book" />
               </motion.div>
             )}
 
@@ -557,7 +626,8 @@ export function DashboardTemplate({ user, userPosts = [], editPost, editShader, 
                   </div>
                 )}
 
-                <DashboardPostsList posts={userPosts} activePostId={editingPostId} />
+                <DashboardPostsList items={userPosts} activeId={editingPostId} type="post" />
+                <DashboardPostsList items={userBooks} type="book" />
               </motion.div>
             )}
 
@@ -677,6 +747,102 @@ export function DashboardTemplate({ user, userPosts = [], editPost, editShader, 
                     )}
                   </div>
                 )}
+              </motion.div>
+            )}
+
+            {activeTab === 'mis-libros' && (
+              <motion.div key="mis-libros" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className={styles.panel}>
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="bookTitle">Título del libro</label>
+                  <input id="bookTitle" className={styles.input} value={bookTitle} onChange={(e) => setBookTitle(e.target.value)} placeholder="Título o nombre del libro" />
+                </div>
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="bookContent">Contenido / Descripción (Markdown)</label>
+                  <textarea id="bookContent" className={styles.textarea} value={bookContent} onChange={(e) => setBookContent(e.target.value)} placeholder="Escribe aquí el contenido, enlaces, teléfonos, etc..." rows={12} />
+                </div>
+
+                <div className={styles.field}>
+                  <label className={styles.label}>Etiquetas (máx 4)</label>
+                  <div className={styles.tagsContainer}>
+                    {tagsLoading ? (
+                      <p>Cargando etiquetas...</p>
+                    ) : (
+                      <div className={styles.tagList}>
+                        {availableTags.map(tag => {
+                          const isSelected = bookTags.includes(tag.id);
+                          return (
+                            <button
+                              key={tag.id}
+                              type="button"
+                              onClick={() => {
+                                if (isSelected) {
+                                  setBookTags(prev => prev.filter(id => id !== tag.id));
+                                } else if (bookTags.length < 4) {
+                                  setBookTags(prev => [...prev, tag.id]);
+                                }
+                              }}
+                              className={`${styles.tagButton} ${isSelected ? styles.tagSelected : ''}`}
+                              disabled={!isSelected && bookTags.length >= 4}
+                            >
+                              #{tag.value || tag.slug}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className={styles.toggleRow}>
+                  <label className={styles.toggle}>
+                    <input type="checkbox" checked={bookVisible} onChange={(e) => setBookVisible(e.target.checked)} />
+                    <span>Visible en el perfil</span>
+                  </label>
+                </div>
+
+                {bookMsg && <p className={styles.msg}>{bookMsg}</p>}
+                
+                <div className={styles.actionRow}>
+                  <Button onClick={handleBookSave} loading={bookLoading}>
+                    {editingBookId ? 'Actualizar libro' : 'Publicar libro'}
+                  </Button>
+                </div>
+
+                {editingBookId && (
+                  <div className={styles.dangerZone}>
+                    {!deleteBookConfirm ? (
+                      <button
+                        className={styles.dangerTrigger}
+                        type="button"
+                        onClick={() => setDeleteBookConfirm(true)}
+                      >
+                        Eliminar libro
+                      </button>
+                    ) : (
+                      <div className={styles.dangerConfirm}>
+                        <span className={styles.dangerWarning}>¿Eliminar permanentemente?</span>
+                        <button
+                          className={styles.dangerConfirmBtn}
+                          type="button"
+                          onClick={handleDeleteBook}
+                          disabled={isDeletingBook}
+                        >
+                          {isDeletingBook ? 'Eliminando...' : 'Sí, eliminar'}
+                        </button>
+                        <button
+                          className={styles.dangerCancelBtn}
+                          type="button"
+                          onClick={() => setDeleteBookConfirm(false)}
+                          disabled={isDeletingBook}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <DashboardPostsList items={userBooks} activeId={editingBookId} type="book" />
               </motion.div>
             )}
           </AnimatePresence>

@@ -5,7 +5,7 @@ import { EventCard } from '@/components/molecules/EventCard/EventCard';
 import { UserCard } from '@/components/molecules/UserCard/UserCard';
 import i18n from '@/utils/i18n';
 import styles from '../buscar.module.scss';
-import type { Post, Event, User, Tag } from '@/types';
+import type { Post, Event, User, Tag, Book } from '@/types';
 import type { TabType } from './BuscarTabs';
 
 interface BuscarResultsProps {
@@ -19,6 +19,10 @@ interface BuscarResultsProps {
   postCursor: string | null;
   onLoadMorePosts: () => void;
   
+  books: Book[];
+  bookCursor: string | null;
+  onLoadMoreBooks: () => void;
+
   events: Event[];
   eventCursor: string | null;
   onLoadMoreEvents: () => void;
@@ -49,6 +53,10 @@ export function BuscarResults({
   postCursor,
   onLoadMorePosts,
 
+  books,
+  bookCursor,
+  onLoadMoreBooks,
+
   events,
   eventCursor,
   onLoadMoreEvents,
@@ -70,6 +78,7 @@ export function BuscarResults({
   // Local filtering based on query string
   const q = query.toLowerCase().trim();
   const filteredPosts = posts.filter(p => !q || p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q));
+  const filteredBooks = books.filter(b => !q || b.title.toLowerCase().includes(q) || b.content.toLowerCase().includes(q));
   const filteredEvents = events.filter(e => !q || e.title.toLowerCase().includes(q) || (e.description && e.description.toLowerCase().includes(q)));
   const filteredUsers = users.filter(u => !q || (u.username || '').toLowerCase().includes(q));
   const filteredExpiredEvents = expiredEvents.filter(e => !q || e.title.toLowerCase().includes(q));
@@ -95,6 +104,10 @@ export function BuscarResults({
         <p className={styles.hint}>No se encontraron poetas para esta búsqueda.</p>
       )}
 
+      {hasSearched && activeTab === 'books' && filteredBooks.length === 0 && (
+        <p className={styles.hint}>No se encontraron libros para esta búsqueda.</p>
+      )}
+
       {hasSearched && activeTab === 'events' && filteredEvents.length === 0 && filteredExpiredEvents.length === 0 && (
         <p className={styles.hint}>No se encontraron eventos para esta búsqueda.</p>
       )}
@@ -117,6 +130,31 @@ export function BuscarResults({
           ))}
           {postCursor && (
             <button className={styles.loadMore} onClick={onLoadMorePosts}>
+              {i18n.common.seeMore}
+            </button>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'books' && filteredBooks.length > 0 && (
+        <div className={styles.results}>
+          {filteredBooks.map((book, i) => (
+            <motion.div
+              key={book.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.04 }}
+            >
+              <PostCard
+                post={book}
+                showAuthor
+                type="book"
+                tags={(book.tagIds || []).map((id) => tagMap[id]).filter(Boolean) as Tag[]}
+              />
+            </motion.div>
+          ))}
+          {bookCursor && (
+            <button className={styles.loadMore} onClick={onLoadMoreBooks}>
               {i18n.common.seeMore}
             </button>
           )}

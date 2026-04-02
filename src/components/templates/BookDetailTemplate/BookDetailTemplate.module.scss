@@ -1,0 +1,154 @@
+@use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
+
+.page {
+  min-height: 100vh;
+  padding-top: v.$header-height;
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 4rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 80px 4vw;
+
+  @media (max-width: v.$laptop) {
+    padding: 60px 2rem;
+    gap: 2rem;
+  }
+
+  @media (max-width: v.$tablet) {
+    padding: 40px 1.5rem;
+    display: flex;
+    flex-direction: column-reverse;
+  }
+}
+
+.bookArticle {
+  width: 100%;
+}
+
+.bookHeader {
+  margin-bottom: 4rem;
+}
+
+.meta {
+  display: flex;
+  gap: 3rem;
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+  @media (max-width: v.$mobile) {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+}
+
+.authorBlock, .dateBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  font-family: v.$font-mono;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.authorName {
+  font-family: v.$font-serif;
+  font-size: 1rem;
+  color: v.$white;
+  text-decoration: none;
+  transition: color 0.2s;
+
+  &:hover {
+    color: v.$accent;
+  }
+}
+
+.date {
+  font-family: v.$font-mono;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.title {
+  @include m.font-heading;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  line-height: 1.1;
+  margin: 0;
+  letter-spacing: -0.03em;
+  color: v.$white;
+}
+
+.content {
+  @include m.font-body;
+  font-size: 1.25rem;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 6rem;
+
+  p { margin-bottom: 2rem; }
+
+  a {
+    color: v.$accent;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    transition: opacity 0.2s;
+    &:hover { opacity: 0.8; }
+  }
+
+  h1, h2, h3 {
+    color: v.$white;
+    margin: 4rem 0 1.5rem;
+    font-weight: 400;
+  }
+
+  ul, ol {
+    margin-bottom: 2rem;
+    padding-left: 1.5rem;
+    li { margin-bottom: 0.5rem; }
+  }
+
+  blockquote {
+    border-left: 2px solid v.$accent;
+    padding-left: 1.5rem;
+    font-style: italic;
+    margin: 3rem 0;
+    color: rgba(255, 255, 255, 0.6);
+  }
+}
+
+.bookFooter {
+  padding-top: 4rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.interactions {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.backBtn {
+  font-family: v.$font-mono;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.3);
+  text-decoration: none;
+  transition: color 0.2s;
+
+  &:hover {
+    color: v.$white;
+  }
+}

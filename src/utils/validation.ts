@@ -39,3 +39,11 @@ export const ShaderSchema = z.object({
   glslCode: z.string().min(1).max(50000),
   isPublic: z.boolean().default(false),
 });
+
+export const BookSchema = z.object({
+  title: z.string().min(1).max(200),
+  content: z.string().min(1).max(50000),
+  slug: z.string().min(3).max(100).regex(/^[a-z0-9-]+$/).optional(),
+  tagIds: z.array(z.string()).max(4).optional(),
+  isVisible: z.boolean().default(true),
+});
