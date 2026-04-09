@@ -31,6 +31,8 @@ export const EventSchema = z.object({
   urls: z.array(z.string().url()).max(5),
   contacts: z.array(z.string().min(1).max(100)).max(5),
   tagIds: z.array(z.string()).max(4),
+  isRecurring: z.boolean().optional(),
+  cronExpression: z.string().max(100).optional(),
 });
 
 export const ShaderSchema = z.object({

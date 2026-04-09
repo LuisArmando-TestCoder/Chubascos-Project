@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { TagPill } from '@/components/atoms/TagPill/TagPill';
 import { formatDate } from '@/utils/formatDate';
+import { cronToHuman } from '@/utils/cronUtils';
 import type { Event, Tag } from '@/types';
 import styles from './EventCard.module.scss';
 
@@ -11,9 +12,18 @@ interface EventCardProps {
 }
 
 export function EventCard({ event, tags = [], expired = false }: EventCardProps) {
+  const isRecurring = event.isRecurring && event.cronExpression;
+  const scheduleLabel = isRecurring ? cronToHuman(event.cronExpression!) : null;
+
   return (
-    <article className={`${styles.card} ${expired ? styles.expired : ''}`}>
+    <article className={`${styles.card} ${expired ? styles.expired : ''} ${isRecurring ? styles.recurring : ''}`}>
       <Link href={`/e/${event.id}`} className={styles.inner}>
+        {isRecurring && (
+          <div className={styles.recurringBadge}>
+            <span className={styles.recurringIcon}>↻</span>
+            <span className={styles.recurringLabel}>Evento recurrente</span>
+          </div>
+        )}
         <div className={styles.dateLine}>
           <span className={styles.day}>
             {event.day ? formatDate(event.day) : '—'}

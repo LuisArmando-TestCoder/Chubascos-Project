@@ -71,6 +71,37 @@
 .tabs {
   display: flex;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-wrap: wrap;
+  gap: 0;
+}
+
+.tabGroup {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.newItemBtn {
+  font-family: v.$font-mono;
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  color: v.$accent;
+  text-decoration: none;
+  padding: 4px 10px;
+  margin-left: -4px;
+  margin-right: 8px;
+  background: rgba(109, 93, 252, 0.06);
+  border: 1px solid rgba(109, 93, 252, 0.15);
+  border-radius: 100px;
+  white-space: nowrap;
+  transition: all 0.2s v.$ease-out;
+  align-self: center;
+
+  &:hover {
+    background: rgba(109, 93, 252, 0.12);
+    border-color: rgba(109, 93, 252, 0.35);
+    color: v.$white;
+  }
 }
 
 .tab {

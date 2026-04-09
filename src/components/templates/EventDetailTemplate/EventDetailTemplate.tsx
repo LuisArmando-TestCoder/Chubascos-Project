@@ -2,8 +2,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { QrModal } from '@/components/organisms/QrModal/QrModal';
+import { RecurringEventModal } from '@/components/organisms/RecurringEventModal/RecurringEventModal';
 import { TagPill } from '@/components/atoms/TagPill/TagPill';
 import { formatDate } from '@/utils/formatDate';
+import { cronToHuman } from '@/utils/cronUtils';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useSession } from '@/hooks/useSession';
 import i18n from '@/utils/i18n';
@@ -18,17 +20,31 @@ interface EventDetailTemplateProps {
 
 export function EventDetailTemplate({ event, tags = [] }: EventDetailTemplateProps) {
   const [qrOpen, setQrOpen] = useState(false);
+  const [recurringModalOpen, setRecurringModalOpen] = useState(false);
   const { isEventSaved, saveEvent, unsaveEvent } = useSavedItems();
   const { session } = useSession();
   const isSaved = isEventSaved(event.id);
   const isOwner = session.isLoggedIn && session.userId === event.ownerUserId;
   const eventUrl = typeof window !== 'undefined' ? `${window.location.origin}/e/${event.id}` : `/e/${event.id}`;
+  const isRecurring = event.isRecurring && event.cronExpression;
 
   return (
     <main className={styles.page}>
       <div className={styles.contentGrid}>
         <article className={styles.article}>
           <header className={styles.header}>
+            {isRecurring && (
+              <button
+                className={styles.recurringBanner}
+                onClick={() => setRecurringModalOpen(true)}
+                type="button"
+              >
+                <span className={styles.recurringIcon}>↻</span>
+                <span className={styles.recurringText}>Evento Recurrente</span>
+                <span className={styles.recurringSchedule}>{cronToHuman(event.cronExpression!)}</span>
+                <span className={styles.recurringCta}>Ver detalles →</span>
+              </button>
+            )}
             <div className={styles.meta}>
               <div className={styles.dateBlock}>
                 <span className={styles.label}>Fecha</span>
@@ -133,6 +149,15 @@ export function EventDetailTemplate({ event, tags = [] }: EventDetailTemplatePro
       </div>
 
       <QrModal isOpen={qrOpen} onClose={() => setQrOpen(false)} url={eventUrl} label={event.title} />
+      {isRecurring && (
+        <RecurringEventModal
+          isOpen={recurringModalOpen}
+          onClose={() => setRecurringModalOpen(false)}
+          cronExpression={event.cronExpression!}
+          eventTitle={event.title}
+          place={event.place}
+        />
+      )}
     </main>
   );
 }

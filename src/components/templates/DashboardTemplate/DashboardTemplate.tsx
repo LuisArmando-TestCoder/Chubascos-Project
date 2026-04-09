@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/atoms/Button/Button';
 import { ShaderEditor, DEFAULT_SHADER } from '@/components/organisms/ShaderEditor/ShaderEditor';
+import { CronScheduleInput } from '@/components/molecules/CronScheduleInput/CronScheduleInput';
+import { dateToCron } from '@/utils/cronUtils';
 import { Footer } from '@/components/organisms/Footer/Footer';
 import {
   createPost, updatePost, updateUserProfile, createEvent, updateEvent, createShader, updateShader, getTags, deletePost, deleteEvent,
@@ -126,6 +128,21 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
   const [eventLoading, setEventLoading] = useState(false);
   const [isDeletingEvent, setIsDeletingEvent] = useState(false);
   const [deleteEventConfirm, setDeleteEventConfirm] = useState(false);
+  const [eventIsRecurring, setEventIsRecurring] = useState(editEvent?.isRecurring ?? false);
+  const [eventCron, setEventCron] = useState(editEvent?.cronExpression ?? '');
+
+  // Smart toggle: when enabling recurrence, auto-fill cron from existing date+time
+  const handleRecurringToggle = (enabled: boolean) => {
+    setEventIsRecurring(enabled);
+    if (enabled && !eventCron && eventDay && eventHour) {
+      // Infer cron from the selected date + hour
+      const inferred = dateToCron(eventDay, eventHour);
+      setEventCron(inferred);
+    }
+    if (!enabled) {
+      setEventCron('');
+    }
+  };
 
   // Sync eventTags when editing a different event (safety net)
   useEffect(() => {
@@ -271,7 +288,16 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
       setEventMsg('Título, día, hora y lugar son obligatorios.');
       return;
     }
+    if (eventIsRecurring && !eventCron) {
+      setEventMsg('Selecciona al menos un día y hora para la recurrencia.');
+      return;
+    }
     setEventLoading(true);
+
+    const recurringFields = {
+      isRecurring: eventIsRecurring,
+      cronExpression: eventIsRecurring ? eventCron : undefined,
+    };
 
     if (editingEventId) {
       // Update existing event
@@ -283,6 +309,7 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
         place: eventPlace,
         price: eventPrice !== '' ? parseFloat(eventPrice) : undefined,
         tagIds: eventTags,
+        ...recurringFields,
       });
       setEventMsg(result.success ? 'Evento actualizado.' : (result.error || 'Error.'));
     } else {
@@ -297,6 +324,7 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
         urls: [],
         contacts: [],
         tagIds: eventTags,
+        ...recurringFields,
       });
       setEventMsg(result.success ? 'Evento creado.' : (result.error || 'Error.'));
       if (result.success) {
@@ -307,11 +335,13 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
         setEventPlace('');
         setEventPrice('');
         setEventTags([]);
+        setEventIsRecurring(false);
+        setEventCron('');
         setEditingEventId(null);
       }
     }
     setEventLoading(false);
-  }, [user.id, editingEventId, eventTitle, eventDesc, eventDay, eventHour, eventPlace, eventPrice, eventTags]);
+  }, [user.id, editingEventId, eventTitle, eventDesc, eventDay, eventHour, eventPlace, eventPrice, eventTags, eventIsRecurring, eventCron]);
 
   const handleBookSave = useCallback(async () => {
     if (!bookTitle || !bookContent) {
@@ -399,23 +429,53 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
               </div>
             </div>
             <nav className={styles.tabs} role="tablist">
-              {(['perfil', 'nuevo-poema', 'nuevo-evento', 'mis-libros'] as DashTab[]).map((tab) => (
-                <button
-                  key={tab}
-                  role="tab"
-                  aria-selected={activeTab === tab}
-                  className={`${styles.tab} ${activeTab === tab ? styles.activeTab : ''}`}
-                  onClick={() => setActiveTab(tab)}
-                >
-                  {tab === 'perfil'
-                    ? 'Perfil'
-                    : tab === 'nuevo-poema'
-                      ? (editingPostId ? 'Editar poema' : 'Nuevo poema')
-                      : tab === 'nuevo-evento'
-                        ? (editingEventId ? 'Editar evento' : 'Nuevo evento')
-                        : (editingBookId ? 'Editar libro' : 'Nuevo libro')}
-                </button>
-              ))}
+              {(['perfil', 'nuevo-poema', 'nuevo-evento', 'mis-libros'] as DashTab[]).map((tab) => {
+                const isEditing =
+                  (tab === 'nuevo-poema' && editingPostId) ||
+                  (tab === 'nuevo-evento' && editingEventId) ||
+                  (tab === 'mis-libros' && editingBookId);
+
+                const tabLabel = tab === 'perfil'
+                  ? 'Perfil'
+                  : tab === 'nuevo-poema'
+                    ? (editingPostId ? 'Editar poema' : 'Nuevo poema')
+                    : tab === 'nuevo-evento'
+                      ? (editingEventId ? 'Editar evento' : 'Nuevo evento')
+                      : (editingBookId ? 'Editar libro' : 'Nuevo libro');
+
+                const newLabel = tab === 'nuevo-poema'
+                  ? '+ Nuevo poema'
+                  : tab === 'nuevo-evento'
+                    ? '+ Nuevo evento'
+                    : tab === 'mis-libros'
+                      ? '+ Nuevo libro'
+                      : '';
+
+                return (
+                  <div key={tab} className={styles.tabGroup}>
+                    <button
+                      role="tab"
+                      aria-selected={activeTab === tab}
+                      className={`${styles.tab} ${activeTab === tab ? styles.activeTab : ''}`}
+                      onClick={() => setActiveTab(tab)}
+                    >
+                      {tabLabel}
+                    </button>
+                    {isEditing && (
+                      <Link
+                        href="/dashboard"
+                        className={styles.newItemBtn}
+                        onClick={(e) => {
+                          // Also switch to this tab immediately for visual feedback
+                          setActiveTab(tab);
+                        }}
+                      >
+                        {newLabel}
+                      </Link>
+                    )}
+                  </div>
+                );
+              })}
             </nav>
           </header>
 
@@ -690,6 +750,34 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
                     )}
                   </div>
                 </div>
+
+                <div className={styles.toggleRow}>
+                  <label className={styles.toggle}>
+                    <input
+                      type="checkbox"
+                      checked={eventIsRecurring}
+                      onChange={(e) => handleRecurringToggle(e.target.checked)}
+                    />
+                    <span>Evento recurrente</span>
+                  </label>
+                </div>
+
+                <AnimatePresence>
+                  {eventIsRecurring && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                    >
+                      <CronScheduleInput
+                        value={eventCron}
+                        onChange={setEventCron}
+                        time={eventHour}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {eventMsg && <p className={styles.msg}>{eventMsg}</p>}
                 
                 <div className={styles.actionRow}>

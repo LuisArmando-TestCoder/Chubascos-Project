@@ -1,0 +1,145 @@
+@use '@/styles/variables' as v;
+
+.container {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: rgba(109, 93, 252, 0.03);
+  transition: border-color 0.3s v.$ease-out, background 0.3s v.$ease-out;
+
+  &:hover {
+    border-color: rgba(109, 93, 252, 0.15);
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon {
+  font-size: 1.1rem;
+  color: v.$accent;
+  opacity: 0.7;
+  line-height: 1;
+}
+
+.title {
+  font-family: v.$font-mono;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.daysGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.dayBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  transition: all 0.25s v.$ease-out;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  &.dayActive {
+    background: v.$accent;
+    border-color: v.$accent;
+    color: v.$white;
+    box-shadow: 0 0 16px rgba(109, 93, 252, 0.25);
+  }
+}
+
+.dayShort {
+  font-family: v.$font-mono;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.timeRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.timeLabel {
+  font-family: v.$font-mono;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.3);
+  white-space: nowrap;
+}
+
+.timeInput {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  outline: none;
+  color: v.$white;
+  font-family: v.$font-mono;
+  font-size: 0.85rem;
+  padding: 6px 0;
+  color-scheme: dark;
+  transition: border-color 0.2s;
+  flex: 1;
+  max-width: 140px;
+
+  &:focus {
+    border-color: v.$accent;
+  }
+}
+
+.preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(109, 93, 252, 0.06);
+  border: 1px solid rgba(109, 93, 252, 0.12);
+  border-radius: 2px;
+}
+
+.previewIcon {
+  color: v.$accent;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.previewText {
+  font-family: v.$font-sans;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+
+  &::first-letter {
+    text-transform: uppercase;
+  }
+}
+
+.hint {
+  font-family: v.$font-mono;
+  font-size: 0.62rem;
+  color: rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.04em;
+  margin: 0;
+  line-height: 1.5;
+}

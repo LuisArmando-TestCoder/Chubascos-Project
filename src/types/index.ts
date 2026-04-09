@@ -59,6 +59,8 @@ export type Event = {
   urls: string[];
   contacts: string[];
   tagIds: string[];
+  isRecurring?: boolean;
+  cronExpression?: string;
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;
 };

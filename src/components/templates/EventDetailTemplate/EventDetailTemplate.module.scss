@@ -229,3 +229,74 @@
   }
 }
 
+/* ─── Recurring Event Banner ─────────────────────────────────────────────── */
+
+.recurringBanner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 20px;
+  margin-bottom: 2.5rem;
+  background: rgba(109, 93, 252, 0.04);
+  border: 1px solid rgba(109, 93, 252, 0.15);
+  cursor: pointer;
+  transition: all 0.3s v.$ease-out;
+  text-align: left;
+
+  &:hover {
+    background: rgba(109, 93, 252, 0.08);
+    border-color: rgba(109, 93, 252, 0.3);
+    transform: translateY(-1px);
+  }
+
+  @media (max-width: v.$mobile) {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+.recurringIcon {
+  color: v.$accent;
+  font-size: 1.1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.recurringText {
+  font-family: v.$font-mono;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: v.$accent;
+  flex-shrink: 0;
+}
+
+.recurringSchedule {
+  @include m.font-body;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.55);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &::first-letter {
+    text-transform: uppercase;
+  }
+}
+
+.recurringCta {
+  font-family: v.$font-mono;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
+  transition: color 0.2s;
+
+  .recurringBanner:hover & {
+    color: v.$accent;
+  }
+}
+
