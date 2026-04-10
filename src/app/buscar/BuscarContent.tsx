@@ -196,8 +196,12 @@ export function BuscarContent() {
       const results = await getTags(100);
       setTags(results);
       if (!initialTag && results.length > 0) {
-        const randomIndex = Math.floor(Math.random() * results.length);
-        setSelectedTag(results[randomIndex].id);
+        const tagsWithItems = results.filter(
+          (t) => t.usedByPosts > 0 || t.usedByEvents > 0 || (t.usedByBooks && t.usedByBooks > 0)
+        );
+        const validTags = tagsWithItems.length > 0 ? tagsWithItems : results;
+        const randomIndex = Math.floor(Math.random() * validTags.length);
+        setSelectedTag(validTags[randomIndex].id);
       }
     }
     init();
