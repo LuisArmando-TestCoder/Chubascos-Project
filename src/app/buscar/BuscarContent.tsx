@@ -190,13 +190,14 @@ export function BuscarContent() {
     setShowExpiredEvents((prev) => !prev);
   }, [showExpiredEvents, expiredLoaded, selectedTag, loadExpiredEvents]);
 
-  // On mount: load tags, then auto-select the first one if no tag is pre-selected
+  // On mount: load tags, then auto-select a random one if no tag is pre-selected
   useEffect(() => {
     async function init() {
       const results = await getTags(100);
       setTags(results);
       if (!initialTag && results.length > 0) {
-        setSelectedTag(results[0].id);
+        const randomIndex = Math.floor(Math.random() * results.length);
+        setSelectedTag(results[randomIndex].id);
       }
     }
     init();
