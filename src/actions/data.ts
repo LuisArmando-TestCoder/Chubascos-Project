@@ -631,7 +631,13 @@ export async function updatePost(userId: string, postId: string, data: unknown) 
     const now = admin.firestore.FieldValue.serverTimestamp();
     const slug = validated.slug || (validated.title ? generateSlug(validated.title) : existing.data()?.slug);
 
-    const updateData = { ...validated, slug, updatedAt: now };
+    const updateData: any = { slug, updatedAt: now };
+    for (const [key, value] of Object.entries(validated)) {
+      if (value !== undefined) {
+        updateData[key] = value;
+      }
+    }
+    
     const batch = db.batch();
     batch.update(postRef, updateData);
 
@@ -804,10 +810,22 @@ export async function updateEvent(userId: string, eventId: string, data: unknown
     if (existing.data()?.ownerUserId !== userId) return { success: false, error: 'Sin permiso.' };
 
     const validated = EventSchema.partial().parse(data);
-    await eventRef.update({ ...validated, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    
+    // Remove undefined values to avoid Firestore update errors
+    const cleanData: any = {};
+    for (const [key, value] of Object.entries(validated)) {
+      if (value !== undefined) {
+        cleanData[key] = value;
+      }
+    }
+    
+    await eventRef.update({ ...cleanData, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
     return { success: true };
   } catch (error: unknown) {
     console.error('updateEvent error:', error);
+    if (error instanceof Error) {
+      return { success: false, error: 'No se pudo actualizar el evento: ' + error.message };
+    }
     return { success: false, error: 'No se pudo actualizar el evento.' };
   }
 }
@@ -887,7 +905,12 @@ export async function updateBook(userId: string, bookId: string, data: unknown) 
     const now = admin.firestore.FieldValue.serverTimestamp();
     const slug = validated.slug || (validated.title ? generateSlug(validated.title) : existing.data()?.slug);
 
-    const updateData = { ...validated, slug, updatedAt: now };
+    const updateData: any = { slug, updatedAt: now };
+    for (const [key, value] of Object.entries(validated)) {
+      if (value !== undefined) {
+        updateData[key] = value;
+      }
+    }
     
     // Simple implementation without complex tag delta for now, 
     // but in a real app we would diff the tagIds.
