@@ -1,6 +1,13 @@
 'use client';
 import { useEffect, useRef } from 'react';
-import { cronToHuman, parseCron, getDayName } from '@/utils/cronUtils';
+import {
+  cronToHuman,
+  parseCron,
+  getDayName,
+  isNthWeekdayCron,
+  parseNthWeekdayCron,
+  getOrdinalLabel,
+} from '@/utils/cronUtils';
 import styles from './RecurringEventModal.module.scss';
 
 interface RecurringEventModalProps {
@@ -37,6 +44,8 @@ export function RecurringEventModal({
   if (!isOpen) return null;
 
   const humanSchedule = cronToHuman(cronExpression);
+  const isMonthly = isNthWeekdayCron(cronExpression);
+  const nthData = isMonthly ? parseNthWeekdayCron(cronExpression) : null;
   const { days, time } = parseCron(cronExpression);
 
   return (
@@ -57,7 +66,9 @@ export function RecurringEventModal({
 
         <div className={styles.badge}>
           <span className={styles.badgeIcon}>↻</span>
-          <span className={styles.badgeText}>Evento Recurrente</span>
+          <span className={styles.badgeText}>
+            {isMonthly ? 'Evento Mensual' : 'Evento Recurrente'}
+          </span>
         </div>
 
         <h2 className={styles.title}>{eventTitle}</h2>
@@ -67,21 +78,42 @@ export function RecurringEventModal({
           <p className={styles.scheduleHuman}>{humanSchedule}</p>
         </div>
 
-        <div className={styles.daysVisual}>
-          {[0, 1, 2, 3, 4, 5, 6].map((d) => (
-            <div
-              key={d}
-              className={`${styles.dayDot} ${days.includes(d) ? styles.dayDotActive : ''}`}
-            >
-              <span className={styles.dayDotLabel}>{getDayName(d, true)}</span>
+        {isMonthly && nthData ? (
+          /* Monthly: ordinal badge + single highlighted day */
+          <div className={styles.monthlyVisual}>
+            <div className={styles.ordinalBadge}>
+              <span className={styles.ordinalValue}>{getOrdinalLabel(nthData.nth)}</span>
             </div>
-          ))}
-        </div>
+            <div className={styles.daysVisual}>
+              {[0, 1, 2, 3, 4, 5, 6].map((d) => (
+                <div
+                  key={d}
+                  className={`${styles.dayDot} ${d === nthData.dayOfWeek ? styles.dayDotActive : ''}`}
+                >
+                  <span className={styles.dayDotLabel}>{getDayName(d, true)}</span>
+                </div>
+              ))}
+            </div>
+            <span className={styles.monthlyCaption}>de cada mes</span>
+          </div>
+        ) : (
+          /* Weekly: 7-day dots grid */
+          <div className={styles.daysVisual}>
+            {[0, 1, 2, 3, 4, 5, 6].map((d) => (
+              <div
+                key={d}
+                className={`${styles.dayDot} ${days.includes(d) ? styles.dayDotActive : ''}`}
+              >
+                <span className={styles.dayDotLabel}>{getDayName(d, true)}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
-        {time && (
+        {(time || nthData?.time) && (
           <div className={styles.timeBlock}>
             <span className={styles.timeIcon}>⏰</span>
-            <span className={styles.timeValue}>{time}</span>
+            <span className={styles.timeValue}>{nthData?.time || time}</span>
           </div>
         )}
 
@@ -93,7 +125,9 @@ export function RecurringEventModal({
         )}
 
         <p className={styles.note}>
-          Este evento se repite de forma regular. La fecha mostrada corresponde a la próxima ocurrencia.
+          {isMonthly
+            ? 'Este evento se repite mensualmente. La fecha mostrada corresponde a la próxima ocurrencia.'
+            : 'Este evento se repite de forma regular. La fecha mostrada corresponde a la próxima ocurrencia.'}
         </p>
       </div>
     </div>

@@ -35,6 +35,43 @@
   color: rgba(255, 255, 255, 0.45);
 }
 
+/* ── Mode toggle ── */
+
+.modeToggle {
+  display: flex;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 2px;
+}
+
+.modeBtn {
+  flex: 1;
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.3);
+  font-family: v.$font-mono;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.25s v.$ease-out;
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  &.modeBtnActive {
+    background: v.$accent;
+    color: v.$white;
+    box-shadow: 0 0 12px rgba(109, 93, 252, 0.2);
+  }
+}
+
+/* ── Days grid (shared weekly + monthly day selector) ── */
+
 .daysGrid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -74,6 +111,64 @@
   font-weight: 500;
 }
 
+/* ── Monthly group ── */
+
+.monthlyGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.monthlyRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.monthlyLabel {
+  font-family: v.$font-mono;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.ordinalGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.ordinalBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.35);
+  font-family: v.$font-mono;
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.25s v.$ease-out;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  &.ordinalBtnActive {
+    background: v.$accent;
+    border-color: v.$accent;
+    color: v.$white;
+    box-shadow: 0 0 16px rgba(109, 93, 252, 0.25);
+  }
+}
+
+/* ── Time row ── */
+
 .timeRow {
   display: flex;
   align-items: center;
@@ -107,6 +202,8 @@
     border-color: v.$accent;
   }
 }
+
+/* ── Preview ── */
 
 .preview {
   display: flex;

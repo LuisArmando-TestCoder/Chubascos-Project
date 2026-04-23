@@ -6,10 +6,59 @@ import { EventSchema } from '@/utils/validation';
 import type { Event } from '@/types';
 import { toData, serialize, PAGE_SIZE, notifyFollowers, generateContentHash } from './common';
 import { sendNotificationEmail } from '@/utils/sendEmail';
+import { getNextOccurrenceFromCron } from '@/utils/cronUtils';
 import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
+
+/**
+ * Refresh expired recurring events by updating their `day` field
+ * to the next computed occurrence. This ensures they appear in
+ * "upcoming" queries automatically.
+ */
+async function refreshExpiredRecurringEvents(): Promise<void> {
+  if (!db) return;
+  try {
+    const now = admin.firestore.Timestamp.now();
+    const snapshot = await db.collection('events')
+      .where('isRecurring', '==', true)
+      .where('day', '<', now)
+      .limit(50)
+      .get();
+
+    if (snapshot.empty) return;
+
+    const batch = db.batch();
+    let updates = 0;
+
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+      if (!data.cronExpression) continue;
+
+      const nextDate = getNextOccurrenceFromCron(data.cronExpression);
+      if (!nextDate) continue;
+
+      const nextTimestamp = admin.firestore.Timestamp.fromDate(nextDate);
+      const nextHour = `${String(nextDate.getHours()).padStart(2, '0')}:${String(nextDate.getMinutes()).padStart(2, '0')}`;
+
+      batch.update(doc.ref, {
+        day: nextTimestamp,
+        hour: nextHour,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      updates++;
+    }
+
+    if (updates > 0) await batch.commit();
+  } catch (error) {
+    console.error('refreshExpiredRecurringEvents error:', error);
+  }
+}
 
 export async function getEvents(limitNum: number = PAGE_SIZE, cursor?: string) {
   if (!db) return { items: [], nextCursor: null };
+
+  // Auto-renew expired recurring events before querying
+  await refreshExpiredRecurringEvents();
+
   const now = admin.firestore.Timestamp.now();
   let query = db.collection('events')
     .where('day', '>=', now)
@@ -41,6 +90,9 @@ export async function searchEventsByTag(
 ): Promise<{ items: Event[]; nextCursor: string | null }> {
   if (!db) return { items: [], nextCursor: null };
   
+  // Auto-renew expired recurring events before querying
+  await refreshExpiredRecurringEvents();
+
   try {
     const now = admin.firestore.Timestamp.now();
     let q: admin.firestore.Query = db.collection('events')
@@ -94,6 +146,8 @@ export async function searchExpiredEventsByTag(
 
 export async function getUserEvents(userId: string): Promise<Event[]> {
   if (!db) return [];
+  // Auto-renew expired recurring events before querying
+  await refreshExpiredRecurringEvents();
   const snapshot = await db.collection('events')
     .where('ownerUserId', '==', userId)
     .limit(50)

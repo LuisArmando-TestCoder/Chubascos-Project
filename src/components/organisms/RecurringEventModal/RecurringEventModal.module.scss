@@ -182,6 +182,41 @@
   margin: 0;
 }
 
+/* ── Monthly visual ── */
+
+.monthlyVisual {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.ordinalBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 18px;
+  background: rgba(109, 93, 252, 0.1);
+  border: 1px solid rgba(109, 93, 252, 0.25);
+}
+
+.ordinalValue {
+  font-family: v.$font-mono;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: v.$accent;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.monthlyCaption {
+  font-family: v.$font-mono;
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.2);
+}
+
 .note {
   font-family: v.$font-mono;
   font-size: 0.6rem;
