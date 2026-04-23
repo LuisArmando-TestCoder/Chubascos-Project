@@ -5,7 +5,7 @@ import {
   parseCron,
   getDayName,
   isNthWeekdayCron,
-  parseNthWeekdayCron,
+  parseMultiNthWeekdayCron,
   getOrdinalLabel,
 } from '@/utils/cronUtils';
 import styles from './RecurringEventModal.module.scss';
@@ -44,8 +44,8 @@ export function RecurringEventModal({
   if (!isOpen) return null;
 
   const humanSchedule = cronToHuman(cronExpression);
-  const isMonthly = isNthWeekdayCron(cronExpression);
-  const nthData = isMonthly ? parseNthWeekdayCron(cronExpression) : null;
+  const multiData = parseMultiNthWeekdayCron(cronExpression);
+  const isMonthly = multiData !== null || isNthWeekdayCron(cronExpression);
   const { days, time } = parseCron(cronExpression);
 
   return (
@@ -78,17 +78,21 @@ export function RecurringEventModal({
           <p className={styles.scheduleHuman}>{humanSchedule}</p>
         </div>
 
-        {isMonthly && nthData ? (
-          /* Monthly: ordinal badge + single highlighted day */
+        {isMonthly && multiData ? (
+          /* Monthly: ordinal badges + single highlighted day */
           <div className={styles.monthlyVisual}>
-            <div className={styles.ordinalBadge}>
-              <span className={styles.ordinalValue}>{getOrdinalLabel(nthData.nth)}</span>
+            <div className={styles.ordinalBadgeGroup}>
+              {multiData.nths.map((n) => (
+                <div key={n} className={styles.ordinalBadge}>
+                  <span className={styles.ordinalValue}>{getOrdinalLabel(n)}</span>
+                </div>
+              ))}
             </div>
             <div className={styles.daysVisual}>
               {[0, 1, 2, 3, 4, 5, 6].map((d) => (
                 <div
                   key={d}
-                  className={`${styles.dayDot} ${d === nthData.dayOfWeek ? styles.dayDotActive : ''}`}
+                  className={`${styles.dayDot} ${d === multiData.dayOfWeek ? styles.dayDotActive : ''}`}
                 >
                   <span className={styles.dayDotLabel}>{getDayName(d, true)}</span>
                 </div>
@@ -110,10 +114,10 @@ export function RecurringEventModal({
           </div>
         )}
 
-        {(time || nthData?.time) && (
+        {(time || multiData?.time) && (
           <div className={styles.timeBlock}>
             <span className={styles.timeIcon}>⏰</span>
-            <span className={styles.timeValue}>{nthData?.time || time}</span>
+            <span className={styles.timeValue}>{multiData?.time || time}</span>
           </div>
         )}
 

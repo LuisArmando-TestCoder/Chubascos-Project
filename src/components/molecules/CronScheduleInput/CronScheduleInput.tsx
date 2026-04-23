@@ -5,9 +5,8 @@ import {
   buildCron,
   parseCron,
   cronToHuman,
-  isNthWeekdayCron,
-  parseNthWeekdayCron,
-  buildNthWeekdayCron,
+  parseMultiNthWeekdayCron,
+  buildMultiNthWeekdayCron,
   getOrdinalOptions,
 } from '@/utils/cronUtils';
 import styles from './CronScheduleInput.module.scss';
@@ -25,20 +24,20 @@ export function CronScheduleInput({ value, onChange, time: externalTime }: CronS
   const ordinalOptions = getOrdinalOptions();
 
   // Detect initial mode from existing value
-  const nthParsed = value ? parseNthWeekdayCron(value) : null;
+  const multiParsed = value ? parseMultiNthWeekdayCron(value) : null;
   const weeklyParsed = parseCron(value);
 
-  const [mode, setMode] = useState<RecurrenceMode>(nthParsed ? 'monthly' : 'weekly');
+  const [mode, setMode] = useState<RecurrenceMode>(multiParsed ? 'monthly' : 'weekly');
 
   // Weekly state
   const [selectedDays, setSelectedDays] = useState<number[]>(weeklyParsed.days);
   const [scheduleTime, setScheduleTime] = useState(
-    nthParsed?.time || weeklyParsed.time || externalTime || ''
+    multiParsed?.time || weeklyParsed.time || externalTime || ''
   );
 
-  // Monthly state
-  const [selectedNth, setSelectedNth] = useState<number>(nthParsed?.nth || 1);
-  const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<number>(nthParsed?.dayOfWeek ?? 1);
+  // Monthly state — now supports multiple ordinals
+  const [selectedNths, setSelectedNths] = useState<number[]>(multiParsed?.nths || [1]);
+  const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<number>(multiParsed?.dayOfWeek ?? 1);
 
   // Sync from external time when empty
   useEffect(() => {
@@ -57,13 +56,13 @@ export function CronScheduleInput({ value, onChange, time: externalTime }: CronS
     onChange(cron);
   }, [onChange]);
 
-  // Rebuild cron (monthly)
-  const rebuildMonthly = useCallback((nth: number, dow: number, t: string) => {
-    if (!t) {
+  // Rebuild cron (monthly — multi ordinal)
+  const rebuildMonthly = useCallback((nths: number[], dow: number, t: string) => {
+    if (nths.length === 0 || !t) {
       onChange('');
       return;
     }
-    const cron = buildNthWeekdayCron(nth, dow, t);
+    const cron = buildMultiNthWeekdayCron(nths, dow, t);
     onChange(cron);
   }, [onChange]);
 
@@ -73,7 +72,7 @@ export function CronScheduleInput({ value, onChange, time: externalTime }: CronS
     if (newMode === 'weekly') {
       rebuildWeekly(selectedDays, scheduleTime);
     } else {
-      rebuildMonthly(selectedNth, selectedDayOfWeek, scheduleTime);
+      rebuildMonthly(selectedNths, selectedDayOfWeek, scheduleTime);
     }
   };
 
@@ -90,18 +89,22 @@ export function CronScheduleInput({ value, onChange, time: externalTime }: CronS
     if (mode === 'weekly') {
       rebuildWeekly(selectedDays, t);
     } else {
-      rebuildMonthly(selectedNth, selectedDayOfWeek, t);
+      rebuildMonthly(selectedNths, selectedDayOfWeek, t);
     }
   };
 
-  const handleNthChange = (nth: number) => {
-    setSelectedNth(nth);
-    rebuildMonthly(nth, selectedDayOfWeek, scheduleTime);
+  // Toggle ordinal (multi-select)
+  const toggleNth = (nth: number) => {
+    const next = selectedNths.includes(nth)
+      ? selectedNths.filter((n) => n !== nth)
+      : [...selectedNths, nth];
+    setSelectedNths(next);
+    rebuildMonthly(next, selectedDayOfWeek, scheduleTime);
   };
 
   const handleMonthlyDayChange = (dow: number) => {
     setSelectedDayOfWeek(dow);
-    rebuildMonthly(selectedNth, dow, scheduleTime);
+    rebuildMonthly(selectedNths, dow, scheduleTime);
   };
 
   const humanReadable = value ? cronToHuman(value) : null;
@@ -151,21 +154,25 @@ export function CronScheduleInput({ value, onChange, time: externalTime }: CronS
           })}
         </div>
       ) : (
-        /* Monthly: Nth ordinal + day-of-week selectors */
+        /* Monthly: Nth ordinals (multi-select) + day-of-week selector */
         <div className={styles.monthlyGroup}>
           <div className={styles.monthlyRow}>
             <span className={styles.monthlyLabel}>Cada</span>
             <div className={styles.ordinalGrid}>
-              {ordinalOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  className={`${styles.ordinalBtn} ${selectedNth === opt.value ? styles.ordinalBtnActive : ''}`}
-                  onClick={() => handleNthChange(opt.value)}
-                >
-                  {opt.label}
-                </button>
-              ))}
+              {ordinalOptions.map((opt) => {
+                const isActive = selectedNths.includes(opt.value);
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`${styles.ordinalBtn} ${isActive ? styles.ordinalBtnActive : ''}`}
+                    onClick={() => toggleNth(opt.value)}
+                    aria-pressed={isActive}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
           <div className={styles.monthlyRow}>
@@ -214,7 +221,7 @@ export function CronScheduleInput({ value, onChange, time: externalTime }: CronS
         <p className={styles.hint}>
           {mode === 'weekly'
             ? 'Selecciona al menos un día y una hora para establecer la recurrencia.'
-            : 'Selecciona el ordinal, el día de la semana y una hora.'}
+            : 'Selecciona al menos un ordinal, el día de la semana y una hora.'}
         </p>
       )}
     </div>

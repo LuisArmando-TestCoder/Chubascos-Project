@@ -30,10 +30,23 @@ const RANGE_TO_NTH: Record<string, number> = {
 
 /**
  * Convert a cron expression to a human-readable string in Spanish.
- * Handles both weekly and Nth-weekday-of-month patterns.
+ * Handles weekly, single Nth-weekday, and multi-Nth-weekday (pipe-separated) patterns.
  */
 export function cronToHuman(cron: string): string {
-  // Check for Nth weekday pattern first
+  // Check for multi-pattern (pipe-separated) first
+  if (cron.includes('|')) {
+    const multi = parseMultiNthWeekdayCron(cron);
+    if (multi) {
+      const dayName = DAY_NAMES_ES[multi.dayOfWeek];
+      const ordinals = multi.nths.map(n => ORDINAL_LABELS_LONG_ES[n - 1] || `${n}º`);
+      const joined = ordinals.length <= 2
+        ? ordinals.join(' y ')
+        : ordinals.slice(0, -1).join(', ') + ' y ' + ordinals[ordinals.length - 1];
+      return `Cada ${joined} ${dayName.toLowerCase()} del mes a las ${multi.time}`;
+    }
+  }
+
+  // Check for single Nth weekday pattern
   const nth = parseNthWeekdayCron(cron);
   if (nth) {
     const dayName = DAY_NAMES_ES[nth.dayOfWeek];
@@ -250,6 +263,64 @@ export function getOrdinalLabel(nth: number, long = false): string {
 }
 
 // ---------------------------------------------------------------------------
+// Multi-Nth weekday helpers (pipe-separated patterns)
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a multi-Nth-weekday cron expression (pipe-separated).
+ * @param nths Array of ordinals [1,3] → "1st and 3rd"
+ * @param dayOfWeek 0=Sun … 6=Sat
+ * @param timeStr "HH:MM"
+ *
+ * Example: buildMultiNthWeekdayCron([1,3], 5, "20:00") → "0 20 1-7 * 5|0 20 15-21 * 5"
+ */
+export function buildMultiNthWeekdayCron(nths: number[], dayOfWeek: number, timeStr: string): string {
+  if (nths.length === 0) return '';
+  if (nths.length === 1) return buildNthWeekdayCron(nths[0], dayOfWeek, timeStr);
+  return nths
+    .sort((a, b) => a - b)
+    .map(n => buildNthWeekdayCron(n, dayOfWeek, timeStr))
+    .filter(Boolean)
+    .join('|');
+}
+
+/**
+ * Parse a pipe-separated multi-Nth-weekday cron expression.
+ * Returns null if not a valid multi-pattern.
+ *
+ * Example: "0 20 1-7 * 5|0 20 15-21 * 5" → { nths: [1,3], dayOfWeek: 5, time: "20:00" }
+ */
+export function parseMultiNthWeekdayCron(
+  cron: string
+): { nths: number[]; dayOfWeek: number; time: string } | null {
+  if (!cron.includes('|')) {
+    // Single pattern — wrap as multi
+    const single = parseNthWeekdayCron(cron);
+    if (!single) return null;
+    return { nths: [single.nth], dayOfWeek: single.dayOfWeek, time: single.time };
+  }
+
+  const parts = cron.split('|');
+  const parsed = parts.map(p => parseNthWeekdayCron(p.trim())).filter(Boolean) as
+    { nth: number; dayOfWeek: number; time: string }[];
+
+  if (parsed.length === 0) return null;
+
+  // All must share the same dayOfWeek and time
+  const { dayOfWeek, time } = parsed[0];
+  if (!parsed.every(p => p.dayOfWeek === dayOfWeek && p.time === time)) return null;
+
+  return { nths: parsed.map(p => p.nth).sort((a, b) => a - b), dayOfWeek, time };
+}
+
+/**
+ * Check if a cron expression is a multi-Nth-weekday pattern.
+ */
+export function isMultiNthWeekdayCron(cron: string): boolean {
+  return parseMultiNthWeekdayCron(cron) !== null;
+}
+
+// ---------------------------------------------------------------------------
 // Universal next-occurrence from any cron expression
 // ---------------------------------------------------------------------------
 
@@ -264,6 +335,16 @@ export function getNextOccurrenceFromCron(
   cronExpression: string,
   from: Date = new Date()
 ): Date | null {
+  // Handle pipe-separated multi-patterns: find soonest from all sub-patterns
+  if (cronExpression.includes('|')) {
+    const subPatterns = cronExpression.split('|').map(s => s.trim());
+    const candidates = subPatterns
+      .map(p => getNextOccurrenceFromCron(p, from))
+      .filter(Boolean) as Date[];
+    if (candidates.length === 0) return null;
+    return candidates.reduce((a, b) => (a < b ? a : b));
+  }
+
   // Try monthly Nth-weekday first
   const nthData = parseNthWeekdayCron(cronExpression);
   if (nthData) {

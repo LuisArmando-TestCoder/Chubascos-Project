@@ -191,6 +191,13 @@
   gap: 12px;
 }
 
+.ordinalBadgeGroup {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
 .ordinalBadge {
   display: inline-flex;
   align-items: center;
