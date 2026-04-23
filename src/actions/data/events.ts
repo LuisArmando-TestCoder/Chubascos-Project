@@ -17,11 +17,12 @@ import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 async function refreshExpiredRecurringEvents(): Promise<void> {
   if (!db) return;
   try {
+    // Query all expired events (no composite index needed) and filter recurring in code
     const now = admin.firestore.Timestamp.now();
     const snapshot = await db.collection('events')
-      .where('isRecurring', '==', true)
       .where('day', '<', now)
-      .limit(50)
+      .orderBy('day', 'desc')
+      .limit(100)
       .get();
 
     if (snapshot.empty) return;
@@ -31,7 +32,8 @@ async function refreshExpiredRecurringEvents(): Promise<void> {
 
     for (const doc of snapshot.docs) {
       const data = doc.data();
-      if (!data.cronExpression) continue;
+      // Only process recurring events with a cron expression
+      if (!data.isRecurring || !data.cronExpression) continue;
 
       const nextDate = getNextOccurrenceFromCron(data.cronExpression);
       if (!nextDate) continue;
