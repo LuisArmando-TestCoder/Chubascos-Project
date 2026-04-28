@@ -72,7 +72,7 @@ export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: 
           <header className={styles.poemHeader}>
             <div className={styles.meta}>
               <div className={styles.authorBlock}>
-                <span className={styles.label}>Escrito por</span>
+                <span className={styles.label}>Visitar perfil</span>
                 <Link href={`/u/${post.userId}`} className={styles.authorName}>
                   {authorName}
                 </Link>
