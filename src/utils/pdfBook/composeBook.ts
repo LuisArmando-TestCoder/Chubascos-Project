@@ -78,13 +78,16 @@ function composeCover(c: Composer, layout: BookLayout, makeMeasurer: MeasurerFac
 }
 
 // ---- Copyright ----
-function composeCopyright(c: Composer, layout: BookLayout) {
+function composeCopyright(c: Composer, layout: BookLayout, qrDataUrl: string) {
   const x = CONTENT.x;
+  const cx = PAGE.width / 2;
   let y = CONTENT.y + 40;
 
   c.text(layout.bookTitle, x, y, FONT.copyrightHeading, 'bold', COLORS.ink);
   y += FONT.copyrightHeading * 1.6;
 
+  // Note: long direct URLs overflow the page, so the profile link is rendered
+  // as a centered QR at the bottom instead of as raw text.
   const lines = [
     `© ${layout.year} ${layout.copyrightHolder}`,
     '',
@@ -96,7 +99,6 @@ function composeCopyright(c: Composer, layout: BookLayout) {
     `Autor: ${layout.authorName}`,
     '',
     'Compilado y generado digitalmente en Chubascos.',
-    `Perfil del poeta: ${layout.profileUrl}`,
     `Fecha de generación: ${new Date().toLocaleDateString('es-CR')}`,
   ];
 
@@ -109,7 +111,16 @@ function composeCopyright(c: Composer, layout: BookLayout) {
     c.text(line, x, y, FONT.copyrightBody, 'normal', COLORS.soft);
     y += lh;
   }
+
+  // Centered profile QR near the bottom of the copyright page.
+  const qrSize = 96;
+  const qrX = cx - qrSize / 2;
+  const qrY = PAGE.height - CONTENT.y - qrSize - 20;
+  c.text('Perfil del poeta', cx, qrY - 10, FONT.copyrightBody, 'normal', COLORS.faint, 'center');
+  c.image(qrDataUrl, qrX, qrY, qrSize, qrSize);
+  c.link(qrX, qrY, qrSize, qrSize, { url: layout.profileUrl });
 }
+
 
 // ---- Bio ----
 function composeBio(c: Composer, layout: BookLayout, startPageNumber: number) {
@@ -228,9 +239,11 @@ function composeQr(c: Composer, layout: BookLayout, qrDataUrl: string, pageNumbe
   c.text('Descubre más en el perfil del poeta', cx, qrY - 20, FONT.qrCaption, 'normal', COLORS.soft, 'center');
   c.image(qrDataUrl, qrX, qrY, qrSize, qrSize);
   c.link(qrX, qrY, qrSize, qrSize, { url: layout.profileUrl });
-  c.text(layout.profileUrl, cx, qrY + qrSize + 26, FONT.qrCaption, 'normal', COLORS.faint, 'center');
-  c.link(cx - 100, qrY + qrSize + 16, 200, 16, { url: layout.profileUrl });
+  // The raw URL is intentionally omitted here — long links overflow the page,
+  // so the QR above is the sole (scannable) representation of the profile link.
+  c.text('Escanea para visitar el perfil', cx, qrY + qrSize + 22, FONT.qrCaption, 'normal', COLORS.faint, 'center');
   c.text(layout.authorName, cx, PAGE.height * 0.86, FONT.coverMeta, 'italic', COLORS.soft, 'center');
+
   folio(c, pageNumber);
 }
 
@@ -245,7 +258,7 @@ export function composeBookPages(
   composeCover(c, layout, makeMeasurer);
 
   c.break();
-  composeCopyright(c, layout);
+  composeCopyright(c, layout, qrDataUrl);
 
   let pageCursor = layout.coverPages + layout.copyrightPages;
   if (layout.bioPages.length > 0) {
