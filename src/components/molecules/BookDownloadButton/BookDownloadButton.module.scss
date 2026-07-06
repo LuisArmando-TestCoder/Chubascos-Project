@@ -1,0 +1,50 @@
+@use '@/styles/variables' as v;
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  margin-top: 16px;
+  border: 1px solid rgba(v.$accent, 0.18);
+  background: rgba(v.$accent, 0.04);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-family: v.$font-mono;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: v.$accent;
+}
+
+.title {
+  font-family: v.$font-serif;
+  font-weight: 300;
+  font-size: 1.3rem;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: v.$white;
+}
+
+.hint {
+  font-family: v.$font-sans;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 0;
+  max-width: 52ch;
+}
+
+.msg {
+  font-family: v.$font-mono;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 0;
+}

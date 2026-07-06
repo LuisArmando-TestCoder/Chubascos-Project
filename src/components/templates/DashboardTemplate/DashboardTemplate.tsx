@@ -18,6 +18,7 @@ import type { User, Post, Event, Tag, Shader, Book } from '@/types';
 import { useProfileStore } from '@/store/profile';
 import { useSavedStore } from '@/store/saved';
 import { DashboardPostsList } from './DashboardPostsList';
+import { BookDownloadButton } from '@/components/molecules/BookDownloadButton/BookDownloadButton';
 import styles from './DashboardTemplate.module.scss';
 
 const ShaderCanvas = dynamic(() => import('@/components/organisms/ShaderCanvas/ShaderCanvas'), { ssr: false });
@@ -524,6 +525,8 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
                 </div>
                 {profileMsg && <p className={styles.msg}>{profileMsg}</p>}
                 <Button onClick={handleProfileSave} loading={profileLoading}>Guardar perfil</Button>
+
+                <BookDownloadButton user={user} posts={userPosts} />
 
                 <DashboardPostsList items={userPosts} type="post" />
                 <DashboardPostsList items={userBooks} type="book" />
