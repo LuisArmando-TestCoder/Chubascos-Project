@@ -37,33 +37,35 @@ export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: 
   const { session } = useSession();
   const isHidden = useScrollDirection();
   const footerRef = useRef<HTMLElement>(null);
+  const articleRef = useRef<HTMLElement>(null);
   const lenis = useLenis();
   const isSaved = isPostSaved(post.id);
   const isOwner = session.isLoggedIn && session.userId === post.userId;
 
   // Track footer position relative to viewport bottom
   useEffect(() => {
-    if (!lenis || !footerRef.current) return;
+    if (!lenis || !footerRef.current || !articleRef.current) return;
 
     const handleScroll = () => {
-      if (!footerRef.current) return;
+      if (!footerRef.current || !articleRef.current) return;
       
       const footer = footerRef.current;
-      const footerRect = footer.getBoundingClientRect();
+      const article = articleRef.current;
       const footerHeight = footer.offsetHeight;
       const viewportHeight = window.innerHeight;
+      const articleRect = article.getBoundingClientRect();
       
-      // Distance from footer bottom to viewport bottom
-      const distanceFromBottom = viewportHeight - footerRect.bottom;
+      // Check if we've scrolled to the absolute bottom (article bottom reached viewport bottom)
+      const isAtAbsoluteBottom = articleRect.bottom <= viewportHeight + 5;
       
-      // If footer is at or near bottom (sticky has hit bottom), don't hide it
-      if (distanceFromBottom >= -5) {
+      if (isAtAbsoluteBottom) {
+        // At absolute bottom, keep footer visible
         setFooterTransform(0);
       } else if (isHidden) {
-        // Calculate how much we can translate based on available space
-        const maxTransform = Math.min(footerHeight, Math.abs(distanceFromBottom));
-        setFooterTransform(maxTransform);
+        // Not at bottom and should hide
+        setFooterTransform(footerHeight);
       } else {
+        // Showing footer
         setFooterTransform(0);
       }
     };
@@ -109,7 +111,7 @@ export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: 
       <div className={styles.contentGrid}>
         <UserSidebar user={author} />
 
-        <article className={styles.poemArticle}>
+        <article ref={articleRef} className={styles.poemArticle}>
           <header className={styles.poemHeader}>
             <div className={styles.meta}>
               <div className={styles.authorBlock}>
