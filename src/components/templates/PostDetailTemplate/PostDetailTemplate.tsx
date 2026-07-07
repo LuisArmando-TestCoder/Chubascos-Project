@@ -2,10 +2,11 @@
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { QrModalButton } from '@/components/molecules/QrModalButton/QrModalButton';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useSession } from '@/hooks/useSession';
 import { useScrollDirection } from '@/hooks/useScrollDirection';
+import { useLenis } from 'lenis/react';
 import { getPreviousPost, getNextPost } from '@/actions/data';
 import { TagPill } from '@/components/atoms/TagPill/TagPill';
 import { UserSidebar } from '@/components/organisms/UserSidebar/UserSidebar';
@@ -31,11 +32,49 @@ interface PostDetailTemplateProps {
 export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: initialPrev, nextPost: initialNext }: PostDetailTemplateProps) {
   const [prevPost, setPrevPost] = useState<Post | null>(initialPrev);
   const [nextPost, setNextPost] = useState<Post | null>(initialNext);
+  const [footerTransform, setFooterTransform] = useState(0);
   const { isPostSaved, savePost, unsavePost } = useSavedItems();
   const { session } = useSession();
   const isHidden = useScrollDirection();
+  const footerRef = useRef<HTMLElement>(null);
+  const lenis = useLenis();
   const isSaved = isPostSaved(post.id);
   const isOwner = session.isLoggedIn && session.userId === post.userId;
+
+  // Track footer position relative to viewport bottom
+  useEffect(() => {
+    if (!lenis || !footerRef.current) return;
+
+    const handleScroll = () => {
+      if (!footerRef.current) return;
+      
+      const footer = footerRef.current;
+      const footerRect = footer.getBoundingClientRect();
+      const footerHeight = footer.offsetHeight;
+      const viewportHeight = window.innerHeight;
+      
+      // Distance from footer bottom to viewport bottom
+      const distanceFromBottom = viewportHeight - footerRect.bottom;
+      
+      // If footer is at or near bottom (sticky has hit bottom), don't hide it
+      if (distanceFromBottom >= -5) {
+        setFooterTransform(0);
+      } else if (isHidden) {
+        // Calculate how much we can translate based on available space
+        const maxTransform = Math.min(footerHeight, Math.abs(distanceFromBottom));
+        setFooterTransform(maxTransform);
+      } else {
+        setFooterTransform(0);
+      }
+    };
+
+    lenis.on('scroll', handleScroll);
+    handleScroll(); // Initial check
+
+    return () => {
+      lenis.off('scroll', handleScroll);
+    };
+  }, [lenis, isHidden]);
 
   // Client-side fallback: if server returned null for prev/next, retry asynchronously
   useEffect(() => {
@@ -95,7 +134,11 @@ export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: 
             dangerouslySetInnerHTML={{ __html: safeHtml }}
           />
 
-          <footer className={`${styles.poemFooter} ${isHidden ? styles.hidden : ''}`}>
+          <footer 
+            ref={footerRef}
+            className={styles.poemFooter}
+            style={{ transform: `translateY(${footerTransform}px)` }}
+          >
             <div className={styles.tagsSection}>
               {tags.length > 0 && (
                 <div className={styles.tags}>
