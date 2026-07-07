@@ -4,11 +4,13 @@ import Link from 'next/link';
 import { HamburgerMenu } from '@/components/organisms/HamburgerMenu/HamburgerMenu';
 import { useSavedStore } from '@/store/saved';
 import { useSession } from '@/hooks/useSession';
+import { useScrollDirection } from '@/hooks/useScrollDirection';
 import i18n from '@/utils/i18n';
 import styles from './Header.module.scss';
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const isHidden = useScrollDirection();
   const { posts, users, events } = useSavedStore();
   const { session, username, loading } = useSession();
   const savedCount = posts.length + users.length + events.length;
@@ -41,7 +43,7 @@ export function Header() {
         </svg>
       </div>
 
-      <header className={styles.header} role="banner">
+      <header className={`${styles.header} ${isHidden ? styles.hidden : ''}`} role="banner">
         <div className={styles.inner}>
           <Link href="/" className={styles.logo} aria-label="Chubascos - inicio">
             CHUBASCOS

@@ -5,6 +5,7 @@ import { QrModalButton } from '@/components/molecules/QrModalButton/QrModalButto
 import { useState, useEffect } from 'react';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useSession } from '@/hooks/useSession';
+import { useScrollDirection } from '@/hooks/useScrollDirection';
 import { getPreviousPost, getNextPost } from '@/actions/data';
 import { TagPill } from '@/components/atoms/TagPill/TagPill';
 import { UserSidebar } from '@/components/organisms/UserSidebar/UserSidebar';
@@ -32,6 +33,7 @@ export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: 
   const [nextPost, setNextPost] = useState<Post | null>(initialNext);
   const { isPostSaved, savePost, unsavePost } = useSavedItems();
   const { session } = useSession();
+  const isHidden = useScrollDirection();
   const isSaved = isPostSaved(post.id);
   const isOwner = session.isLoggedIn && session.userId === post.userId;
 
@@ -93,7 +95,7 @@ export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: 
             dangerouslySetInnerHTML={{ __html: safeHtml }}
           />
 
-          <footer className={styles.poemFooter}>
+          <footer className={`${styles.poemFooter} ${isHidden ? styles.hidden : ''}`}>
             <div className={styles.tagsSection}>
               {tags.length > 0 && (
                 <div className={styles.tags}>
