@@ -1,6 +1,6 @@
 # Project Guidelines & Architectural Standards
 
-Read dreams.md before starting. 
+Read dreams.md before starting (if non existent, create it). 
 
 Always keep modularization top of mind: centralize components with repeated patterns into configurable versions. Request and import these modules from a centralized location rather than duplicating code.
 
