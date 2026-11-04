@@ -3,7 +3,7 @@ import { Footer } from '@/components/organisms/Footer/Footer';
 import styles from './privacidad.module.scss';
 
 export const metadata: Metadata = {
-  title: 'Tu obra, tu derecho | Chubascos',
+  title: 'Tu obra, tu derecho',
   description: 'Política de privacidad y derechos de autor en Chubascos. Tu obra te pertenece.',
 };
 

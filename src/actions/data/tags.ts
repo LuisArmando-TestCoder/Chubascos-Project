@@ -7,10 +7,17 @@ import { toData } from './common';
 
 export async function getTagsByIds(ids: string[]): Promise<Tag[]> {
   if (!db || !ids || ids.length === 0) return [];
-  const snapshot = await db.collection('tags')
-    .where(admin.firestore.FieldPath.documentId(), 'in', ids.slice(0, 30))
-    .get();
-  return snapshot.docs.map(toData) as Tag[];
+  // Firestore caps `in` at 30 values: query in parallel chunks instead of
+  // silently dropping every tag after the 30th.
+  const unique = [...new Set(ids)].filter((id) => typeof id === 'string' && id.length > 0);
+  const chunks: string[][] = [];
+  for (let i = 0; i < unique.length; i += 30) chunks.push(unique.slice(i, i + 30));
+  const snapshots = await Promise.all(
+    chunks.map((chunk) =>
+      db!.collection('tags').where(admin.firestore.FieldPath.documentId(), 'in', chunk).get()
+    )
+  );
+  return snapshots.flatMap((snap) => snap.docs.map(toData)) as Tag[];
 }
 
 export async function getTags(limitNum: number = 50, prefix?: string): Promise<Tag[]> {

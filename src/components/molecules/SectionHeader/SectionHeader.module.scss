@@ -1,0 +1,71 @@
+@use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
+
+.header {
+  position: relative;
+  margin-bottom: clamp(2rem, 5vw, 3.5rem);
+  isolation: isolate;
+}
+
+// The echo: the section's name, huge and hollow, drifting slower than the page.
+.echo {
+  position: absolute;
+  z-index: -1;
+  left: -0.04em;
+  top: -0.55em;
+  font-family: v.$font-display;
+  font-size: clamp(5rem, 3rem + 14vw, 16rem);
+  font-weight: 300;
+  font-style: italic;
+  line-height: 0.8;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(236, 235, 228, 0.08);
+  pointer-events: none;
+  user-select: none;
+  @include m.drift(6vh, -10vh);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.index {
+  @include m.hud(v.$rain-soft);
+}
+
+.kicker {
+  @include m.hud(v.$fog);
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+
+  &::before {
+    content: '';
+    width: 2.5rem;
+    height: 1px;
+    background: v.$line-strong;
+  }
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+}
+
+.title {
+  @include m.display(v.$step-3);
+  color: v.$paper;
+  max-width: 18ch;
+}
+
+.aside {
+  @include m.hud(v.$mist);
+}

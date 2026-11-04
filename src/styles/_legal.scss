@@ -1,0 +1,83 @@
+// Shared prose pages (normas, privacidad): a long, calm column of rain.
+@use 'variables' as v;
+@use 'mixins' as m;
+
+.main {
+  min-height: 100vh;
+  padding-top: v.$header-height;
+}
+
+.article {
+  width: 100%;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: clamp(3rem, 10vh, 7rem) v.$gutter 4rem;
+  counter-reset: clause;
+}
+
+.title {
+  @include m.display(v.$step-4);
+  color: v.$paper;
+  margin: 0 0 2rem;
+  @include m.settle(40px);
+}
+
+.lead {
+  font-family: v.$font-display;
+  font-size: v.$step-1;
+  font-style: italic;
+  line-height: 1.6;
+  color: v.$mist;
+  margin: 0 0 3.5rem;
+  padding-bottom: 2.5rem;
+  border-bottom: 1px solid v.$line;
+}
+
+.section {
+  position: relative;
+  padding: 0 0 2.5rem 2rem;
+  border-left: 1px solid v.$line;
+  @include m.settle(20px);
+
+  // Each clause is a drop on the rail.
+  &::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 0.55em;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: v.$ink;
+    border: 1px solid v.$puddle;
+  }
+
+  h2 {
+    font-family: v.$font-display;
+    font-size: v.$step-1;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    color: v.$paper;
+    margin: 0 0 0.75rem;
+  }
+
+  p {
+    font-size: 1.02rem;
+    line-height: 1.8;
+    color: v.$mist;
+    margin: 0;
+    max-width: 60ch;
+  }
+
+  a { @include m.tide-link(v.$puddle); }
+}
+
+.closing {
+  margin-top: 2rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid v.$line;
+  font-family: v.$font-display;
+  font-size: v.$step-1;
+  font-style: italic;
+  color: v.$paper;
+}

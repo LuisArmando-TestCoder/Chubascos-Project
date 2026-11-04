@@ -1,197 +1,453 @@
 @use '@/styles/variables' as v;
 @use '@/styles/mixins' as m;
 
+// The search page is a well: you lean over the water and call a word into it.
+
 .main {
   min-height: 100vh;
-  padding-top: v.$header-height;
+  padding-top: calc(v.$header-height + clamp(3rem, 10vh, 7rem));
 }
 
 .inner {
-  max-width: v.$max-width;
-  margin: 0 auto;
-  padding: 60px 5vw 100px;
+  @include m.container(1180px);
 }
 
 .header {
-  margin-bottom: 40px;
+  position: relative;
+  margin-bottom: clamp(2rem, 5vw, 3.5rem);
+}
+
+.kicker {
+  @include m.hud(v.$rain-soft);
+  display: block;
+  margin-bottom: 1rem;
 }
 
 .title {
-  font-family: v.$font-serif;
-  font-size: clamp(2rem, 5vw, 3rem);
-  font-weight: 300;
-  letter-spacing: -0.04em;
-  margin: 0;
+  @include m.display(v.$step-4);
+  color: v.$paper;
+  max-width: 12ch;
+
+  @include m.settle(40px);
 }
 
+.lead {
+  margin-top: 1.25rem;
+  max-width: 48ch;
+  font-family: v.$font-display;
+  font-size: v.$step-1;
+  font-style: italic;
+  color: v.$mist;
+}
+
+// ── The well ────────────────────────────────────────────────────────────────
 .searchBar {
-  margin-bottom: 28px;
+  position: sticky;
+  top: calc(v.$header-height + 8px);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.35rem 1.25rem 0.35rem 1.1rem;
+  margin-bottom: clamp(2.5rem, 6vw, 4rem);
+  background: rgba(11, 13, 18, 0.9);
+  border: 1px solid v.$line-strong;
+  border-radius: 999px;
+  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.8), 0 0 0 0 rgba(143, 211, 232, 0);
+  transition: border-color 0.4s, box-shadow 0.6s v.$ease-drop;
+
+  &:focus-within {
+    border-color: v.$puddle;
+    box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.8), 0 0 0 6px rgba(143, 211, 232, 0.08);
+  }
+}
+
+.searchIcon {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid v.$puddle;
+
+  &::before, &::after {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    border-radius: 50%;
+    border: 1px solid rgba(143, 211, 232, 0.6);
+  }
+
+  &::after {
+    inset: 9px;
+    background: v.$puddle;
+    border: 0;
+  }
+
+  .searchBar:focus-within &::before {
+    animation: ripple-out 1.6s v.$ease-drop infinite;
+  }
 }
 
 .input {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
+  min-height: 56px;
   background: transparent;
-  border: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-  outline: none;
-  color: v.$white;
-  font-family: v.$font-mono;
-  font-size: 1rem;
-  padding: 10px 0;
-  transition: border-color 0.2s;
+  border: 0;
+  font-family: v.$font-display;
+  font-size: clamp(1.15rem, 1rem + 0.8vw, 1.6rem);
+  color: v.$paper;
+  caret-color: v.$puddle;
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.2);
+    color: v.$fog;
+    font-style: italic;
   }
 
-  &:focus {
-    border-color: rgba(255, 255, 255, 0.5);
+  &:focus-visible {
+    outline: none; // the whole well lights up instead (see :focus-within)
   }
+
+  &::-webkit-search-cancel-button {
+    filter: invert(1) opacity(0.6);
+  }
+}
+
+.searchStatus {
+  @include m.hud(v.$mist);
+  white-space: nowrap;
+
+  @media (max-width: v.$mobile) {
+    display: none;
+  }
+}
+
+// ── Subheads ────────────────────────────────────────────────────────────────
+.subhead {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  font-family: v.$font-display;
+  font-size: v.$step-2;
+  font-weight: 300;
+  color: v.$paper;
+  letter-spacing: -0.01em;
+}
+
+.subheadCount {
+  @include m.hud(v.$fog);
+}
+
+.subheadInline {
+  @include m.hud(v.$fog);
+  margin-right: 0.25rem;
+}
+
+.tagName {
+  font-style: italic;
+  color: v.$rain-soft;
+}
+
+// ── Tag cloud: drops of different weight ───────────────────────────────────
+.tagSection {
+  margin-bottom: clamp(3rem, 8vw, 5rem);
 }
 
 .tagCloud {
   display: flex;
-  gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 32px;
+  align-items: baseline;
+  gap: 0.35rem 0.5rem;
+  margin: 0;
+  padding: 0;
 }
 
 .tagBtn {
+  --w: 0.3;
+  position: relative;
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.45);
-  font-family: v.$font-mono;
-  font-size: 0.72rem;
-  padding: 5px 12px;
-  cursor: pointer;
-  transition: border-color 0.2s, color 0.2s;
-  text-transform: lowercase;
+  align-items: baseline;
+  gap: 0.15em;
+  min-height: 40px;
+  padding: 0.35em 0.75em;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-family: v.$font-display;
+  font-size: calc(0.95rem + var(--w) * 1.25rem);
+  font-weight: calc(300 + var(--w) * 200);
+  line-height: 1.1;
+  color: color-mix(in srgb, v.$paper calc(55% + var(--w) * 45%), v.$fog);
+  transition: color 0.3s, border-color 0.3s, background 0.4s v.$ease-drop, transform 0.5s v.$ease-drop;
 
-  &:hover, &.active {
-    color: v.$accent;
-    border-color: v.$accent;
+  &:hover {
+    color: v.$paper;
+    border-color: v.$line-strong;
+    transform: translateY(-2px);
+  }
+
+  &.active {
+    color: v.$ink;
+    background: v.$puddle;
+    border-color: v.$puddle;
+
+    .tagHash, .tagCount { color: rgba(6, 7, 10, 0.7); }
   }
 }
 
-.tagCount {
-  font-size: 0.6rem;
-  opacity: 0.6;
+.tagHash {
+  color: v.$rain-soft;
+  font-size: 0.75em;
 }
 
-@keyframes tagSpin {
-  to { transform: rotate(360deg); }
+.tagValue {}
+
+.tagCount {
+  @include m.hud(v.$fog);
+  font-size: 0.6rem;
+  letter-spacing: 0.02em;
+  margin-left: 0.35em;
+  align-self: center;
 }
 
 .tagSpinner {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
+  margin-left: 0.5em;
+  align-self: center;
   border-radius: 50%;
-  border: 1px solid transparent;
-  border-top-color: currentColor;
-  opacity: 0.35;
-  animation: tagSpin 0.8s linear infinite;
-  flex-shrink: 0;
+  border: 1px solid currentColor;
+  animation: ripple-out 0.9s v.$ease-drop infinite;
+}
+
+// ── Tabs ────────────────────────────────────────────────────────────────────
+.resultsSection {
+  scroll-margin-top: 160px;
 }
 
 .tabs {
   display: flex;
-  gap: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  margin-bottom: 32px;
+  gap: 0.25rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid v.$line;
+  overflow-x: auto;
+  @include m.hide-scrollbar;
 }
 
 .tab {
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.35);
-  font-family: v.$font-mono;
-  font-size: 0.72rem;
-  text-transform: lowercase;
-  letter-spacing: 0.08em;
-  padding: 10px 20px;
-  cursor: pointer;
-  border-bottom: 1px solid transparent;
-  margin-bottom: -1px;
-  transition: color 0.2s, border-color 0.2s;
+  @include m.hud(v.$mist);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 48px;
+  padding: 0 1rem;
+  white-space: nowrap;
+  transition: color 0.3s;
 
-  &:hover {
-    color: rgba(255, 255, 255, 0.7);
+  &::after {
+    content: '';
+    position: absolute;
+    left: 1rem;
+    right: 1rem;
+    bottom: -1px;
+    height: 2px;
+    background: v.$puddle;
+    transform: scaleX(0);
+    transition: transform 0.5s v.$ease-drop;
   }
 
-  &.activeTab {
-    color: v.$white;
-    border-bottom-color: v.$white;
+  &:hover { color: v.$paper; }
+
+  &:focus-visible {
+    outline-offset: -4px;
   }
 }
 
-.hint {
-  font-family: v.$font-mono;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.2);
-  margin: 0;
+.activeTab {
+  color: v.$paper;
+
+  &::after { transform: scaleX(1); }
 }
 
-.loading {
-  font-family: v.$font-mono;
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.25);
+.tabCount {
+  min-width: 22px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid v.$line-strong;
+  font-size: 0.6rem;
+  text-align: center;
+
+  .activeTab & {
+    border-color: v.$puddle;
+    color: v.$puddle;
+  }
+}
+
+// ── Panels & results ────────────────────────────────────────────────────────
+.panel {
+  transition: opacity 0.3s;
+}
+
+.panelLoading {
+  opacity: 0.45;
 }
 
 .results {
-  display: flex;
-  flex-direction: column;
+  margin: 0 0 2rem;
+  padding: 0;
+  border-bottom: 1px solid v.$line;
 }
 
 .resultsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
-}
-
-.expiredToggleRow {
-  margin-top: 24px;
-  margin-bottom: 4px;
-}
-
-.expiredToggle {
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.25);
-  font-family: v.$font-mono;
-  font-size: 0.68rem;
-  text-transform: lowercase;
-  letter-spacing: 0.06em;
-  cursor: pointer;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr));
+  gap: clamp(12px, 2vw, 20px);
+  margin: 0 0 2rem;
   padding: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: color 0.2s;
+}
 
-  &:hover {
-    color: rgba(255, 255, 255, 0.55);
-  }
+.loading,
+.hint {
+  font-family: v.$font-display;
+  font-style: italic;
+  font-size: v.$step-1;
+  color: v.$mist;
+  padding-block: 2rem;
 }
 
 .loadMore {
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.35);
-  font-family: v.$font-mono;
-  font-size: 0.72rem;
-  padding: 10px 20px;
-  cursor: pointer;
-  text-transform: lowercase;
-  letter-spacing: 0.08em;
-  margin-top: 24px;
-  transition: border-color 0.2s, color 0.2s;
+  @include m.ripple-button(v.$paper);
+  display: flex;
+  margin: 0 auto 2rem;
+}
+
+.expiredToggleRow {
+  display: flex;
+  justify-content: center;
+  margin-block: 1rem 2rem;
+}
+
+.expiredToggle {
+  @include m.ripple-button(v.$mist);
+  border-style: dashed;
+}
+
+// ── Poem hits (full-text) ───────────────────────────────────────────────────
+.poemSection {
+  margin-bottom: 3rem;
+}
+
+.matchingTags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.quickTag {
+  font-family: v.$font-display;
+  font-size: 1.05rem;
+  min-height: 40px;
+  padding: 0.3em 0.9em;
+  border-radius: 999px;
+  border: 1px solid v.$line-strong;
+  color: v.$paper;
+  transition: background 0.3s, color 0.3s;
 
   &:hover {
-    color: rgba(255, 255, 255, 0.7);
-    border-color: rgba(255, 255, 255, 0.3);
+    background: v.$puddle;
+    color: v.$ink;
   }
+}
+
+.hits {
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid v.$line;
+}
+
+.hit {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1.25rem;
+  padding: 1.5rem 0.5rem;
+  border-top: 1px solid v.$line;
+  @include m.settle(20px);
+
+  &:hover .hitSigil, &:focus-within .hitSigil { color: v.$puddle; }
+}
+
+.hitSigil {
+  color: v.$mist;
+  transition: color 0.4s;
+}
+
+.hitBody {
+  min-width: 0;
+}
+
+.hitTitle {
+  @include m.display(v.$step-2);
+  font-weight: 400;
+  margin: 0 0 0.6rem;
+}
+
+.hitLink {
+  color: v.$paper;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+
+  &:hover { opacity: 1; color: v.$rain-soft; }
+
+  &:focus-visible {
+    outline: none;
+    &::after { outline: 2px solid var(--focus); outline-offset: -2px; }
+  }
+}
+
+.hitSnippet {
+  margin: 0 0 0.9rem;
+  padding-left: 1rem;
+  border-left: 1px solid rgba(143, 211, 232, 0.5);
+  font-family: v.$font-display;
+  font-style: italic;
+  font-size: v.$step-0;
+  color: v.$mist;
+  line-height: 1.6;
+}
+
+.hitMeta {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.hitAuthor {
+  @include m.hud(v.$paper);
+  @include m.tide-link(v.$paper);
+  text-transform: none;
+  letter-spacing: 0.04em;
+  font-size: 0.78rem;
+}
+
+.hitDate {
+  @include m.hud(v.$fog);
+}
+
+.mark {
+  background: linear-gradient(to top, rgba(143, 211, 232, 0.35) 45%, transparent 45%);
+  color: v.$paper;
+  padding-inline: 1px;
 }

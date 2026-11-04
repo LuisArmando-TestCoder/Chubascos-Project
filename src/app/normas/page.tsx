@@ -3,7 +3,7 @@ import { Footer } from '@/components/organisms/Footer/Footer';
 import styles from './normas.module.scss';
 
 export const metadata: Metadata = {
-  title: 'Normas de comunidad | Chubascos',
+  title: 'Normas de comunidad',
   description: 'Normas y guía de comportamiento para la comunidad Chubascos.',
 };
 

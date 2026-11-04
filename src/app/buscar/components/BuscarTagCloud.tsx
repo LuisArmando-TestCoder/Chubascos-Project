@@ -1,53 +1,47 @@
 import React from 'react';
 import styles from '../buscar.module.scss';
-import type { Tag, User } from '@/types';
+import type { Tag } from '@/types';
 
 interface BuscarTagCloudProps {
   tags: Tag[];
-  tagMap: Record<string, Tag>;
   selectedTag: string;
-  users: User[];
   loading: boolean;
-  onSelectTag: (tagId: string) => void;
+  onSelectTag: (tagId: string, origin: Element) => void;
 }
 
-export function BuscarTagCloud({
-  tags,
-  tagMap,
-  selectedTag,
-  users,
-  loading,
-  onSelectTag
-}: BuscarTagCloudProps) {
-  const mergedTags = Array.from(
-    new Map([...tags, ...Object.values(tagMap)].map(t => [t.id, t])).values()
-  );
+const totalOf = (t: Tag) => (t.usedByPosts || 0) + (t.usedByEvents || 0) + (t.usedByBooks || 0);
 
-  const visibleTags = mergedTags
-    .filter(tag => ((tag.usedByPosts || 0) + (tag.usedByEvents || 0) + (tag.usedByBooks || 0)) > 0 || tag.id === selectedTag)
-    .sort((a, b) => a.slug.localeCompare(b.slug));
-
-  if (visibleTags.length === 0) return null;
+/** Tags as drops of different weight: more work beneath a tag, a heavier drop. */
+export function BuscarTagCloud({ tags, selectedTag, loading, onSelectTag }: BuscarTagCloudProps) {
+  if (tags.length === 0) return <p className={styles.hint}>Todavía no hay etiquetas con obra.</p>;
+  const max = Math.max(...tags.map(totalOf), 1);
+  const sorted = [...tags].sort((a, b) => a.slug.localeCompare(b.slug));
 
   return (
-    <div className={styles.tagCloud}>
-      {visibleTags.map((tag) => {
+    <ul className={styles.tagCloud}>
+      {sorted.map((tag) => {
         const isSelected = selectedTag === tag.id;
-        const totalCount = (tag.usedByPosts || 0) + (tag.usedByEvents || 0) + (tag.usedByBooks || 0) + (isSelected ? users.length : 0);
+        const total = totalOf(tag);
+        const weight = Math.log(1 + total) / Math.log(1 + max); // 0..1
         return (
-          <button
-            key={tag.id}
-            className={`${styles.tagBtn} ${isSelected ? styles.active : ''}`}
-            onClick={() => onSelectTag(tag.id)}
-            aria-pressed={isSelected}
-          >
-            #{tag.value}
-            {isSelected && loading && <span className={styles.tagSpinner} aria-hidden="true" />}
-            {/* Always show the count, not just when selected (as per user request) */}
-            {(!isSelected || !loading) && <span className={styles.tagCount}>{totalCount}</span>}
-          </button>
+          <li key={tag.id}>
+            <button
+              type="button"
+              className={`${styles.tagBtn} ${isSelected ? styles.active : ''}`}
+              style={{ ['--w' as string]: weight.toFixed(3) }}
+              onClick={(e) => onSelectTag(tag.id, e.currentTarget)}
+              aria-pressed={isSelected}
+              aria-label={`${tag.value}, ${total} ${total === 1 ? 'obra' : 'obras'}`}
+            >
+              <span className={styles.tagHash} aria-hidden="true">#</span>
+              <span className={styles.tagValue}>{tag.value}</span>
+              {isSelected && loading
+                ? <span className={styles.tagSpinner} aria-hidden="true" />
+                : <span className={styles.tagCount} aria-hidden="true">{total}</span>}
+            </button>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }

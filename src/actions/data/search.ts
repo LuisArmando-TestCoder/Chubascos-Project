@@ -1,0 +1,208 @@
+'use server';
+/**
+ * Search, built for one round trip.
+ *
+ * Next.js runs server actions from one client sequentially, so the old
+ * page's `Promise.all` of four actions was really four trips in a row,
+ * plus one more for tags. Everything below runs in parallel on the server,
+ * is cached briefly, and returns exactly what the page renders.
+ */
+import { unstable_cache } from 'next/cache';
+import { db } from '@/firebase/admin';
+import type { Post, Event, User, Tag, Book } from '@/types';
+import { toData } from './common';
+import { getTags, getTagsByIds } from './tags';
+import { searchPostsByTag } from './posts';
+import { searchBooksByTag } from './books';
+import { searchEventsByTag } from './events';
+import { searchUsersByTag } from './users';
+
+const TAG_ID = /^[A-Za-z0-9_-]{1,64}$/;
+const RESULTS = 10;
+const CORPUS_MAX = 1000;
+
+export type PublicUser = Pick<User, 'id' | 'username' | 'bio' | 'tagIds' | 'contacts' | 'createdAt'> & { email: string };
+
+export type TagSearchResult = {
+  posts: Post[]; postCursor: string | null;
+  books: Book[]; bookCursor: string | null;
+  events: Event[]; eventCursor: string | null;
+  users: PublicUser[]; userCursor: string | null;
+  tagMap: Record<string, Tag>;
+};
+
+export type PoemHit = Post & { authorName: string; snippet: string; score: number };
+
+/** Never ship emails to the browser: derive the display name server-side. */
+function toPublicUser(u: User): PublicUser {
+  return {
+    id: u.id,
+    username: u.username || (u.email ? u.email.split('@')[0] : 'poeta'),
+    bio: u.bio,
+    tagIds: u.tagIds,
+    contacts: u.contacts || [],
+    createdAt: u.createdAt,
+    email: '',
+  };
+}
+
+const tagMapOf = (tags: Tag[]) => Object.fromEntries(tags.map((t) => [t.id, t]));
+
+// ── Tag cloud ────────────────────────────────────────────────────────────────
+const cachedTagCloud = unstable_cache(
+  async () => {
+    const tags = await getTags(300);
+    return tags.filter((t) => (t.usedByPosts || 0) + (t.usedByEvents || 0) + (t.usedByBooks || 0) > 0);
+  },
+  ['search:tag-cloud:v1'],
+  { revalidate: 60, tags: ['tags'] }
+);
+
+export async function getTagCloud(): Promise<Tag[]> {
+  try {
+    return await cachedTagCloud();
+  } catch (error) {
+    console.error('getTagCloud error:', error);
+    return [];
+  }
+}
+
+// ── Tag search: four collections, one trip ───────────────────────────────────
+async function runTagSearch(tagId: string): Promise<TagSearchResult> {
+  const [posts, books, events, users] = await Promise.all([
+    searchPostsByTag(tagId, RESULTS),
+    searchBooksByTag(tagId, RESULTS),
+    searchEventsByTag(tagId, RESULTS),
+    searchUsersByTag(tagId, RESULTS),
+  ]);
+  const ids = [
+    tagId,
+    ...posts.items.flatMap((p) => p.tagIds || []),
+    ...books.items.flatMap((b) => b.tagIds || []),
+    ...events.items.flatMap((e) => e.tagIds || []),
+  ];
+  const tags = await getTagsByIds(ids);
+  return {
+    posts: posts.items, postCursor: posts.nextCursor,
+    books: books.items, bookCursor: books.nextCursor,
+    events: events.items, eventCursor: events.nextCursor,
+    users: users.items.map(toPublicUser), userCursor: users.nextCursor,
+    tagMap: tagMapOf(tags),
+  };
+}
+
+const EMPTY: TagSearchResult = {
+  posts: [], postCursor: null, books: [], bookCursor: null,
+  events: [], eventCursor: null, users: [], userCursor: null, tagMap: {},
+};
+
+export async function searchByTag(tagId: string): Promise<TagSearchResult> {
+  if (typeof tagId !== 'string' || !TAG_ID.test(tagId)) return EMPTY;
+  try {
+    return await unstable_cache(() => runTagSearch(tagId), ['search:tag:v1', tagId], {
+      revalidate: 30,
+      tags: ['search', `tag:${tagId}`],
+    })();
+  } catch (error) {
+    console.error('searchByTag error:', error);
+    return EMPTY;
+  }
+}
+
+/** Public-safe users for "load more" on the poets tab. */
+export async function searchPublicUsersByTag(tagId: string, cursor?: string) {
+  if (typeof tagId !== 'string' || !TAG_ID.test(tagId)) return { items: [] as PublicUser[], nextCursor: null };
+  const res = await searchUsersByTag(tagId, RESULTS, cursor);
+  return { items: res.items.map(toPublicUser), nextCursor: res.nextCursor };
+}
+
+// ── Full-text poem search ────────────────────────────────────────────────────
+// Firestore has no full-text index. At Chubascos' scale (hundreds of poems)
+// an in-memory scan of a cached, minimal corpus answers in ~1 ms after the
+// first warm-up. Past ~1k poems, move this behind Typesense/Algolia; the
+// `searchPoems` contract can stay the same.
+type CorpusEntry = Post & { authorName: string; norm: { title: string; content: string; author: string } };
+
+function normalize(s: string): string {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+
+const cachedCorpus = unstable_cache(
+  async (): Promise<CorpusEntry[]> => {
+    if (!db) return [];
+    // No `where`/`orderBy`: a bare collection-group scan needs no composite index.
+    const [postsSnap, usersSnap] = await Promise.all([
+      db.collectionGroup('posts').limit(CORPUS_MAX).get(),
+      db.collection('users').select('username', 'email').limit(2000).get(),
+    ]);
+    const names = new Map<string, string>();
+    usersSnap.docs.forEach((d) => {
+      const data = d.data() as { username?: string; email?: string };
+      names.set(d.id, data.username || (data.email ? data.email.split('@')[0] : 'poeta'));
+    });
+    return (postsSnap.docs.map(toData) as Post[])
+      .filter((p) => p.isVisible !== false && typeof p.title === 'string' && typeof p.content === 'string')
+      .map((p) => {
+        const authorName = names.get(p.userId) || 'poeta';
+        return {
+          id: p.id, userId: p.userId, title: p.title, content: p.content, slug: p.slug,
+          tagIds: p.tagIds || [], isVisible: true, isIndexed: p.isIndexed,
+          createdAt: p.createdAt, updatedAt: p.updatedAt,
+          authorName,
+          norm: { title: normalize(p.title), content: normalize(p.content), author: normalize(authorName) },
+        } as CorpusEntry;
+      });
+  },
+  ['search:poem-corpus:v1'],
+  { revalidate: 120, tags: ['search', 'posts'] }
+);
+
+function snippetFor(content: string, normContent: string, token: string): string {
+  const at = normContent.indexOf(token);
+  const lines = content.split('\n');
+  if (at < 0) return lines.find((l) => l.trim())?.trim() || '';
+  // Normalisation keeps string length for Spanish text, so offsets line up.
+  let acc = 0;
+  for (const line of lines) {
+    if (at <= acc + line.length) return line.trim() || lines.find((l) => l.trim())?.trim() || '';
+    acc += line.length + 1;
+  }
+  return lines[0]?.trim() || '';
+}
+
+const secondsOf = (ts: unknown) => (ts && typeof ts === 'object' && 'seconds' in ts ? (ts as { seconds: number }).seconds : 0);
+
+export async function searchPoems(rawQuery: string): Promise<{ hits: PoemHit[]; tagMap: Record<string, Tag>; total: number }> {
+  const query = typeof rawQuery === 'string' ? normalize(rawQuery.trim()).slice(0, 80) : '';
+  if (query.length < 2) return { hits: [], tagMap: {}, total: 0 };
+  const tokens = query.split(/\s+/).filter((t) => t.length > 0).slice(0, 8);
+
+  try {
+    const corpus = await cachedCorpus();
+    const scored: PoemHit[] = [];
+    for (const p of corpus) {
+      let score = 0;
+      let ok = true;
+      for (const t of tokens) {
+        const inTitle = p.norm.title.includes(t);
+        const inAuthor = p.norm.author.includes(t);
+        const inContent = p.norm.content.includes(t);
+        if (!inTitle && !inAuthor && !inContent) { ok = false; break; }
+        score += (inTitle ? 6 : 0) + (inAuthor ? 3 : 0) + (inContent ? 1 : 0);
+        if (p.norm.title.startsWith(t)) score += 2;
+      }
+      if (!ok) continue;
+      if (tokens.length > 1 && (p.norm.title.includes(query) || p.norm.content.includes(query))) score += 5;
+      const { norm, ...post } = p;
+      const firstToken = tokens.find((t) => norm.content.includes(t)) || tokens[0];
+      scored.push({ ...post, score, snippet: snippetFor(p.content, norm.content, firstToken) });
+    }
+    scored.sort((a, b) => b.score - a.score || secondsOf(b.updatedAt) - secondsOf(a.updatedAt));
+    const hits = scored.slice(0, 40);
+    const tags = await getTagsByIds(hits.flatMap((h) => h.tagIds || []));
+    return { hits, tagMap: tagMapOf(tags), total: scored.length };
+  } catch (error) {
+    console.error('searchPoems error:', error);
+    return { hits: [], tagMap: {}, total: 0 };
+  }
+}

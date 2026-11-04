@@ -4,6 +4,7 @@ import { HeroSection } from '@/components/templates/HomeTemplate/HeroSection';
 import { EventsSection } from '@/components/templates/HomeTemplate/EventsSection';
 import { LiveFeedSection } from '@/components/templates/HomeTemplate/LiveFeedSection';
 import { UsersSection } from '@/components/templates/HomeTemplate/UsersSection';
+import { RecordSection } from '@/components/templates/HomeTemplate/RecordSection';
 import { Footer } from '@/components/organisms/Footer/Footer';
 import type { Metadata } from 'next';
 import type { Tag } from '@/types';
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
 
 export default async function HomePage() {
   const [feedResult, eventsResult, usersResult] = await Promise.all([
-    getLiveFeed(10),
+    getLiveFeed(20), // 20 feed the pluviograma; the ledger shows the newest 10
     getEvents(6),
     getUsers(6),
   ]);
@@ -30,7 +31,7 @@ export default async function HomePage() {
   // Collect all unique tag IDs from feed posts and events, resolve in one batch
   const allTagIds = [
     ...new Set([
-      ...(feedResult.items as any[]).flatMap((p: any) => p.tagIds || []),
+      ...(feedResult.items as any[]).slice(0, 10).flatMap((p: any) => p.tagIds || []),
       ...(eventsResult.items as any[]).flatMap((e: any) => e.tagIds || []),
     ]),
   ];
@@ -40,11 +41,12 @@ export default async function HomePage() {
   return (
     <main>
       <HeroSection />
+      <RecordSection posts={feedResult.items as any} />
       <Suspense fallback={null}>
         <EventsSection events={eventsResult.items as any} tagMap={tagMap} />
       </Suspense>
       <Suspense fallback={null}>
-        <LiveFeedSection posts={feedResult.items as any} tagMap={tagMap} />
+        <LiveFeedSection posts={(feedResult.items as any[]).slice(0, 10)} tagMap={tagMap} />
       </Suspense>
       <Suspense fallback={null}>
         <UsersSection users={usersResult.items as any} />

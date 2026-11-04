@@ -1,7 +1,6 @@
-'use client';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 import { UserCard } from '@/components/molecules/UserCard/UserCard';
+import { SectionHeader } from '@/components/molecules/SectionHeader/SectionHeader';
 import i18n from '@/utils/i18n';
 import type { User } from '@/types';
 import styles from './HomeTemplate.module.scss';
@@ -15,22 +14,21 @@ export function UsersSection({ users }: UsersSectionProps) {
   return (
     <section className={styles.section} aria-labelledby="users-heading">
       <div className={styles.sectionInner}>
-        <header className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle} id="users-heading">{i18n.home.poets.title}</h2>
-        </header>
-        <div className={styles.usersGrid}>
-          {users.map((user, i) => (
-            <motion.div
-              key={user.id}
-              whileInView={{ opacity: 1, y: 0 }}
-              initial={{ opacity: 0, y: 16 }}
-              transition={{ duration: 0.5, delay: i * 0.06, ease: [0.25, 1, 0.5, 1] }}
-              viewport={{ once: true }}
-            >
+        <SectionHeader
+          id="users-heading"
+          index={4}
+          total={4}
+          kicker="Quién llueve"
+          title={i18n.home.poets.title}
+          echo="voces"
+        />
+        <ul className={styles.usersGrid}>
+          {users.map((user) => (
+            <li key={user.id}>
               <UserCard user={user} />
-            </motion.div>
+            </li>
           ))}
-        </div>
+        </ul>
         <div className={styles.sectionCta}>
           <Link href="/buscar?type=users" className={styles.ctaBtn}>
             {i18n.common.seeMore}

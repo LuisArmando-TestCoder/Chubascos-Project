@@ -18,10 +18,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const post = await getPost(user?.id || userId, slug);
   
-  if (!post) return { title: 'Poema no encontrado | Chubascos' };
+  if (!post) return { title: 'Poema no encontrado' };
   const authorName = user?.username || user?.email.split('@')[0] || userId;
   return {
-    title: `${post.title} — ${authorName} | Chubascos`,
+    title: `${post.title} — ${authorName}`,
     description: post.content.replace(/[#*`_~[\]()>]/g, '').slice(0, 160),
     openGraph: {
       title: post.title,

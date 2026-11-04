@@ -8,7 +8,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(6, 7, 10, 0.82);
+  backdrop-filter: blur(6px);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   padding: 2rem;
@@ -19,8 +20,9 @@
   position: relative;
   width: 100%;
   max-width: 480px;
-  background: v.$gray-900;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: v.$ink-2;
+  border-radius: 6px;
+  border: 1px solid v.$line;
   padding: 48px 40px;
   display: flex;
   flex-direction: column;
@@ -38,7 +40,7 @@
   right: 16px;
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.25);
+  color: v.$fog;
   font-size: 1.6rem;
   cursor: pointer;
   line-height: 1;
@@ -46,7 +48,7 @@
   transition: color 0.2s;
 
   &:hover {
-    color: v.$white;
+    color: v.$paper;
   }
 }
 
@@ -61,25 +63,25 @@
 }
 
 .badgeIcon {
-  color: v.$accent;
+  color: v.$rain-soft;
   font-size: 0.9rem;
 }
 
 .badgeText {
-  font-family: v.$font-mono;
+  font-family: v.$font-hud;
   font-size: 0.62rem;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: v.$accent;
+  color: v.$rain-soft;
 }
 
 .title {
-  @include m.font-heading;
+  @include m.ui-heading;
   font-size: clamp(1.8rem, 5vw, 2.4rem);
   line-height: 1;
   margin: 0;
   letter-spacing: -0.02em;
-  color: v.$white;
+  color: v.$paper;
 }
 
 .scheduleBlock {
@@ -89,17 +91,17 @@
 }
 
 .scheduleLabel {
-  font-family: v.$font-mono;
+  font-family: v.$font-hud;
   font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: rgba(255, 255, 255, 0.2);
+  color: v.$fog;
 }
 
 .scheduleHuman {
-  @include m.font-body;
+  font-family: v.$font-ui;
   font-size: 1.05rem;
-  color: rgba(255, 255, 255, 0.75);
+  color: v.$paper;
   margin: 0;
   line-height: 1.4;
 
@@ -120,7 +122,7 @@
   justify-content: center;
   padding: 8px 0;
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid v.$line;
   transition: all 0.2s v.$ease-out;
 
   &.dayDotActive {
@@ -131,14 +133,14 @@
 }
 
 .dayDotLabel {
-  font-family: v.$font-mono;
+  font-family: v.$font-hud;
   font-size: 0.56rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.25);
+  color: v.$fog;
 
   .dayDotActive & {
-    color: v.$accent;
+    color: v.$rain-soft;
     font-weight: 600;
   }
 }
@@ -155,9 +157,9 @@
 }
 
 .timeValue {
-  font-family: v.$font-mono;
+  font-family: v.$font-hud;
   font-size: 1.2rem;
-  color: v.$white;
+  color: v.$paper;
   letter-spacing: 0.06em;
 }
 
@@ -168,17 +170,17 @@
 }
 
 .placeLabel {
-  font-family: v.$font-mono;
+  font-family: v.$font-hud;
   font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: rgba(255, 255, 255, 0.2);
+  color: v.$fog;
 }
 
 .placeValue {
-  @include m.font-body;
+  font-family: v.$font-ui;
   font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: v.$mist;
   margin: 0;
 }
 
@@ -208,31 +210,31 @@
 }
 
 .ordinalValue {
-  font-family: v.$font-mono;
+  font-family: v.$font-hud;
   font-size: 0.85rem;
   font-weight: 600;
-  color: v.$accent;
+  color: v.$rain-soft;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .monthlyCaption {
-  font-family: v.$font-mono;
+  font-family: v.$font-hud;
   font-size: 0.58rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.2);
+  color: v.$fog;
 }
 
 .note {
-  font-family: v.$font-mono;
+  font-family: v.$font-hud;
   font-size: 0.6rem;
-  color: rgba(255, 255, 255, 0.15);
+  color: v.$fog;
   letter-spacing: 0.03em;
   line-height: 1.6;
   margin: 0;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  border-top: 1px solid v.$line;
 }
 
 @keyframes fadeIn {

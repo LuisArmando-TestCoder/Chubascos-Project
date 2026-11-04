@@ -5,11 +5,11 @@
 }
 
 .heading {
-  font-family: v.$font-mono;
+  font-family: v.$font-hud;
   font-size: 0.55rem;
   text-transform: uppercase;
   letter-spacing: 0.22em;
-  color: rgba(255, 255, 255, 0.15);
+  color: v.$fog;
   margin: 0 0 20px;
 }
 
@@ -44,8 +44,8 @@
       height: 60%;
       background: rgba(255, 255, 255, 0.5);
     }
-    .link { color: v.$white; }
-    .index { color: rgba(255, 255, 255, 0.6); }
+    .link { color: v.$paper; }
+    .index { color: v.$mist; }
     .arrow { opacity: 1; transform: none; }
     .actionText { opacity: 1; }
   }
@@ -61,8 +61,8 @@
   gap: 16px;
   padding: 13px 0 13px 20px;
   text-decoration: none;
-  color: rgba(255, 255, 255, 0.35);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: v.$fog;
+  border-bottom: 1px solid v.$line;
   transition: color 0.2s, background 0.2s;
   position: relative;
 
@@ -76,19 +76,19 @@
   }
 
   &:hover {
-    color: rgba(255, 255, 255, 0.8);
+    color: v.$paper;
     &::after { opacity: 1; }
     .arrow { opacity: 1; transform: translateX(0); }
-    .index { color: rgba(255, 255, 255, 0.35); }
+    .index { color: v.$fog; }
     .actionText { opacity: 0.6; }
   }
 }
 
 .index {
-  font-family: v.$font-mono;
+  font-family: v.$font-hud;
   font-size: 0.58rem;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.12);
+  color: v.$fog;
   flex-shrink: 0;
   transition: color 0.2s;
   line-height: 1.5;
@@ -104,7 +104,7 @@
 }
 
 .title {
-  font-family: v.$font-sans;
+  font-family: v.$font-ui;
   font-size: 0.88rem;
   letter-spacing: -0.01em;
   overflow: hidden;
@@ -115,14 +115,14 @@
 }
 
 .details {
-  font-family: v.$font-serif;
+  font-family: v.$font-display;
   font-size: 0.95rem;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.5);
+  color: v.$mist;
   max-width: 65ch;
   
   p { margin: 0 0 1rem; }
-  a { color: v.$accent; }
+  a { color: v.$rain-soft; }
   ul, ol { padding-left: 1.2rem; margin-bottom: 1rem; }
 }
 
@@ -136,22 +136,22 @@
 }
 
 .badge {
-  font-family: v.$font-mono;
+  font-family: v.$font-hud;
   font-size: 0.5rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: v.$fog;
+  border: 1px solid v.$line;
   padding: 2px 6px;
   border-radius: 100px;
 }
 
 .actionText {
-  font-family: v.$font-mono;
+  font-family: v.$font-hud;
   font-size: 0.6rem;
   text-transform: lowercase;
   letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.3);
+  color: v.$fog;
   opacity: 0;
   transition: opacity 0.2s;
 }
@@ -161,7 +161,7 @@
   opacity: 0;
   transform: translateX(-6px);
   transition: opacity 0.2s, transform 0.2s;
-  color: rgba(255, 255, 255, 0.4);
+  color: v.$fog;
   flex-shrink: 0;
 }
 
@@ -171,12 +171,12 @@
 
   .heading {
     font-size: 0.65rem;
-    color: rgba(255, 255, 255, 0.3);
+    color: v.$fog;
   }
 
   .title {
     font-size: 1.4rem;
-    font-family: v.$font-serif;
+    font-family: v.$font-display;
     white-space: normal;
     font-weight: 300;
   }

@@ -4,7 +4,8 @@
   position: fixed;
   inset: 0;
   z-index: 400;
-  background: rgba(0, 0, 0, 0.82);
+  background: rgba(6, 7, 10, 0.82);
+  backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   display: flex;
@@ -14,7 +15,8 @@
 }
 
 .modal {
-  background: rgba(18, 18, 18, 0.98);
+  background: v.$ink-2;
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   width: 100%;
   max-width: 900px;
@@ -29,31 +31,31 @@
   justify-content: space-between;
   gap: 16px;
   padding: 20px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid v.$line;
 }
 
 .label {
-  font-family: v.$font-mono;
+  font-family: v.$font-hud;
   font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: v.$accent;
+  color: v.$rain-soft;
   display: block;
   margin-bottom: 4px;
 }
 
 .title {
-  font-family: v.$font-mono;
+  font-family: v.$font-hud;
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: v.$mist;
   margin: 0;
   word-break: break-all;
 }
 
 .status {
-  font-family: v.$font-mono;
+  font-family: v.$font-hud;
   font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: v.$fog;
   white-space: nowrap;
 }
 
@@ -87,9 +89,9 @@
 }
 
 .pageIndex {
-  font-family: v.$font-mono;
+  font-family: v.$font-hud;
   font-size: 0.62rem;
-  color: rgba(255, 255, 255, 0.3);
+  color: v.$fog;
 }
 
 .footer {
@@ -98,14 +100,14 @@
   justify-content: space-between;
   gap: 16px;
   padding: 16px 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid v.$line;
 }
 
 .closeBtn {
   background: none;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.6);
-  font-family: v.$font-mono;
+  color: v.$mist;
+  font-family: v.$font-hud;
   font-size: 0.72rem;
   padding: 10px 20px;
   cursor: pointer;

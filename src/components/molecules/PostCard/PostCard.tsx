@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { TagPill } from '@/components/atoms/TagPill/TagPill';
+import { DropSigil } from '@/components/atoms/DropSigil/DropSigil';
 import { formatDate } from '@/utils/formatDate';
 import type { Post, Tag, Book } from '@/types';
 import styles from './PostCard.module.scss';
@@ -13,38 +14,66 @@ interface PostCardProps {
   type?: 'post' | 'book';
 }
 
+/** First lines of a poem, kept as lines: verse should not be flattened. */
+function firstLines(content: string, max = 3): string[] {
+  return content
+    .replace(/[#*`_~[\]()>]/g, '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .slice(0, max)
+    .map((l) => (l.length > 90 ? `${l.slice(0, 90)}…` : l));
+}
+
+function isoDate(ts: unknown): string | undefined {
+  if (ts && typeof ts === 'object' && 'seconds' in ts) {
+    return new Date((ts as { seconds: number }).seconds * 1000).toISOString();
+  }
+  return undefined;
+}
+
 export function PostCard({ post, authorName, tags = [], showAuthor = false, badge, type = 'post' }: PostCardProps) {
   const char = type === 'post' ? 'p' : 'b';
   const href = `/u/${post.userId}/${char}/${post.slug}`;
+  const name = authorName || (post as Post & { authorName?: string }).authorName;
+  const lines = firstLines(post.content);
+  const lineCount = post.content.split('\n').filter((l) => l.trim()).length;
+
   return (
-    <article className={styles.card}>
-      {badge && <span className={styles.badge}>{badge}</span>}
-      <Link href={href} className={styles.inner}>
-        <h3 className={styles.title}>{post.title}</h3>
+    <article className={`${styles.card} ${type === 'book' ? styles.book : ''}`} data-drop="rain">
+      <DropSigil seed={post.id} text={post.content} size={56} className={styles.sigil} />
+      <div className={styles.body}>
+        {badge && <span className={styles.badge}>{badge}</span>}
+        <h3 className={styles.title}>
+          {/* The stretched link makes the whole card one target, tags stay reachable. */}
+          <Link href={href} className={styles.inner}>{post.title}</Link>
+        </h3>
         <p className={styles.preview}>
-          {post.content.replace(/[#*`_~[\]()>]/g, '').slice(0, 120)}
-          {post.content.length > 120 ? '…' : ''}
-        </p>
-      </Link>
-      <footer className={styles.footer}>
-        {showAuthor && authorName && (
-          <Link href={`/u/${post.userId}`} className={styles.author}>
-            {authorName}
-          </Link>
-        )}
-        <div className={styles.tags}>
-          {tags.slice(0, 4).map((tag) => (
-            <TagPill key={tag.id} value={tag.value} tagId={tag.id} size="sm" />
+          {lines.map((l, i) => (
+            <span key={i} className={styles.verse}>{l}</span>
           ))}
-        </div>
-        <time className={styles.date} dateTime={
-          post.updatedAt && typeof post.updatedAt === 'object' && 'seconds' in (post.updatedAt as any)
-            ? new Date((post.updatedAt as any).seconds * 1000).toISOString()
-            : String(post.updatedAt)
-        }>
+        </p>
+        <footer className={styles.footer}>
+          {showAuthor && name && (
+            <Link href={`/u/${post.userId}`} className={styles.author}>
+              {name}
+            </Link>
+          )}
+          {tags.length > 0 && (
+            <div className={styles.tags}>
+              {tags.slice(0, 4).map((tag) => (
+                <TagPill key={tag.id} value={tag.value} tagId={tag.id} size="sm" />
+              ))}
+            </div>
+          )}
+        </footer>
+      </div>
+      <div className={styles.stratum}>
+        <time className={styles.date} dateTime={isoDate(post.updatedAt)}>
           {post.updatedAt ? formatDate(post.updatedAt) : ''}
         </time>
-      </footer>
+        <span className={styles.lines}>{type === 'book' ? 'libro' : `${lineCount} ${lineCount === 1 ? 'verso' : 'versos'}`}</span>
+      </div>
     </article>
   );
 }

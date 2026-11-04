@@ -13,10 +13,14 @@ export function TagPill({ value, tagId, size = 'md', interactive = true }: TagPi
   const className = `${styles.pill} ${styles[size]}`;
   if (interactive && tagId) {
     return (
-      <Link href={`/buscar?tag=${tagId}`} className={className}>
-        #{value}
+      <Link href={`/buscar?tag=${tagId}`} className={className} data-drop="puddle">
+        <span className={styles.hash} aria-hidden="true">#</span>{value}
       </Link>
     );
   }
-  return <span className={className}>#{value}</span>;
+  return (
+    <span className={className}>
+      <span className={styles.hash} aria-hidden="true">#</span>{value}
+    </span>
+  );
 }

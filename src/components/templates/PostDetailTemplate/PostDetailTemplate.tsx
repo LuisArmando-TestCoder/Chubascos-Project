@@ -9,6 +9,8 @@ import { useScrollDirection } from '@/hooks/useScrollDirection';
 import { useLenis } from 'lenis/react';
 import { getPreviousPost, getNextPost } from '@/actions/data';
 import { TagPill } from '@/components/atoms/TagPill/TagPill';
+import { DropSigil } from '@/components/atoms/DropSigil/DropSigil';
+import { plume } from '@/lib/fluid/bus';
 import { UserSidebar } from '@/components/organisms/UserSidebar/UserSidebar';
 import { formatDate } from '@/utils/formatDate';
 import { sanitizeMarkdown } from '@/utils/sanitizeMarkdown';
@@ -99,6 +101,9 @@ export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: 
   const authorName = author.username || author.email.split('@')[0];
   const postUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ''}/u/${post.userId}/p/${post.slug}`;
   const safeHtml = sanitizeMarkdown(post.content);
+  const verses = post.content.split('\n').filter((l) => l.trim()).length;
+  const words = post.content.split(/\s+/).filter(Boolean).length;
+  const minutes = Math.max(1, Math.round(words / 180));
 
   return (
     <main className={styles.page}>
@@ -113,6 +118,7 @@ export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: 
 
         <article ref={articleRef} className={styles.poemArticle}>
           <header className={styles.poemHeader}>
+            <DropSigil seed={post.id} text={post.content} size="100%" className={styles.sigil} eye={false} />
             <div className={styles.meta}>
               <div className={styles.authorBlock}>
                 <span className={styles.label}>Visitar perfil</span>
@@ -129,6 +135,13 @@ export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: 
             </div>
 
             <h1 className={styles.title}>{post.title}</h1>
+            <p className={styles.reading}>
+              <span>{verses} {verses === 1 ? 'verso' : 'versos'}</span>
+              <span aria-hidden="true">·</span>
+              <span>{words} palabras</span>
+              <span aria-hidden="true">·</span>
+              <span>{minutes} min de lluvia</span>
+            </p>
           </header>
 
           <div
@@ -159,7 +172,11 @@ export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: 
               ) : (
                 <button
                   className={`${styles.saveBtn} ${isSaved ? styles.saved : ''}`}
-                  onClick={() => isSaved ? unsavePost(post.id) : savePost(post.id)}
+                  onClick={(e) => {
+                    if (isSaved) unsavePost(post.id);
+                    else { savePost(post.id); plume(e.currentTarget, 'puddle'); }
+                  }}
+                  aria-pressed={isSaved}
                 >
                   {isSaved ? 'Guardado' : 'Guardar Poema'}
                 </button>
@@ -168,7 +185,7 @@ export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: 
             </div>
           </footer>
 
-          <nav className={styles.navigation}>
+          <nav className={styles.navigation} aria-label="Más poemas de este autor">
             {nextPost && (
               <Link href={`/u/${post.userId}/p/${nextPost.slug}`} className={styles.navLink}>
                 <span className={styles.navLabel}>Anterior</span>

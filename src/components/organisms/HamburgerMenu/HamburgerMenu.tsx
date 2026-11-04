@@ -14,6 +14,7 @@ interface HamburgerMenuProps {
 }
 
 const primaryLinks = [
+  { href: '/', label: i18n.common.home },
   { href: '/buscar', label: i18n.common.search },
   { href: '/guardados', label: i18n.common.saved },
 ];
@@ -65,6 +66,7 @@ export function HamburgerMenu({ isOpen, onClose, isLoggedIn = false, email = '' 
       {isOpen && (
         <FocusTrap focusTrapOptions={{ allowOutsideClick: true }}>
           <motion.div
+            id="menu-principal"
             className={styles.overlay}
             variants={menuVariants}
             initial="hidden"
@@ -82,9 +84,10 @@ export function HamburgerMenu({ isOpen, onClose, isLoggedIn = false, email = '' 
                 animate="visible"
               >
                 <p className={styles.sectionLabel}>{i18n.common.explore}</p>
-                {primaryLinks.map((link) => (
+                {primaryLinks.map((link, i) => (
                   <motion.div key={link.href} variants={itemVariants} className={styles.linkWrapper}>
                     <Link href={link.href} className={styles.primaryLink} onClick={onClose}>
+                      <span className={styles.linkIndex} aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
                       {link.label}
                     </Link>
                   </motion.div>

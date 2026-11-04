@@ -1,302 +1,208 @@
 @use '@/styles/variables' as v;
 @use '@/styles/mixins' as m;
 
-.page {
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  padding-top: v.$header-height;
-  overflow-x: hidden;
+// An event is weather that has been forecast: everything points at one date.
 
-  @media (max-width: v.$tablet) {
-    display: flex;
-    flex-direction: column;
-    padding-top: 80px;
-  }
-}
+.page { @include m.page-shell; }
 
 .contentGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 350px);
-  gap: clamp(2rem, 6vw, 6rem);
-  padding: 80px 4vw;
-
-  @media (max-width: v.$laptop) {
-    grid-template-columns: 1fr;
-    gap: 4rem;
-    padding: 60px 2rem;
-  }
-
-  @media (max-width: v.$tablet) {
-    padding: 40px 1.5rem;
-  }
+  @include m.detail-grid(320px, right);
 }
 
 .article {
-  max-width: 900px;
+  min-width: 0;
+  display: grid;
+  gap: clamp(2.5rem, 6vh, 4rem);
 }
 
 .header {
-  margin-bottom: 4rem;
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  gap: 1.75rem;
 }
 
-.meta {
+.sigil { @include m.hero-sigil(rgba(143, 211, 232, 0.45)); }
+
+.recurringBanner {
   display: flex;
-  gap: 3rem;
-  margin-bottom: 2rem;
-  
-  @media (max-width: v.$mobile) {
-    flex-direction: column;
-    gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  width: fit-content;
+  min-height: 44px;
+  padding: 0.6rem 1.1rem;
+  border: 1px solid rgba(255, 179, 138, 0.45);
+  border-radius: 999px;
+  color: v.$ember;
+  text-align: left;
+  transition: background 0.3s, border-color 0.3s;
+
+  &:hover {
+    background: rgba(255, 179, 138, 0.08);
+    border-color: v.$ember;
   }
 }
 
-.label {
-  @include m.font-body;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: rgba(255, 255, 255, 0.2);
-  display: block;
-  margin-bottom: 0.5rem;
+.recurringIcon { font-size: 1.05rem; }
+.recurringText { @include m.hud(v.$ember); }
+.recurringSchedule { font-family: v.$font-display; font-style: italic; color: v.$paper; }
+.recurringCta { @include m.hud(v.$mist); }
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem 3rem;
 }
 
-.day, .hour, .price {
-  @include m.font-heading;
-  font-size: 1.2rem;
-  color: v.$white;
+.dateBlock,
+.hourBlock,
+.locationBlock,
+.priceBlock {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.label {
+  @include m.hud(v.$fog);
+  display: block;
+  margin: 0;
+}
+
+.day {
+  font-family: v.$font-display;
+  font-size: v.$step-2;
+  color: v.$paper;
+  line-height: 1.1;
+}
+
+.hour {
+  font-family: v.$font-hud;
+  font-size: v.$step-2;
+  color: v.$puddle;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 
 .title {
-  @include m.font-heading;
-  font-size: clamp(3rem, 8vw, 6rem);
-  line-height: 0.95;
-  margin: 0 0 3rem;
-  letter-spacing: -0.04em;
-  color: v.$white;
-}
-
-.locationBlock, .priceBlock {
-  margin-bottom: 2.5rem;
+  @include m.display(clamp(2.2rem, 1.4rem + 3.6vw, 4.8rem));
+  color: v.$paper;
+  max-width: 16ch;
+  @include m.settle(40px);
 }
 
 .place {
-  @include m.font-body;
-  font-size: 1.2rem;
-  color: rgba(255, 255, 255, 0.8);
+  font-family: v.$font-display;
+  font-size: v.$step-1;
+  font-style: italic;
+  color: v.$paper;
+  margin: 0;
+}
+
+.price {
+  @include m.hud(v.$paper);
+  font-size: 0.9rem;
   margin: 0;
 }
 
 .mainInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 4rem;
+  display: grid;
+  gap: 2.5rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid v.$line;
+}
+
+.description {
+  display: grid;
+  gap: 0.75rem;
 }
 
 .descText {
-  @include m.font-body;
-  font-size: 1.15rem;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.6);
-  max-width: 65ch;
+  @include m.poem-body;
+  max-width: v.$measure;
   white-space: pre-wrap;
+  color: v.$mist;
+}
+
+.tagsSection {
+  display: grid;
+  gap: 0.75rem;
 }
 
 .tags {
   display: flex;
-  gap: 10px;
   flex-wrap: wrap;
+  gap: 6px;
 }
 
-.interaction {
-  margin-top: 6rem;
-  padding-top: 3rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-}
+.interaction {}
 
 .actions {
   display: flex;
-  gap: 1.5rem;
-  
-  @media (max-width: v.$mobile) {
-    flex-direction: column;
-  }
-}
-
-.saveBtn, .editBtn, .qrBtn {
-  @include m.font-heading;
-  font-size: 0.8rem;
-  padding: 1.2rem 2.5rem;
-  cursor: pointer;
-  transition: all 0.3s v.$ease-out;
-  text-transform: uppercase;
+  flex-wrap: wrap;
+  gap: 0.6rem;
 }
 
 .saveBtn,
 .editBtn {
-  background: v.$white;
-  color: v.$black;
-  border: none;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    background: v.$accent;
-    color: v.$white;
-  }
+  @include m.ripple-button(v.$puddle);
 
   &.saved {
-    background: v.$accent;
-    color: v.$white;
+    color: v.$ink;
+    background: v.$puddle;
+    border-color: v.$puddle;
   }
 }
 
 .qrBtn {
-  background: transparent;
-  color: v.$white;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-
-  &:hover {
-    border-color: v.$white;
-  }
+  @include m.ripple-button(v.$mist);
+  border-color: v.$line-strong;
 }
 
 .sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 4rem;
+  display: grid;
+  gap: 2rem;
+  align-content: start;
+
+  @media (min-width: v.$laptop) {
+    position: sticky;
+    top: calc(v.$header-height + 32px);
+  }
 }
 
-.sidebarSection {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+.sidebarSection,
+.organizerSection {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  @include m.surface;
 }
 
 .sidebarTitle {
-  @include m.font-body;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: rgba(255, 255, 255, 0.25);
+  @include m.hud(v.$fog);
+  font-weight: 400;
 }
 
-.linksList, .contactsList {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+.linksList,
+.contactsList {
+  display: grid;
+  gap: 0.5rem;
 }
 
-.externalLink {
-  @include m.font-heading;
-  font-size: 0.9rem;
-  color: v.$white;
-  text-decoration: none;
-  opacity: 0.5;
-  transition: opacity 0.2s, transform 0.2s;
-  
-  &:hover {
-    opacity: 1;
-    transform: translateX(8px);
-    color: v.$accent;
-  }
+.externalLink,
+.ownerLink {
+  width: fit-content;
+  font-family: v.$font-display;
+  font-size: 1.05rem;
+  @include m.tide-link(v.$paper);
+  overflow-wrap: anywhere;
+
+  &:hover { color: v.$puddle; }
 }
 
 .contactItem {
-  @include m.font-body;
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.organizerSection {
-  margin-top: auto;
-  padding-top: 4rem;
-}
-
-.ownerLink {
-  @include m.font-heading;
+  font-family: v.$font-hud;
   font-size: 0.85rem;
-  color: v.$white;
-  text-decoration: none;
-  opacity: 0.4;
-  transition: opacity 0.2s;
-
-  &:hover {
-    opacity: 1;
-    color: v.$accent;
-  }
+  color: v.$mist;
+  overflow-wrap: anywhere;
 }
-
-/* ─── Recurring Event Banner ─────────────────────────────────────────────── */
-
-.recurringBanner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 14px 20px;
-  margin-bottom: 2.5rem;
-  background: rgba(109, 93, 252, 0.04);
-  border: 1px solid rgba(109, 93, 252, 0.15);
-  cursor: pointer;
-  transition: all 0.3s v.$ease-out;
-  text-align: left;
-
-  &:hover {
-    background: rgba(109, 93, 252, 0.08);
-    border-color: rgba(109, 93, 252, 0.3);
-    transform: translateY(-1px);
-  }
-
-  @media (max-width: v.$mobile) {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-}
-
-.recurringIcon {
-  color: v.$accent;
-  font-size: 1.1rem;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.recurringText {
-  font-family: v.$font-mono;
-  font-size: 0.62rem;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: v.$accent;
-  flex-shrink: 0;
-}
-
-.recurringSchedule {
-  @include m.font-body;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.55);
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-
-  &::first-letter {
-    text-transform: uppercase;
-  }
-}
-
-.recurringCta {
-  font-family: v.$font-mono;
-  font-size: 0.6rem;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.25);
-  flex-shrink: 0;
-  transition: color 0.2s;
-
-  .recurringBanner:hover & {
-    color: v.$accent;
-  }
-}
-

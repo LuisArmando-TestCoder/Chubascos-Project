@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useSession } from '@/hooks/useSession';
 import { QrModal } from '@/components/organisms/QrModal/QrModal';
+import { DropSigil } from '@/components/atoms/DropSigil/DropSigil';
+import { plume } from '@/lib/fluid/bus';
 import type { User } from '@/types';
 import styles from './UserSidebar.module.scss';
 
@@ -25,8 +27,10 @@ export function UserSidebar({ user }: UserSidebarProps) {
     <aside className={styles.sidebar}>
       <header className={styles.profileHeader}>
         <div className={styles.avatarBlock}>
-          <div className={styles.avatar}>{name.slice(0, 1).toUpperCase()}</div>
-          <span className={styles.label}>Perfil Verificado</span>
+          <div className={styles.avatar} aria-hidden="true">
+            <DropSigil seed={user.id} text={user.bio} size="100%" glyph={name.slice(0, 1).toUpperCase()} />
+          </div>
+          <span className={styles.label}>Voz en el registro</span>
         </div>
 
         <h1 className={styles.name}>{name}</h1>
@@ -49,7 +53,11 @@ export function UserSidebar({ user }: UserSidebarProps) {
             ) : (
               <button
                 className={`${styles.saveBtn} ${isSaved ? styles.saved : ''}`}
-                onClick={() => isSaved ? unsaveUser(user.id) : saveUser(user.id)}
+                onClick={(e) => {
+                  if (isSaved) unsaveUser(user.id);
+                  else { saveUser(user.id); plume(e.currentTarget, 'rain'); }
+                }}
+                aria-pressed={isSaved}
               >
                 {isSaved ? 'Siguiendo' : 'Seguir Poeta'}
               </button>
@@ -67,7 +75,8 @@ export function UserSidebar({ user }: UserSidebarProps) {
           <div className={styles.linksList}>
             {user.contacts.map((c, i) => (
               <a key={i} href={c.url} target="_blank" rel="noopener noreferrer" className={styles.externalLink}>
-                {c.label} →
+                {c.label} <span aria-hidden="true">↗</span>
+                <span className="visually-hidden"> (se abre en otra pestaña)</span>
               </a>
             ))}
           </div>

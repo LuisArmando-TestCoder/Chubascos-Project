@@ -1,10 +1,31 @@
-// -- TYPOGRAPHY --
-// Using System stack or Geist if available
+// ─────────────────────────────────────────────────────────────────────────────
+// CHUBASCOS · design tokens
+// Concept: a pluviógrafo, a perpetual rain recorder. Every poem is a drop,
+// every page a stratum of the same night rain. See STYLEGUIDE.md.
+//
+// Legacy tokens ($font-serif, $font-sans, $black, $white, $accent…) are kept
+// verbatim: the GLSL hero depends on them and must render unchanged.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// -- TYPOGRAPHY (legacy, used by the hero, do not change) --
 $font-sans: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 $font-serif: "Playfair Display", "Times New Roman", serif;
 $font-mono: 'Geist Mono', SFMono-Regular, Consolas, monospace;
 
-// -- COLORS --
+// -- TYPOGRAPHY (pluviógrafo) — next/font injects the CSS variables --
+$font-display: var(--font-display), "Iowan Old Style", Georgia, serif; // poems, headings
+$font-ui: var(--font-ui), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+$font-hud: var(--font-hud), ui-monospace, SFMono-Regular, Consolas, monospace; // readouts, metadata
+
+// Fluid type scale (minor sixth, clamped)
+$step--1: clamp(0.78rem, 0.76rem + 0.1vw, 0.84rem);
+$step-0: clamp(1rem, 0.96rem + 0.2vw, 1.125rem);
+$step-1: clamp(1.25rem, 1.15rem + 0.5vw, 1.6rem);
+$step-2: clamp(1.6rem, 1.35rem + 1.2vw, 2.4rem);
+$step-3: clamp(2.2rem, 1.6rem + 2.8vw, 4rem);
+$step-4: clamp(3rem, 1.8rem + 6vw, 7.5rem);
+
+// -- COLORS (legacy) --
 $black: #050505;
 $white: #fcfcfc;
 $accent: #6d5dfc;
@@ -13,7 +34,22 @@ $gray-900: #1a1a1a;
 $gray-800: #2a2a2a;
 $gray-400: #888888;
 
-// -- DEPTH (Glassmorphism 2.0 Ultra) --
+// -- COLORS (pluviógrafo): night rain over still water --
+$ink: #06070a;          // the night
+$ink-2: #0b0d12;        // a surface floating on it
+$ink-3: #12151c;        // raised surface
+$paper: #ecebe4;        // moonlit paper (body text ~16:1 on $ink)
+$mist: #a9adb8;         // secondary text (~8.6:1 on $ink)
+$fog: #7c818d;          // tertiary text, still ≥ 4.6:1 on $ink
+$rain: #6d5dfc;         // = legacy accent, ties UI to the hero shader
+$rain-soft: #a59bff;    // accent for text on ink (≥ 7:1)
+$puddle: #8fd3e8;       // reflected sky, secondary accent
+$ember: #ffb38a;        // rare warm signal (live, warnings)
+$danger: #ff8a8a;
+$line: rgba(236, 235, 228, 0.09);
+$line-strong: rgba(236, 235, 228, 0.2);
+
+// -- DEPTH (Glassmorphism 2.0 Ultra) (legacy) --
 $glass-bg: rgba(255, 255, 255, 0.02);
 $glass-border: rgba(255, 255, 255, 0.04);
 $glass-blur: 32px;
@@ -22,8 +58,11 @@ $neon-shadow: 0 0 20px rgba(109, 93, 252, 0.3);
 
 // -- LAYOUT --
 $max-width: 1440px;
+$measure: 38rem;         // reading width for poems
 $safe-padding: 5vw;
+$gutter: clamp(1rem, 4vw, 4rem);
 $header-height: 64px;
+$radius: 2px;            // water has no corners, ink does: keep edges crisp
 
 // -- BREAKPOINTS --
 $mobile: 480px;
@@ -33,12 +72,37 @@ $desktop: 1280px;
 
 // -- MOTION --
 $ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+$ease-drop: cubic-bezier(0.16, 1, 0.3, 1);   // fast impact, long settle
+$ease-tide: cubic-bezier(0.65, 0, 0.35, 1);
 $duration-base: 0.6s;
 $duration-fast: 0.3s;
+$duration-slow: 1.2s;
+
+// -- LAYERS --
+$z-fluid: 0;
+$z-content: 1;
+$z-hud: 90;
+$z-header: 100;
+$z-menu: 200;
+$z-modal: 300;
 
 :root {
   --bg: #{$black};
   --fg: #{$white};
   --gray: #{$gray-400};
   --accent: #{$accent};
+
+  --ink: #{$ink};
+  --ink-2: #{$ink-2};
+  --ink-3: #{$ink-3};
+  --paper: #{$paper};
+  --mist: #{$mist};
+  --fog: #{$fog};
+  --rain: #{$rain};
+  --rain-soft: #{$rain-soft};
+  --puddle: #{$puddle};
+  --ember: #{$ember};
+  --line: #{$line};
+  --line-strong: #{$line-strong};
+  --focus: #{$puddle};
 }

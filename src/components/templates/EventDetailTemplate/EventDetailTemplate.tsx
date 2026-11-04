@@ -12,6 +12,12 @@ import i18n from '@/utils/i18n';
 import type { Event, Tag } from '@/types';
 
 import styles from './EventDetailTemplate.module.scss';
+import { DropSigil } from '@/components/atoms/DropSigil/DropSigil';
+import { plume } from '@/lib/fluid/bus';
+
+function hostOf(url: string): string {
+  try { return new URL(url).hostname; } catch { return url; }
+}
 
 interface EventDetailTemplateProps {
   event: Event;
@@ -33,13 +39,14 @@ export function EventDetailTemplate({ event, tags = [] }: EventDetailTemplatePro
       <div className={styles.contentGrid}>
         <article className={styles.article}>
           <header className={styles.header}>
+            <DropSigil seed={event.id} text={event.description} size="100%" className={styles.sigil} wobble={0.7} eye={false} />
             {isRecurring && (
               <button
                 className={styles.recurringBanner}
                 onClick={() => setRecurringModalOpen(true)}
                 type="button"
               >
-                <span className={styles.recurringIcon}>↻</span>
+                <span className={styles.recurringIcon} aria-hidden="true">↻</span>
                 <span className={styles.recurringText}>Evento Recurrente</span>
                 <span className={styles.recurringSchedule}>{cronToHuman(event.cronExpression!)}</span>
                 <span className={styles.recurringCta}>Ver detalles →</span>
@@ -102,7 +109,11 @@ export function EventDetailTemplate({ event, tags = [] }: EventDetailTemplatePro
               ) : (
                 <button
                   className={`${styles.saveBtn} ${isSaved ? styles.saved : ''}`}
-                  onClick={() => isSaved ? unsaveEvent(event.id) : saveEvent(event.id)}
+                  onClick={(e) => {
+                    if (isSaved) unsaveEvent(event.id);
+                    else { saveEvent(event.id); plume(e.currentTarget, 'puddle'); }
+                  }}
+                  aria-pressed={isSaved}
                 >
                   {isSaved ? 'Agendado' : 'Guardar Evento'}
                 </button>
@@ -121,7 +132,7 @@ export function EventDetailTemplate({ event, tags = [] }: EventDetailTemplatePro
               <div className={styles.linksList}>
                 {event.urls.map((url, i) => (
                   <a key={i} href={url} target="_blank" rel="noopener noreferrer" className={styles.externalLink}>
-                    {new URL(url).hostname} →
+                    {hostOf(url)} <span aria-hidden="true">↗</span>
                   </a>
                 ))}
               </div>

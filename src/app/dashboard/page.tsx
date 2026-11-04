@@ -6,7 +6,7 @@ import { DashboardTemplate } from '@/components/templates/DashboardTemplate/Dash
 import type { Post, Event, Shader, Book } from '@/types';
 
 export const metadata: Metadata = {
-  title: 'Panel | Chubascos',
+  title: 'Panel',
 };
 
 interface Props {

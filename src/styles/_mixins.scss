@@ -57,3 +57,192 @@
     display: none;
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pluviógrafo mixins. Prefer these over ad-hoc values so every page reads as
+// one continuous record.
+// ─────────────────────────────────────────────────────────────────────────────
+
+@mixin container($width: v.$max-width) {
+  width: 100%;
+  max-width: $width;
+  margin-inline: auto;
+  padding-inline: v.$gutter;
+}
+
+// Small uppercase readout, like a gauge label. Always ≥ 4.5:1 contrast.
+@mixin hud($color: v.$fog) {
+  font-family: v.$font-hud;
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $color;
+  font-variant-numeric: tabular-nums;
+}
+
+@mixin display($size: v.$step-3) {
+  font-family: v.$font-display;
+  font-size: $size;
+  font-weight: 300;
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+  font-optical-sizing: auto;
+  text-wrap: balance;
+}
+
+@mixin poem-body {
+  font-family: v.$font-display;
+  font-size: clamp(1.12rem, 1.02rem + 0.45vw, 1.35rem);
+  line-height: 1.7;
+  font-weight: 400;
+  color: v.$paper;
+  text-wrap: pretty;
+  hanging-punctuation: first;
+}
+
+@mixin focus-ring($offset: 3px) {
+  &:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: $offset;
+    border-radius: v.$radius;
+  }
+}
+
+// A surface floating on the water. Opaque enough to keep text legible
+// over the fluid layer without paying for backdrop blur.
+@mixin surface($lift: 0) {
+  background: color-mix(in srgb, v.$ink-2 calc(86% + #{$lift} * 1%), transparent);
+  border: 1px solid v.$line;
+  border-radius: v.$radius;
+}
+
+// Underline that fills like water rising in a gauge.
+@mixin tide-link($color: v.$paper) {
+  color: $color;
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1px;
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  transition: background-size v.$duration-base v.$ease-drop, color v.$duration-fast;
+  &:hover, &:focus-visible { background-size: 100% 1px; opacity: 1; }
+}
+
+// Button grammar: a hairline rectangle with a ripple fill on hover.
+@mixin ripple-button($tone: v.$paper) {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6em;
+  min-height: 44px; // WCAG 2.5.5 target size
+  padding: 0.7em 1.4em;
+  font-family: v.$font-hud;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $tone;
+  border: 1px solid color-mix(in srgb, $tone 40%, transparent);
+  border-radius: 999px;
+  overflow: hidden;
+  isolation: isolate;
+  cursor: pointer;
+  transition: color v.$duration-fast, border-color v.$duration-fast;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: $tone;
+    clip-path: circle(0% at var(--rx, 50%) var(--ry, 50%));
+    transition: clip-path 0.7s v.$ease-drop;
+  }
+
+  &:hover, &:focus-visible {
+    color: v.$ink;
+    border-color: $tone;
+    opacity: 1;
+    &::before { clip-path: circle(150% at var(--rx, 50%) var(--ry, 50%)); }
+  }
+
+  &:disabled, &[aria-disabled='true'] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    &::before { clip-path: circle(0% at 50% 50%); }
+    color: $tone;
+  }
+
+  @include focus-ring;
+}
+
+// Scroll-driven reveal: content settles like sediment as it enters view.
+// Pure CSS (no JS, no layout cost); browsers without scroll timelines
+// simply show the content.
+@mixin settle($distance: 28px) {
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: settle linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 70%;
+      --settle-distance: #{$distance};
+    }
+  }
+}
+
+// Parallax drift bound to the element's own pass through the viewport.
+@mixin drift($from: 12vh, $to: -12vh) {
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: drift linear both;
+      animation-timeline: view();
+      --drift-from: #{$from};
+      --drift-to: #{$to};
+    }
+  }
+}
+
+// ── Page shells shared by detail pages (poem, book, event, profile) ─────────
+@mixin page-shell {
+  position: relative;
+  min-height: 100vh;
+  padding-top: v.$header-height;
+}
+
+@mixin detail-grid($sidebar: 300px, $sidebar-side: left) {
+  @include container(1240px);
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: clamp(3rem, 6vw, 6rem);
+  padding-block: clamp(3rem, 8vh, 6rem) 2rem;
+
+  @media (min-width: v.$laptop) {
+    @if $sidebar-side == left {
+      grid-template-columns: minmax(240px, $sidebar) minmax(0, 1fr);
+    } @else {
+      grid-template-columns: minmax(0, 1fr) minmax(240px, $sidebar);
+    }
+  }
+}
+
+@mixin hero-sigil($color: rgba(165, 155, 255, 0.5)) {
+  position: absolute;
+  z-index: -1;
+  top: -10%;
+  right: -4%;
+  width: min(62vw, 520px);
+  height: auto;
+  color: $color;
+  pointer-events: none;
+  @include drift(4vh, -8vh);
+}
+
+// Heading for UI surfaces (forms, modals, dashboard): display face, no shouting.
+@mixin ui-heading {
+  font-family: v.$font-display;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}

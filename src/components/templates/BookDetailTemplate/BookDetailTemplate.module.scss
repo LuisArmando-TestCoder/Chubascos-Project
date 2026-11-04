@@ -1,154 +1,97 @@
 @use '@/styles/variables' as v;
 @use '@/styles/mixins' as m;
 
-.page {
-  min-height: 100vh;
-  padding-top: v.$header-height;
-}
+.page { @include m.page-shell; }
 
 .contentGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 4rem;
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 80px 4vw;
+  @include m.detail-grid;
 
-  @media (max-width: v.$laptop) {
-    padding: 60px 2rem;
-    gap: 2rem;
-  }
-
-  @media (max-width: v.$tablet) {
-    padding: 40px 1.5rem;
+  @media (max-width: calc(v.$laptop - 1px)) {
     display: flex;
     flex-direction: column-reverse;
   }
 }
 
 .bookArticle {
-  width: 100%;
+  min-width: 0;
 }
 
 .bookHeader {
-  margin-bottom: 4rem;
+  position: relative;
+  isolation: isolate;
+  margin-bottom: clamp(3rem, 8vh, 5rem);
 }
+
+.sigil { @include m.hero-sigil(rgba(143, 211, 232, 0.4)); }
 
 .meta {
   display: flex;
-  gap: 3rem;
+  flex-wrap: wrap;
+  gap: 1.5rem 3rem;
   margin-bottom: 2rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-
-  @media (max-width: v.$mobile) {
-    flex-direction: column;
-    gap: 1.5rem;
-  }
 }
 
-.authorBlock, .dateBlock {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+.authorBlock,
+.dateBlock {
+  display: grid;
+  gap: 0.4rem;
 }
 
-.label {
-  font-family: v.$font-mono;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: rgba(255, 255, 255, 0.2);
-}
+.label { @include m.hud(v.$fog); }
 
 .authorName {
-  font-family: v.$font-serif;
-  font-size: 1rem;
-  color: v.$white;
-  text-decoration: none;
-  transition: color 0.2s;
-
-  &:hover {
-    color: v.$accent;
-  }
+  font-family: v.$font-display;
+  font-size: v.$step-1;
+  font-style: italic;
+  width: fit-content;
+  @include m.tide-link(v.$rain-soft);
 }
 
 .date {
-  font-family: v.$font-mono;
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-family: v.$font-display;
+  font-size: v.$step-1;
+  color: v.$paper;
 }
 
 .title {
-  @include m.font-heading;
-  font-size: clamp(2.5rem, 6vw, 4.5rem);
-  line-height: 1.1;
-  margin: 0;
-  letter-spacing: -0.03em;
-  color: v.$white;
+  @include m.display(clamp(2.8rem, 1.6rem + 6vw, 6.5rem));
+  font-style: italic;
+  color: v.$paper;
+  max-width: 16ch;
+  @include m.settle(40px);
 }
 
 .content {
-  @include m.font-body;
-  font-size: 1.25rem;
-  line-height: 1.8;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 6rem;
+  @include m.poem-body;
+  max-width: v.$measure;
+  // Verse keeps its own line breaks; markup whitespace between blocks doesn't.
+  white-space: normal;
 
-  p { margin-bottom: 2rem; }
+  p, li, blockquote { white-space: pre-wrap; }
 
-  a {
-    color: v.$accent;
-    text-decoration: underline;
-    text-underline-offset: 4px;
-    transition: opacity 0.2s;
-    &:hover { opacity: 0.8; }
-  }
-
-  h1, h2, h3 {
-    color: v.$white;
-    margin: 4rem 0 1.5rem;
-    font-weight: 400;
-  }
-
-  ul, ol {
-    margin-bottom: 2rem;
-    padding-left: 1.5rem;
-    li { margin-bottom: 0.5rem; }
-  }
-
+  > * { @include m.settle(18px); }
+  p { margin-bottom: 1.8em; color: v.$paper; }
+  h1, h2, h3 { @include m.display(v.$step-2); margin: 2.5em 0 1em; }
+  a { @include m.tide-link(v.$puddle); }
   blockquote {
-    border-left: 2px solid v.$accent;
+    border-left: 1px solid v.$puddle;
     padding-left: 1.5rem;
+    margin: 2.5rem 0;
     font-style: italic;
-    margin: 3rem 0;
-    color: rgba(255, 255, 255, 0.6);
+    color: v.$mist;
   }
 }
 
 .bookFooter {
-  padding-top: 4rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  margin-top: clamp(3rem, 8vh, 5rem);
+  padding-top: 2rem;
+  border-top: 1px solid v.$line;
 }
 
 .interactions {
   display: flex;
-  align-items: center;
-  gap: 2rem;
   flex-wrap: wrap;
+  gap: 0.6rem;
 }
 
-.backBtn {
-  font-family: v.$font-mono;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.3);
-  text-decoration: none;
-  transition: color 0.2s;
-
-  &:hover {
-    color: v.$white;
-  }
-}
+.backBtn { @include m.ripple-button(v.$paper); }

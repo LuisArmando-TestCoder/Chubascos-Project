@@ -1,294 +1,235 @@
 @use '@/styles/variables' as v;
 @use '@/styles/mixins' as m;
 
-.page {
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  padding-top: v.$header-height;
-  position: relative;
+// Reading a poem: the water goes still and the page becomes the puddle.
 
-  @media (max-width: v.$tablet) {
-    display: flex;
-    flex-direction: column;
-    padding-top: 80px;
-  }
-}
+.page { @include m.page-shell; }
 
 .shaderBg {
   position: fixed;
   inset: 0;
   z-index: -1;
-  opacity: 0.25;
+  opacity: 0.22;
+  // Vignette: the author's shader frames the poem without competing with it.
+  mask-image: radial-gradient(120% 90% at 50% 40%, transparent 30%, #000 85%);
 }
 
 .contentGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 4rem;
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  position: relative;
-  z-index: 10;
-  padding: 80px 4vw;
+  @include m.detail-grid;
 
-  @media (max-width: v.$laptop) {
-    padding: 60px 2rem;
-    gap: 2rem;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  }
-
-  @media (max-width: v.$tablet) {
-    padding: 40px 1.5rem;
+  @media (max-width: calc(v.$laptop - 1px)) {
     display: flex;
     flex-direction: column-reverse;
   }
 }
 
 .poemArticle {
+  position: relative;
   width: 100%;
+  min-width: 0;
 }
 
 .poemHeader {
-  margin-bottom: 5rem;
+  position: relative;
+  margin-bottom: clamp(3rem, 8vh, 5rem);
+  isolation: isolate;
 }
+
+// The poem's own puddle, drawn from its lines, behind its title.
+.sigil { @include m.hero-sigil; }
 
 .meta {
   display: flex;
-  gap: 3rem;
+  flex-wrap: wrap;
+  gap: 1.5rem 3rem;
   margin-bottom: 2rem;
+}
 
-  @media (max-width: v.$mobile) {
-    flex-direction: column;
-    gap: 1.5rem;
-  }
+.authorBlock,
+.dateBlock {
+  display: grid;
+  gap: 0.4rem;
 }
 
 .label {
-  @include m.font-body;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: rgba(255, 255, 255, 0.2);
+  @include m.hud(v.$fog);
   display: block;
-  margin-bottom: 0.5rem;
 }
 
 .authorName {
-  @include m.font-heading;
-  font-size: 1.2rem;
-  color: v.$accent;
-  text-decoration: none;
-  transition: opacity 0.2s;
-
-  &:hover {
-    opacity: 0.7;
-  }
+  font-family: v.$font-display;
+  font-size: v.$step-1;
+  font-style: italic;
+  @include m.tide-link(v.$rain-soft);
+  width: fit-content;
 }
 
 .date {
-  @include m.font-heading;
-  font-size: 1.2rem;
-  color: v.$white;
+  font-family: v.$font-display;
+  font-size: v.$step-1;
+  color: v.$paper;
 }
 
 .title {
-  @include m.font-heading;
-  font-size: clamp(3rem, 8vw, 6rem);
-  line-height: 0.95;
+  @include m.display(clamp(2.8rem, 1.6rem + 6vw, 6.5rem));
+  color: v.$paper;
+  max-width: 14ch;
   margin: 0;
-  letter-spacing: -0.04em;
-  color: v.$white;
+  @include m.settle(40px);
+}
+
+.reading {
+  @include m.hud(v.$mist);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
 }
 
 .content {
-  @include m.font-body;
-  font-size: clamp(1.1rem, 2vw, 1.4rem);
-  line-height: 1.8;
-  color: rgba(255, 255, 255, 0.85);
-  max-width: 65ch;
-  white-space: pre-wrap;
+  @include m.poem-body;
+  max-width: v.$measure;
+  // Verse keeps its own line breaks; markup whitespace between blocks doesn't.
+  white-space: normal;
 
-  p {
-    margin-bottom: 2rem;
+  p, li, blockquote { white-space: pre-wrap; }
+
+  > * {
+    @include m.settle(18px);
   }
 
+  p {
+    margin-bottom: 1.8em;
+    color: v.$paper;
+  }
+
+  em { font-style: italic; color: v.$rain-soft; }
+  strong { font-weight: 600; }
+
+  h1, h2, h3 {
+    @include m.display(v.$step-2);
+    margin: 2.5em 0 1em;
+  }
+
+  a { @include m.tide-link(v.$puddle); }
+
   blockquote {
-    border-left: 2px solid v.$accent;
-    padding-left: 2rem;
-    margin: 3rem 0;
+    border-left: 1px solid v.$puddle;
+    padding-left: 1.5rem;
+    margin: 2.5rem 0;
     font-style: italic;
-    color: rgba(255, 255, 255, 0.5);
+    color: v.$mist;
+  }
+
+  hr {
+    border: 0;
+    height: 1px;
+    margin: 3rem 0;
+    background: linear-gradient(90deg, v.$line-strong, transparent);
   }
 }
 
+// ── The floating bar: tags · save · share ───────────────────────────────────
 .poemFooter {
-  display: flex;
-  justify-content: space-between;
-  margin: 0;
-  padding: 3rem;
   position: sticky;
-  bottom: 0;
-  place-items: center;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  bottom: 1rem;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: clamp(3rem, 8vh, 5rem) 0 0;
+  padding: 0.75rem 0.75rem 0.75rem 1.25rem;
+  background: rgba(11, 13, 18, 0.88);
+  border: 1px solid v.$line-strong;
+  border-radius: 999px;
+  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.9);
+  transition: transform 0.5s v.$ease-drop;
   will-change: transform;
 
   @media (max-width: v.$mobile) {
-    flex-direction: column;
-    gap: 2rem;
+    border-radius: 20px;
+    padding: 1rem;
   }
+}
+
+.tagsSection {
+  min-width: 0;
 }
 
 .tags {
   display: flex;
-  gap: 10px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .interactions {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-
-  @media (max-width: v.$mobile) {
-    flex-direction: column;
-    width: 100%;
-    align-items: stretch;
-  }
+  gap: 0.6rem;
+  margin-left: auto;
 }
 
 .saveBtn,
 .editBtn {
-  @include m.font-heading;
-  font-size: 0.8rem;
-  padding: 1.2rem 2.5rem;
-  cursor: pointer;
-  transition: all 0.3s v.$ease-out;
-  text-transform: uppercase;
-  background: v.$white;
-  color: v.$black;
-  border: none;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    background: v.$accent;
-    color: v.$white;
-  }
+  @include m.ripple-button(v.$puddle);
 
   &.saved {
-    background: v.$accent;
-    color: v.$white;
+    color: v.$ink;
+    background: v.$puddle;
+    border-color: v.$puddle;
   }
 }
 
+// ── Prev / next: the neighbouring puddles ──────────────────────────────────
 .navigation {
-  margin-top: 6rem;
   display: grid;
-  grid-template-columns: 1fr 1px 1fr;
-  gap: 2rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 4rem;
-
-  @media (max-width: v.$mobile) {
-    grid-template-columns: 1fr;
-    padding-top: 2rem;
-  }
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1rem;
+  margin-top: clamp(3rem, 8vh, 5rem);
+  padding-top: 2rem;
+  border-top: 1px solid v.$line;
 }
 
 .navLink {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  text-decoration: none;
-  transition: transform 0.3s v.$ease-out;
-  line-height: 1;
+  display: grid;
+  gap: 0.4rem;
+  padding: 1rem 0;
+  min-width: 0;
 
-  &:hover {
+  grid-row: 1;
 
-    .navTitle {
-      color: v.$accent;
-    }
+  &:last-child {
+    text-align: right;
+    grid-column: 3;
+  }
+
+  &:hover { opacity: 1; }
+
+  &:hover .navTitle,
+  &:focus-visible .navTitle {
+    color: v.$rain-soft;
   }
 }
 
 .navLabel {
-  @include m.font-body;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: rgba(255, 255, 255, 0.2);
+  @include m.hud(v.$fog);
 }
 
 .navTitle {
-  @include m.font-heading;
-  font-size: 1.2rem;
-  color: v.$white;
-  transition: color 0.2s;
+  font-family: v.$font-display;
+  font-size: v.$step-1;
+  font-style: italic;
+  color: v.$paper;
+  transition: color 0.3s;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .navSpacer {
-  height: 100%;
-
-  @media (max-width: v.$mobile) {
-    display: none;
-  }
+  grid-column: 2;
+  grid-row: 1;
+  width: 1px;
+  background: v.$line;
 }
-
-.sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 4rem;
-}
-
-.authorCard {
-  padding: 2rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 1.5rem;
-
-  @media (max-width: v.$mobile) {
-    flex-direction: column;
-  }
-}
-
-.avatar {
-  width: 50px;
-  height: 50px;
-  background: v.$accent;
-  color: v.$white;
-  border-radius: 50%;
-  @include m.flex-center;
-  font-family: v.$font-serif;
-  font-size: 1.5rem;
-}
-
-.authorBio {
-  @include m.font-body;
-  font-size: 0.9rem;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.5);
-  margin-bottom: 1rem;
-}
-
-.viewProfile {
-  @include m.font-heading;
-  font-size: 0.75rem;
-  color: v.$white;
-  text-decoration: none;
-  border-bottom: 1px solid v.$accent;
-  padding-bottom: 2px;
-  width: fit-content;
-  transition: opacity 0.2s;
-
-  &:hover {
-    opacity: 0.7;
-  }
-}
-

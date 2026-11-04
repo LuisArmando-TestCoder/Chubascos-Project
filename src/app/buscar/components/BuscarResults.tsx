@@ -1,11 +1,11 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { PostCard } from '@/components/molecules/PostCard/PostCard';
 import { EventCard } from '@/components/molecules/EventCard/EventCard';
 import { UserCard } from '@/components/molecules/UserCard/UserCard';
 import i18n from '@/utils/i18n';
 import styles from '../buscar.module.scss';
 import type { Post, Event, User, Tag, Book } from '@/types';
+import type { PublicUser } from '@/actions/data';
 import type { TabType } from './BuscarTabs';
 
 interface BuscarResultsProps {
@@ -13,12 +13,11 @@ interface BuscarResultsProps {
   loading: boolean;
   hasSearched: boolean;
   selectedTag: string;
-  query: string; // The text search query for local filtering
-  
+
   posts: Post[];
   postCursor: string | null;
   onLoadMorePosts: () => void;
-  
+
   books: Book[];
   bookCursor: string | null;
   onLoadMoreBooks: () => void;
@@ -26,8 +25,8 @@ interface BuscarResultsProps {
   events: Event[];
   eventCursor: string | null;
   onLoadMoreEvents: () => void;
-  
-  users: User[];
+
+  users: PublicUser[];
   userCursor: string | null;
   onLoadMoreUsers: () => void;
 
@@ -42,213 +41,137 @@ interface BuscarResultsProps {
   tagMap: Record<string, Tag>;
 }
 
-export function BuscarResults({
-  activeTab,
-  loading,
-  hasSearched,
-  selectedTag,
-  query,
+const tagsOf = (ids: string[] | undefined, map: Record<string, Tag>) =>
+  (ids || []).map((id) => map[id]).filter(Boolean) as Tag[];
 
-  posts,
-  postCursor,
-  onLoadMorePosts,
-
-  books,
-  bookCursor,
-  onLoadMoreBooks,
-
-  events,
-  eventCursor,
-  onLoadMoreEvents,
-
-  users,
-  userCursor,
-  onLoadMoreUsers,
-
-  expiredEvents,
-  expiredEventCursor,
-  showExpiredEvents,
-  expiredLoading,
-  expiredLoaded,
-  onToggleExpired,
-  onLoadExpired,
-
-  tagMap
-}: BuscarResultsProps) {
-  // Local filtering based on query string
-  const q = query.toLowerCase().trim();
-  const filteredPosts = posts.filter(p => !q || p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q));
-  const filteredBooks = books.filter(b => !q || b.title.toLowerCase().includes(q) || b.content.toLowerCase().includes(q));
-  const filteredEvents = events.filter(e => !q || e.title.toLowerCase().includes(q) || (e.description && e.description.toLowerCase().includes(q)));
-  const filteredUsers = users.filter(u => !q || (u.username || '').toLowerCase().includes(q));
-  const filteredExpiredEvents = expiredEvents.filter(e => !q || e.title.toLowerCase().includes(q));
-
-  if (loading) {
-    return <p className={styles.loading}>{i18n.common.loading}</p>;
-  }
-
-  // If there's no selected tag AND no text query, prompt user
-  // Wait, if there's no tag, they can still text-search if we want, but currently 
-  // BuscarContent forces selectedTag. Let's just follow the existing logic where they need something.
-  if (!selectedTag && !q) {
-    return <p className={styles.hint}>Selecciona una etiqueta o escribe un nombre para empezar a buscar.</p>;
-  }
-
+function LoadMore({ onClick, label = i18n.common.seeMore }: { onClick: () => void; label?: string }) {
+  const [busy, setBusy] = React.useState(false);
   return (
-    <>
-      {hasSearched && activeTab === 'posts' && filteredPosts.length === 0 && (
-        <p className={styles.hint}>No se encontraron poemas para esta búsqueda.</p>
-      )}
-
-      {hasSearched && activeTab === 'users' && filteredUsers.length === 0 && (
-        <p className={styles.hint}>No se encontraron poetas para esta búsqueda.</p>
-      )}
-
-      {hasSearched && activeTab === 'books' && filteredBooks.length === 0 && (
-        <p className={styles.hint}>No se encontraron libros para esta búsqueda.</p>
-      )}
-
-      {hasSearched && activeTab === 'events' && filteredEvents.length === 0 && filteredExpiredEvents.length === 0 && (
-        <p className={styles.hint}>No se encontraron eventos para esta búsqueda.</p>
-      )}
-
-      {activeTab === 'posts' && filteredPosts.length > 0 && (
-        <div className={styles.results}>
-          {filteredPosts.map((post, i) => (
-            <motion.div
-              key={post.id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-            >
-              <PostCard
-                post={post}
-                showAuthor
-                tags={(post.tagIds || []).map((id) => tagMap[id]).filter(Boolean) as Tag[]}
-              />
-            </motion.div>
-          ))}
-          {postCursor && (
-            <button className={styles.loadMore} onClick={onLoadMorePosts}>
-              {i18n.common.seeMore}
-            </button>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'books' && filteredBooks.length > 0 && (
-        <div className={styles.results}>
-          {filteredBooks.map((book, i) => (
-            <motion.div
-              key={book.id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-            >
-              <PostCard
-                post={book}
-                showAuthor
-                type="book"
-                tags={(book.tagIds || []).map((id) => tagMap[id]).filter(Boolean) as Tag[]}
-              />
-            </motion.div>
-          ))}
-          {bookCursor && (
-            <button className={styles.loadMore} onClick={onLoadMoreBooks}>
-              {i18n.common.seeMore}
-            </button>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'events' && (
-        <div>
-          {filteredEvents.length > 0 && (
-            <div className={styles.resultsGrid}>
-              {filteredEvents.map((event, i) => (
-                <motion.div
-                  key={event.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                >
-                  <EventCard
-                    event={event}
-                    tags={(event.tagIds || []).map((id) => tagMap[id]).filter(Boolean) as Tag[]}
-                  />
-                </motion.div>
-              ))}
-            </div>
-          )}
-          
-          {eventCursor && (
-            <button className={styles.loadMore} onClick={onLoadMoreEvents}>
-              Cargar más
-            </button>
-          )}
-
-          {hasSearched && (
-            <div className={styles.expiredToggleRow}>
-              <button
-                className={styles.expiredToggle}
-                onClick={onToggleExpired}
-                aria-expanded={showExpiredEvents}
-              >
-                {showExpiredEvents ? '▲ Ocultar expirados' : '▼ Ver eventos expirados'}
-                {expiredLoading && <span className={styles.tagSpinner} aria-hidden="true" />}
-              </button>
-            </div>
-          )}
-
-          {showExpiredEvents && filteredExpiredEvents.length > 0 && (
-            <div className={styles.resultsGrid}>
-              {filteredExpiredEvents.map((event, i) => (
-                <motion.div
-                  key={event.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03 }}
-                >
-                  <EventCard
-                    event={event}
-                    expired
-                    tags={(event.tagIds || []).map((id) => tagMap[id]).filter(Boolean) as Tag[]}
-                  />
-                </motion.div>
-              ))}
-              {expiredEventCursor && (
-                <button className={styles.loadMore} onClick={onLoadExpired}>
-                  Cargar más expirados
-                </button>
-              )}
-            </div>
-          )}
-
-          {showExpiredEvents && expiredLoaded && filteredExpiredEvents.length === 0 && (
-            <p className={styles.hint}>No hay eventos expirados para esta búsqueda.</p>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'users' && filteredUsers.length > 0 && (
-        <div className={styles.resultsGrid}>
-          {filteredUsers.map((user, i) => (
-            <motion.div
-              key={user.id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-            >
-              <UserCard user={user} />
-            </motion.div>
-          ))}
-          {userCursor && (
-            <button className={styles.loadMore} onClick={onLoadMoreUsers}>
-              Cargar más
-            </button>
-          )}
-        </div>
-      )}
-    </>
+    <button
+      type="button"
+      className={styles.loadMore}
+      aria-busy={busy}
+      disabled={busy}
+      onClick={async () => { setBusy(true); try { await onClick(); } finally { setBusy(false); } }}
+    >
+      {busy ? i18n.common.loading : label}
+    </button>
   );
+}
+
+export function BuscarResults(props: BuscarResultsProps) {
+  const {
+    activeTab, loading, hasSearched, selectedTag,
+    posts, postCursor, onLoadMorePosts,
+    books, bookCursor, onLoadMoreBooks,
+    events, eventCursor, onLoadMoreEvents,
+    users, userCursor, onLoadMoreUsers,
+    expiredEvents, expiredEventCursor, showExpiredEvents, expiredLoading, expiredLoaded,
+    onToggleExpired, onLoadExpired, tagMap,
+  } = props;
+
+  const panel = (children: React.ReactNode) => (
+    <div id="buscar-panel" role="tabpanel" aria-labelledby={`tab-${activeTab}`} className={`${styles.panel} ${loading ? styles.panelLoading : ''}`}>
+      {children}
+    </div>
+  );
+
+  if (!selectedTag) {
+    return panel(<p className={styles.hint}>Toca una etiqueta o escribe una palabra para empezar.</p>);
+  }
+
+  if (loading && !hasSearched) {
+    return panel(<p className={styles.loading}>{i18n.common.loading}</p>);
+  }
+
+  if (activeTab === 'posts') {
+    return panel(posts.length === 0
+      ? <p className={styles.hint}>Aún no ha llovido ningún poema bajo esta etiqueta.</p>
+      : (
+        <>
+          <ol className={styles.results}>
+            {posts.map((post) => (
+              <li key={post.id}><PostCard post={post} showAuthor tags={tagsOf(post.tagIds, tagMap)} /></li>
+            ))}
+          </ol>
+          {postCursor && <LoadMore onClick={onLoadMorePosts} />}
+        </>
+      ));
+  }
+
+  if (activeTab === 'books') {
+    return panel(books.length === 0
+      ? <p className={styles.hint}>No hay libros bajo esta etiqueta.</p>
+      : (
+        <>
+          <ol className={styles.results}>
+            {books.map((book) => (
+              <li key={book.id}><PostCard post={book} showAuthor type="book" tags={tagsOf(book.tagIds, tagMap)} /></li>
+            ))}
+          </ol>
+          {bookCursor && <LoadMore onClick={onLoadMoreBooks} />}
+        </>
+      ));
+  }
+
+  if (activeTab === 'events') {
+    return panel(
+      <>
+        {events.length > 0 ? (
+          <ul className={styles.resultsGrid}>
+            {events.map((event) => (
+              <li key={event.id}><EventCard event={event} tags={tagsOf(event.tagIds, tagMap)} /></li>
+            ))}
+          </ul>
+        ) : (
+          <p className={styles.hint}>No hay eventos próximos bajo esta etiqueta.</p>
+        )}
+        {eventCursor && <LoadMore onClick={onLoadMoreEvents} />}
+
+        {hasSearched && (
+          <div className={styles.expiredToggleRow}>
+            <button
+              type="button"
+              className={styles.expiredToggle}
+              onClick={onToggleExpired}
+              aria-expanded={showExpiredEvents}
+              aria-controls="eventos-expirados"
+            >
+              {showExpiredEvents ? 'Ocultar lluvias pasadas' : 'Ver lluvias pasadas (eventos expirados)'}
+              {expiredLoading && <span className={styles.tagSpinner} aria-hidden="true" />}
+            </button>
+          </div>
+        )}
+
+        <div id="eventos-expirados">
+          {showExpiredEvents && expiredEvents.length > 0 && (
+            <>
+              <ul className={styles.resultsGrid}>
+                {expiredEvents.map((event) => (
+                  <li key={event.id}><EventCard event={event} expired tags={tagsOf(event.tagIds, tagMap)} /></li>
+                ))}
+              </ul>
+              {expiredEventCursor && <LoadMore onClick={onLoadExpired} label="Cargar más expirados" />}
+            </>
+          )}
+          {showExpiredEvents && expiredLoaded && expiredEvents.length === 0 && (
+            <p className={styles.hint}>No hay eventos expirados bajo esta etiqueta.</p>
+          )}
+        </div>
+      </>
+    );
+  }
+
+  return panel(users.length === 0
+    ? <p className={styles.hint}>Ningún poeta ha elegido esta etiqueta todavía.</p>
+    : (
+      <>
+        <ul className={styles.resultsGrid}>
+          {users.map((user) => (
+            <li key={user.id}><UserCard user={user as unknown as User} /></li>
+          ))}
+        </ul>
+        {userCursor && <LoadMore onClick={onLoadMoreUsers} />}
+      </>
+    ));
 }

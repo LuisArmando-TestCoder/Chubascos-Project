@@ -17,34 +17,34 @@
 }
 
 .label {
-  font-family: v.$font-mono;
+  font-family: v.$font-hud;
   font-size: 0.62rem;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: v.$accent;
+  color: v.$rain-soft;
 }
 
 .title {
-  font-family: v.$font-serif;
+  font-family: v.$font-display;
   font-weight: 300;
   font-size: 1.3rem;
   letter-spacing: -0.02em;
   margin: 0;
-  color: v.$white;
+  color: v.$paper;
 }
 
 .hint {
-  font-family: v.$font-sans;
+  font-family: v.$font-ui;
   font-size: 0.82rem;
   line-height: 1.5;
-  color: rgba(255, 255, 255, 0.45);
+  color: v.$fog;
   margin: 0;
   max-width: 52ch;
 }
 
 .msg {
-  font-family: v.$font-mono;
+  font-family: v.$font-hud;
   font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.55);
+  color: v.$mist;
   margin: 0;
 }

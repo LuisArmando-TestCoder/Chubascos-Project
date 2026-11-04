@@ -11,9 +11,9 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { eventId } = await params;
   const event = await getEvent(eventId);
-  if (!event) return { title: 'Evento no encontrado | Chubascos' };
+  if (!event) return { title: 'Evento no encontrado' };
   return {
-    title: `${event.title} | Chubascos`,
+    title: `${event.title}`,
     description: event.description || event.place,
     openGraph: { title: event.title, description: event.description || '' },
   };

@@ -1,0 +1,179 @@
+@use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
+
+@keyframes fall {
+  from { transform: translate(-50%, -140%); opacity: 0; }
+  60% { opacity: 1; }
+  to { transform: translate(-50%, -50%); opacity: 1; }
+}
+
+.figure {
+  margin: 0;
+}
+
+.chart {
+  position: relative;
+  height: clamp(220px, 34vh, 340px);
+  border-block: 1px solid v.$line;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), rgba(236, 235, 228, 0.035) calc(10% - 1px) 10%),
+    linear-gradient(to top, rgba(v.$accent, 0.08), transparent 55%);
+}
+
+.baseline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 18%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(143, 211, 232, 0.5), transparent);
+}
+
+.drops {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.drop {
+  position: absolute;
+  bottom: var(--lift);
+  width: 0;
+  height: 0;
+}
+
+.link {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  width: max(var(--size), 44px);
+  height: max(var(--size), 44px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: fall 1s v.$ease-drop both;
+    animation-delay: calc(var(--i) * 70ms);
+
+    @supports (animation-timeline: view()) {
+      animation-timeline: view();
+      animation-range: entry 10% cover 40%;
+      animation-delay: 0s;
+    }
+  }
+
+  &:hover, &:focus-visible {
+    opacity: 1;
+    z-index: 2;
+  }
+}
+
+.ring {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  border: 1px solid rgba(236, 235, 228, 0.55);
+  box-shadow: 0 0 0 calc(var(--size) * 0.18) rgba(v.$accent, 0.06), inset 0 0 calc(var(--size) * 0.3) rgba(v.$accent, 0.25);
+  transition: transform 0.7s v.$ease-drop, border-color 0.3s, background 0.3s;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 42%;
+    border-radius: 50%;
+    background: v.$rain-soft;
+  }
+
+  .link:hover &, .link:focus-visible & {
+    transform: scale(1.35);
+    border-color: v.$puddle;
+    background: rgba(143, 211, 232, 0.12);
+  }
+}
+
+// The rain that made the puddle.
+.streak {
+  position: absolute;
+  left: 50%;
+  bottom: 50%;
+  width: 1px;
+  height: 120px;
+  background: linear-gradient(to top, rgba(236, 235, 228, 0.35), transparent);
+  pointer-events: none;
+}
+
+.tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  transform: translate(-50%, 6px);
+  display: grid;
+  gap: 2px;
+  min-width: 10rem;
+  max-width: 16rem;
+  padding: 0.6rem 0.8rem;
+  background: v.$ink-3;
+  border: 1px solid v.$line-strong;
+  border-radius: v.$radius;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s, transform 0.4s v.$ease-drop;
+
+  .link:hover &, .link:focus-visible & {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.tipTitle {
+  font-family: v.$font-display;
+  font-size: 1rem;
+  color: v.$paper;
+  line-height: 1.25;
+}
+
+.tipMeta {
+  @include m.hud(v.$mist);
+  font-size: 0.6rem;
+}
+
+.axis {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 18%;
+}
+
+.tick {
+  @include m.hud(v.$fog);
+  position: absolute;
+  bottom: 8px;
+  transform: translateX(-50%);
+  font-size: 0.58rem;
+  white-space: nowrap;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 6px);
+    width: 1px;
+    height: 8px;
+    background: v.$line-strong;
+  }
+}
+
+.caption {
+  margin-top: 1rem;
+  font-family: v.$font-display;
+  font-style: italic;
+  color: v.$mist;
+  max-width: 60ch;
+}

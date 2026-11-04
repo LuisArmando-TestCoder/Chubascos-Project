@@ -1,70 +1,60 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import styles from '../buscar.module.scss';
 import i18n from '@/utils/i18n';
-import type { Tag, Post, Event, User, Book } from '@/types';
 
 export type TabType = 'posts' | 'events' | 'users' | 'books';
 
 interface BuscarTabsProps {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
-  selectedTag: string;
-  tags: Tag[];
-  tagMap: Record<string, Tag>;
-  posts: Post[];
-  events: Event[];
-  users: User[];
-  books: Book[];
+  counts: Record<TabType, number>;
+  showCounts: boolean;
 }
 
-export function BuscarTabs({
-  activeTab,
-  setActiveTab,
-  selectedTag,
-  tags,
-  tagMap,
-  posts,
-  events,
-  users,
-  books
-}: BuscarTabsProps) {
-  const tabs: TabType[] = ['posts', 'events', 'books', 'users'];
+const TABS: TabType[] = ['posts', 'events', 'books', 'users'];
+const LABEL: Record<TabType, string> = {
+  posts: i18n.common.poems,
+  events: i18n.common.events,
+  books: 'Libros',
+  users: i18n.common.poets,
+};
+
+/** WAI-ARIA tabs: arrows move, Home/End jump, roving tabindex. */
+export function BuscarTabs({ activeTab, setActiveTab, counts, showCounts }: BuscarTabsProps) {
+  const refs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const i = TABS.indexOf(activeTab);
+    let next: number | null = null;
+    if (e.key === 'ArrowRight') next = (i + 1) % TABS.length;
+    if (e.key === 'ArrowLeft') next = (i - 1 + TABS.length) % TABS.length;
+    if (e.key === 'Home') next = 0;
+    if (e.key === 'End') next = TABS.length - 1;
+    if (next === null) return;
+    e.preventDefault();
+    setActiveTab(TABS[next]);
+    refs.current[TABS[next]]?.focus();
+  };
 
   return (
-    <div className={styles.tabs} role="tablist">
-      {tabs.map((tab) => {
-        let label = 
-          tab === 'posts' ? i18n.common.poems : 
-          tab === 'events' ? i18n.common.events : 
-          tab === 'books' ? 'Libros' :
-          i18n.common.poets;
-
-        let count = 
-          tab === 'posts' ? posts.length : 
-          tab === 'events' ? events.length : 
-          tab === 'books' ? books.length :
-          users.length;
-
-        if (selectedTag) {
-          const tagObj = tags.find(t => t.id === selectedTag) || tagMap[selectedTag];
-          if (tagObj) {
-            if (tab === 'posts') count = tagObj.usedByPosts ?? posts.length;
-            else if (tab === 'events') count = tagObj.usedByEvents ?? events.length;
-            else if (tab === 'books') count = tagObj.usedByBooks ?? books.length;
-            else count = users.length;
-          }
-          label += ` (${count})`;
-        }
-
+    <div className={styles.tabs} role="tablist" aria-label="Tipo de resultado" onKeyDown={onKeyDown}>
+      {TABS.map((tab) => {
+        const selected = activeTab === tab;
         return (
           <button
             key={tab}
+            ref={(el) => { refs.current[tab] = el; }}
+            id={`tab-${tab}`}
             role="tab"
-            aria-selected={activeTab === tab}
-            className={`${styles.tab} ${activeTab === tab ? styles.activeTab : ''}`}
+            type="button"
+            aria-selected={selected}
+            aria-controls="buscar-panel"
+            tabIndex={selected ? 0 : -1}
+            className={`${styles.tab} ${selected ? styles.activeTab : ''}`}
             onClick={() => setActiveTab(tab)}
           >
-            {label}
+            {LABEL[tab]}
+            {showCounts && <span className={styles.tabCount}>{counts[tab]}</span>}
           </button>
         );
       })}

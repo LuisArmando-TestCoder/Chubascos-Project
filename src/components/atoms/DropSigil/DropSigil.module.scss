@@ -1,0 +1,49 @@
+@use '@/styles/variables' as v;
+
+.sigil {
+  flex-shrink: 0;
+  overflow: visible;
+  color: v.$paper;
+}
+
+.ring {
+  fill: none;
+  stroke: currentColor;
+  vector-effect: non-scaling-stroke;
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  transition: transform 0.9s v.$ease-drop;
+  transition-delay: calc(var(--i) * 45ms);
+
+  @media (prefers-reduced-motion: no-preference) {
+    // Rings draw themselves outward, once, as the sigil enters view.
+    stroke-dasharray: 1;
+    animation: draw-ring 1.4s v.$ease-drop both;
+    animation-delay: calc(var(--i) * 90ms);
+    --len: 1;
+
+    @supports (animation-timeline: view()) {
+      animation-timeline: view();
+      animation-range: entry 0% cover 35%;
+      animation-delay: 0s;
+    }
+  }
+}
+
+// Hovering anything that holds a sigil makes the puddle breathe.
+:global(:hover) > .sigil .ring,
+:global(:focus-visible) > .sigil .ring,
+.sigil:hover .ring {
+  transform: scale(calc(1 + (var(--i) + 1) * 0.018));
+}
+
+.eye {
+  fill: v.$rain;
+}
+
+.glyph {
+  fill: v.$paper;
+  font-family: v.$font-display;
+  font-size: 30px;
+  font-weight: 300;
+}

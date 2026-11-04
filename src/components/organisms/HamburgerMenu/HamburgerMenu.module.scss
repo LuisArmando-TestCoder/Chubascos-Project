@@ -4,26 +4,44 @@
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 200;
-  background: v.$black;
+  z-index: v.$z-menu;
+  background:
+    radial-gradient(90% 70% at 85% 10%, rgba(v.$accent, 0.16), transparent 60%),
+    radial-gradient(70% 60% at 0% 100%, rgba(143, 211, 232, 0.08), transparent 60%),
+    rgba(6, 7, 10, 0.97);
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 0 5vw;
-  overflow: hidden;
+  padding: v.$header-height v.$gutter;
+  overflow-y: auto;
+
+  // Concentric rings behind the links: the menu is a puddle you fell into.
+  &::before {
+    content: '';
+    position: absolute;
+    right: -20vmax;
+    top: 50%;
+    width: 90vmax;
+    aspect-ratio: 1;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    background: repeating-radial-gradient(circle, transparent 0 3.6vmax, rgba(236, 235, 228, 0.05) 3.6vmax calc(3.6vmax + 1px));
+    mask-image: radial-gradient(circle, #000 20%, transparent 70%);
+    pointer-events: none;
+  }
 }
 
 .navContent {
-  display: flex;
-  flex-direction: column;
-  gap: 4rem;
-  padding-left: 2rem;
-  z-index: 2;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: v.$max-width;
+  margin: 0 auto;
+  display: grid;
+  gap: clamp(2.5rem, 6vh, 5rem);
 
-  @media (max-width: v.$tablet) {
-    padding-left: 0;
-    align-items: center;
-    gap: 3rem;
+  @media (min-width: v.$laptop) {
+    grid-template-columns: 2fr 1fr;
+    align-items: end;
   }
 }
 
@@ -33,78 +51,38 @@
   flex-direction: column;
 }
 
-.primaryNav {
-  gap: 1rem;
-}
-
-.secondaryNav {
-  gap: 0.5rem;
-}
+.primaryNav { gap: 0.25rem; }
+.secondaryNav { gap: 0.75rem; }
 
 .sectionLabel {
-  @include m.font-body;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: rgba(255, 255, 255, 0.25);
-  margin-bottom: 0.5rem;
+  @include m.hud(v.$fog);
+  margin-bottom: 1rem;
 }
 
 .linkWrapper {
   width: fit-content;
-  padding-left: 2rem;
-  margin-left: -2rem; // Keep alignment but allow for hover movement
-
-  &:hover .primaryLink {
-    opacity: 1;
-    transform: translateX(2rem);
-    color: v.$accent;
-
-    &::before {
-      width: 1.5rem;
-      left: -1.5rem;
-    }
-  }
-
-  @media (max-width: v.$tablet) {
-    padding-left: 0;
-    margin-left: 0;
-    &:hover .primaryLink {
-      transform: none;
-    }
-  }
 }
 
 .primaryLink {
-  @include m.font-heading;
-  font-size: clamp(3rem, 8vw, 6.5rem);
-  color: v.$white;
-  text-decoration: none;
-  opacity: 0.35;
-  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-  cursor: pointer;
-  display: inline-block;
-  line-height: 1;
-  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1rem;
+  @include m.display(clamp(2.8rem, 2rem + 6vw, 7rem));
+  font-style: italic;
+  color: v.$paper;
+  transition: transform 0.7s v.$ease-drop, color 0.3s;
 
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 50%;
-    width: 0;
-    height: 2px;
-    background: v.$accent;
-    transition: width 0.3s ease, left 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-    transform: translateY(-50%);
+  &:hover, &:focus-visible {
+    opacity: 1;
+    color: v.$rain-soft;
+    transform: translateX(1.5rem);
   }
+}
 
-  @media (max-width: v.$tablet) {
-    font-size: clamp(2.5rem, 10vw, 4rem);
-    &::before {
-      display: none;
-    }
-  }
+.linkIndex {
+  @include m.hud(v.$fog);
+  font-style: normal;
+  transform: translateY(-1.6em);
 }
 
 .loginWrapper {
@@ -112,63 +90,22 @@
 }
 
 .loginLink {
-  @include m.font-body;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: v.$white;
-  text-decoration: none;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 0.8rem 2rem;
-  display: inline-block;
-  transition: all 0.35s cubic-bezier(0.23, 1, 0.32, 1);
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(8px);
-
-  &:hover {
-    border-color: v.$white;
-    background: v.$white;
-    color: v.$black;
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1);
-  }
-
-  @media (max-width: v.$tablet) {
-    display: block;
-    text-align: center;
-    padding: 0.7rem 2rem;
-  }
+  @include m.ripple-button(v.$puddle);
 }
 
 .emailLabel {
-  @include m.font-body;
-  font-size: 0.6rem;
-  letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.2);
+  @include m.hud(v.$fog);
   display: block;
   margin-top: 0.75rem;
+  text-transform: none;
+  letter-spacing: 0.04em;
 }
 
 .secondaryLink {
-  @include m.font-heading;
-  font-size: clamp(1rem, 2vw, 1.5rem);
-  color: v.$white;
-  text-decoration: none;
-  opacity: 0.4;
-  transition: all 0.3s ease;
-  cursor: pointer;
+  font-family: v.$font-display;
+  font-size: v.$step-1;
+  color: v.$mist;
+  @include m.tide-link(v.$mist);
 
-  &:hover {
-    opacity: 0.9;
-    color: v.$accent;
-    transform: translateX(0.5rem);
-  }
-
-  @media (max-width: v.$tablet) {
-    text-align: center;
-    &:hover {
-      transform: none;
-    }
-  }
+  &:hover { color: v.$paper; }
 }
-

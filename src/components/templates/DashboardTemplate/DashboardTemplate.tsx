@@ -20,6 +20,7 @@ import { useSavedStore } from '@/store/saved';
 import { DashboardPostsList } from './DashboardPostsList';
 import { BookDownloadButton } from '@/components/molecules/BookDownloadButton/BookDownloadButton';
 import styles from './DashboardTemplate.module.scss';
+import { DropSigil } from '@/components/atoms/DropSigil/DropSigil';
 
 const ShaderCanvas = dynamic(() => import('@/components/organisms/ShaderCanvas/ShaderCanvas'), { ssr: false });
 
@@ -419,7 +420,13 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
         <div className={styles.inner}>
           <header className={styles.header}>
             <div className={styles.headerTop}>
-              <h1 className={styles.greeting}>Bienvenido, {name}</h1>
+              <div className={styles.greetingRow}>
+                <DropSigil seed={user.id} text={bio} size={72} className={styles.greetingSigil} glyph={name.slice(0, 1).toUpperCase()} />
+                <div>
+                  <span className={styles.studioLabel}>Tu taller · {userPosts.length} {userPosts.length === 1 ? 'poema' : 'poemas'}</span>
+                  <h1 className={styles.greeting}>Bienvenido, {name}</h1>
+                </div>
+              </div>
               <div className={styles.headerActions}>
                 <Link href={`/u/${encodeURIComponent(user.id)}`} className={styles.profileLink}>
                   Ver perfil →

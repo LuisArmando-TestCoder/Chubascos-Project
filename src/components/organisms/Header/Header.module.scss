@@ -6,165 +6,146 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 100;
+  z-index: v.$z-header;
   height: v.$header-height;
-  @include m.glass;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  // Not a bar: a gradient of night that lets the water show through.
+  background: linear-gradient(to bottom, rgba(6, 7, 10, 0.92), rgba(6, 7, 10, 0.55) 70%, transparent);
+  transition: transform 0.5s v.$ease-drop, opacity 0.5s v.$ease-drop;
   transform: translateY(0);
 
   &.hidden {
     transform: translateY(-100%);
+    opacity: 0;
   }
 }
 
 .inner {
-  max-width: v.$max-width;
+  @include m.container;
   height: 100%;
-  margin: 0 auto;
-  padding: 0 5vw;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 0 0 1px;
 }
 
 .logo {
-  font-family: v.$font-serif;
-  font-size: 1.1rem;
-  font-weight: 300;
-  letter-spacing: 0.12em;
-  text-decoration: none;
-  color: v.$white;
-  text-transform: uppercase;
-  opacity: 0.9;
-  transition: opacity 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 20px;
+  color: v.$paper;
+  min-height: 44px;
 
-  &:hover {
-    opacity: 1;
+  &:hover { opacity: 1; }
+}
+
+.logoDrop {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: v.$rain;
+  box-shadow: 0 0 12px rgba(v.$accent, 0.8);
+
+  // A ring leaves the drop every few seconds: the record is always running.
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -7px;
+    border: 1px solid v.$rain-soft;
+    border-radius: 50%;
+    animation: ripple-out 3.2s v.$ease-drop infinite;
+  }
+}
+
+.logoWord {
+  font-family: v.$font-display;
+  font-size: 1.15rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transition: letter-spacing 0.6s v.$ease-drop;
+
+  .logo:hover & {
+    letter-spacing: 0.22em;
   }
 }
 
 .actions {
   display: flex;
   align-items: center;
-  gap: 24px;
-  margin-right: 64px;
+  gap: clamp(12px, 2vw, 28px);
+  margin-right: 60px;
+}
 
-  @media (max-width: v.$tablet) {
-    margin-right: 60px;
-    gap: 16px;
+.navLink {
+  @include m.hud(v.$mist);
+  @include m.tide-link(v.$mist);
+  padding-block: 4px;
+
+  &:hover { color: v.$paper; }
+
+  @media (max-width: v.$mobile) {
+    display: none;
   }
 }
 
 .saved {
+  @include m.hud(v.$mist);
   display: flex;
   align-items: center;
-  gap: 6px;
-  text-decoration: none;
-  color: rgba(255, 255, 255, 0.5);
-  font-family: v.$font-mono;
-  font-size: 0.72rem;
-  transition: color 0.2s;
+  gap: 8px;
+  min-height: 44px;
 
-  &:hover {
-    color: rgba(255, 255, 255, 0.9);
-  }
+  &:hover { color: v.$paper; opacity: 1; }
 }
 
 .savedCount {
-  background: v.$accent;
-  color: v.$black;
-  border-radius: 50%;
-  width: 18px;
-  height: 18px;
-  display: flex;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.6rem;
-  font-weight: 700;
+  border-radius: 999px;
+  background: v.$puddle;
+  color: v.$ink;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 .savedLabel {
-  @media (max-width: 500px) {
+  @media (max-width: 560px) {
     display: none;
   }
 }
 
 .loginBtn {
-  font-family: v.$font-mono;
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: v.$white;
-  text-decoration: none;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 8px 18px;
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(4px);
-  position: relative;
+  @include m.ripple-button(v.$paper);
+  min-height: 36px;
+  padding: 0.55em 1.2em;
+  max-width: 22ch;
   overflow: hidden;
-  transition: all 0.35s cubic-bezier(0.23, 1, 0.32, 1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.08),
-      transparent
-    );
-    transition: 0.5s;
-  }
-
-  &:hover {
-    border-color: v.$white;
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 20px rgba(255, 255, 255, 0.08);
-
-    &::before {
-      left: 100%;
-    }
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-
-  @media (max-width: v.$tablet) {
-    padding: 6px 14px;
-    font-size: 0.62rem;
-  }
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+// ── Hamburger (unchanged motion, now a real <button>) ───────────────────────
 .hamWrapper {
-  cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   display: flex;
   align-items: center;
+  justify-content: center;
   position: fixed;
-  top: calc((v.$header-height - 60px) / 2);
-  right: v.$safe-padding;
-  z-index: 300;
-
-  @media (max-width: v.$tablet) {
-    right: 5vw;
-  }
+  top: calc((v.$header-height - 56px) / 2);
+  right: calc(v.$gutter - 12px);
+  z-index: v.$z-menu + 10;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
 }
 
 .ham {
-  cursor: pointer;
   transition: transform 400ms;
 }
 
@@ -173,10 +154,9 @@
   transition:
     stroke-dasharray 400ms,
     stroke-dashoffset 400ms;
-  stroke: v.$white;
-  stroke-width: 5.5;
+  stroke: v.$paper;
+  stroke-width: 5;
   stroke-linecap: round;
-  opacity: 0.8;
 }
 
 .hamRotate.active {

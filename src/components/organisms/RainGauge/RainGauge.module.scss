@@ -1,0 +1,109 @@
+@use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
+
+@property --mm {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}
+
+@keyframes gauge-fill {
+  from { transform: scaleY(0); --mm: 0; }
+  to { transform: scaleY(1); --mm: 100; }
+}
+
+@keyframes gauge-count {
+  from { --mm: 0; }
+  to { --mm: 100; }
+}
+
+.gauge {
+  position: fixed;
+  right: clamp(10px, 1.6vw, 28px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: v.$z-hud;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  pointer-events: none;
+  mix-blend-mode: difference; // stays legible over the hero and over cards
+
+  @media (min-width: v.$tablet) {
+    display: flex;
+  }
+}
+
+.label {
+  @include m.hud(v.$mist);
+  font-size: 0.58rem;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.track {
+  position: relative;
+  width: 1px;
+  height: 34vh;
+  background: rgba(236, 235, 228, 0.22);
+}
+
+.fill {
+  position: absolute;
+  inset: 0;
+  left: -1px;
+  width: 3px;
+  background: linear-gradient(to bottom, v.$puddle, v.$rain);
+  transform-origin: top;
+  transform: scaleY(0.04);
+
+  @supports (animation-timeline: scroll()) {
+    animation: gauge-fill linear both;
+    animation-timeline: scroll(root block);
+  }
+}
+
+.tick,
+.tickMajor {
+  position: absolute;
+  right: 3px;
+  height: 1px;
+  background: rgba(236, 235, 228, 0.35);
+}
+
+.tick { width: 4px; }
+.tickMajor { width: 9px; background: rgba(236, 235, 228, 0.6); }
+
+.readout {
+  @include m.hud(v.$paper);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.62rem;
+}
+
+.mm {
+  min-width: 3ch;
+  text-align: center;
+
+  &::before {
+    content: '—';
+  }
+
+  @supports (animation-timeline: scroll()) {
+    animation: gauge-count linear both;
+    animation-timeline: scroll(root block);
+    counter-reset: mm var(--mm);
+
+    &::before {
+      content: counter(mm, decimal-leading-zero);
+    }
+  }
+}
+
+.unit {
+  color: v.$fog;
+  font-size: 0.52rem;
+}

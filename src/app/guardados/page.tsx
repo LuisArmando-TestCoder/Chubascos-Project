@@ -120,9 +120,9 @@ export default function GuardadosPage() {
                               else if (activeTab === 'users') unsaveUser(item.id);
                               else unsaveEvent(item.id);
                             }}
-                            aria-label="Eliminar"
                           >
                             {activeTab === 'users' ? 'Dejar de seguir' : 'Quitar'}
+                            <span className="visually-hidden"> {activeTab === 'users' ? (item.username || item.id) : item.title}</span>
                           </button>
                         </div>
                       ))

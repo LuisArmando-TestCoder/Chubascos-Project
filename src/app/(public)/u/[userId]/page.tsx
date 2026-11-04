@@ -14,10 +14,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { userId: rawId } = await params;
   const userId = decodeURIComponent(rawId);
   const user = await getUserProfile(userId);
-  if (!user) return { title: 'Usuario no encontrado | Chubascos' };
+  if (!user) return { title: 'Usuario no encontrado' };
   const name = user.username || user.email.split('@')[0];
   return {
-    title: `${name} | Chubascos`,
+    title: `${name}`,
     description: user.bio || `Perfil de ${name} en Chubascos.`,
     openGraph: { title: name, description: user.bio || '' },
   };

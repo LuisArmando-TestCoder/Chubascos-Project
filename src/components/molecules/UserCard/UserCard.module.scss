@@ -1,70 +1,75 @@
 @use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
 
 .card {
-  padding: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  transition: border-color 0.2s, transform 0.2s;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 1.1rem 1.25rem 1.1rem 1rem;
+  height: 100%;
+  @include m.surface;
+  transition: border-color 0.4s, background 0.4s;
+  @include m.settle(24px);
 
-  &:hover {
-    border-color: rgba(255, 255, 255, 0.18);
+  &:hover,
+  &:focus-within {
+    border-color: v.$line-strong;
+    background: color-mix(in srgb, v.$ink-3 92%, transparent);
   }
 }
 
 .badge {
-  font-family: v.$font-mono;
-  font-size: 0.6rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: v.$accent;
-  opacity: 0.7;
-  display: block;
-  margin-bottom: 10px;
-}
-
-.inner {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  text-decoration: none;
-  color: inherit;
+  @include m.hud(v.$rain-soft);
+  position: absolute;
+  top: 0.6rem;
+  right: 0.8rem;
 }
 
 .avatar {
-  width: 44px;
-  height: 44px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: v.$font-mono;
-  font-size: 1rem;
+  width: 64px;
+  height: 64px;
   flex-shrink: 0;
-  color: rgba(255, 255, 255, 0.5);
+  color: v.$mist;
+  transition: color 0.4s;
+
+  .card:hover & { color: v.$rain-soft; }
 }
 
 .info {
-  flex: 1;
   min-width: 0;
 }
 
 .name {
-  font-family: v.$font-mono;
-  font-size: 0.85rem;
-  font-weight: 500;
-  margin: 0 0 4px;
-  color: rgba(255, 255, 255, 0.85);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @include m.display(v.$step-1);
+  font-weight: 400;
+  margin: 0;
+}
+
+.inner {
+  color: v.$paper;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+
+  &:hover { opacity: 1; color: v.$rain-soft; }
+
+  &:focus-visible {
+    outline: none;
+    &::after { outline: 2px solid var(--focus); outline-offset: -2px; border-radius: v.$radius; }
+  }
 }
 
 .bio {
-  font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.35);
-  margin: 0;
-  line-height: 1.4;
+  margin: 0.3rem 0 0;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: v.$mist;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }

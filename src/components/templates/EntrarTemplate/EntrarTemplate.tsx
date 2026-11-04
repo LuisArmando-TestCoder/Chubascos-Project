@@ -82,7 +82,10 @@ export default function EntrarTemplate() {
                   exit={{ opacity: 0, x: 10 }}
                   className={styles.inputWrapper}
                 >
+                  <label htmlFor="entrar-email" className="visually-hidden">Correo electrónico</label>
                   <input
+                    id="entrar-email"
+                    autoComplete="email"
                     className={styles.input}
                     type="email"
                     placeholder={i18n.auth.emailPlaceholder}
@@ -99,7 +102,13 @@ export default function EntrarTemplate() {
                   exit={{ opacity: 0, x: -10 }}
                   className={styles.inputWrapper}
                 >
+                  <label htmlFor="entrar-otp" className="visually-hidden">Código de acceso de 6 dígitos</label>
                   <input
+                    id="entrar-otp"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    pattern="[0-9]*"
+                    autoFocus
                     className={styles.input}
                     type="text"
                     placeholder={i18n.auth.otpPlaceholder}
@@ -112,8 +121,8 @@ export default function EntrarTemplate() {
               )}
             </AnimatePresence>
 
-            {error && <p className={styles.error}>{error}</p>}
-            {message && <p className={styles.message}>{message}</p>}
+            {error && <p className={styles.error} role="alert">{error}</p>}
+            {message && <p className={styles.message} role="status">{message}</p>}
 
             <button className={styles.button} type="submit" disabled={loading}>
               {loading ? i18n.common.loading : (step === 'email' ? i18n.auth.sendOtp : i18n.auth.verify)}

@@ -1,18 +1,55 @@
-import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { BuscarContent } from './BuscarContent';
+import { getTagCloud, searchByTag, searchPoems } from '@/actions/data';
+import type { TabType } from './components/BuscarTabs';
+import type { Tag } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Buscar | Chubascos',
-  description: 'Busca poemas, poetas y eventos en Chubascos por etiquetas.',
+  title: 'Buscar',
+  description: 'Busca dentro de los poemas, y por etiquetas entre poetas, libros y eventos de Chubascos.',
 };
 
-export default function BuscarPage() {
+interface Props {
+  searchParams: Promise<{ tag?: string; type?: string; q?: string }>;
+}
+
+const TABS: TabType[] = ['posts', 'events', 'books', 'users'];
+
+/** A random rain to start, weighted towards tags that hold more work. */
+function pickStartingTag(tags: Tag[]): string {
+  if (tags.length === 0) return '';
+  const weights = tags.map((t) => Math.sqrt((t.usedByPosts || 0) + (t.usedByEvents || 0) + (t.usedByBooks || 0)) || 0.1);
+  let r = Math.random() * weights.reduce((a, b) => a + b, 0);
+  return tags[weights.findIndex((w) => (r -= w) <= 0)]?.id || tags[0].id;
+}
+
+/**
+ * Rendered on the server with results already in place: no spinner, no
+ * client waterfall. The client takes over for every later interaction.
+ */
+export default async function BuscarPage({ searchParams }: Props) {
+  const { tag, type, q } = await searchParams;
+  const query = (q || '').slice(0, 80);
+  const initialType: TabType = TABS.includes(type as TabType) ? (type as TabType) : 'posts';
+
+  const tags = await getTagCloud();
+  const initialTag = tag || (query ? '' : pickStartingTag(tags));
+
+  const [tagResult, poemResult] = await Promise.all([
+    initialTag ? searchByTag(initialTag) : Promise.resolve(null),
+    query.length >= 2 ? searchPoems(query) : Promise.resolve(null),
+  ]);
+
   return (
-    <Suspense fallback={<div style={{ padding: '100px 5vw', fontFamily: 'monospace', color: 'rgba(255,255,255,0.3)' }}>Cargando…</div>}>
-      <BuscarContent />
-    </Suspense>
+    <BuscarContent
+      tags={tags}
+      initialTag={initialTag}
+      initialType={initialType}
+      initialQuery={query}
+      initialTagResult={tagResult}
+      initialPoemResult={poemResult}
+    />
   );
 }

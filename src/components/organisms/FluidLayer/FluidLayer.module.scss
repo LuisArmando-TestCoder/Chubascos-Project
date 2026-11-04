@@ -1,0 +1,15 @@
+@use '@/styles/variables' as v;
+
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: v.$z-fluid;
+  pointer-events: none;
+  contain: strict;
+}
+
+.canvas {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none;
+}

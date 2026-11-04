@@ -4,3 +4,4 @@ export * from './data/users';
 export * from './data/books';
 export * from './data/tags';
 export * from './data/shaders';
+export * from './data/search';

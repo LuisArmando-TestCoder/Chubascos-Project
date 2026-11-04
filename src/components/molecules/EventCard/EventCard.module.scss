@@ -1,131 +1,172 @@
 @use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
 
+// An event is a puddle that has not formed yet: a date at the eye of rings.
 .card {
-  padding: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: border-color 0.25s, transform 0.25s;
-
-  &:hover {
-    border-color: rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
-  }
-
-  &.expired {
-    opacity: 0.45;
-    border-color: rgba(255, 255, 255, 0.04);
-
-    &:hover {
-      opacity: 0.6;
-      border-color: rgba(255, 255, 255, 0.1);
-      transform: none;
-    }
-  }
-}
-
-.inner {
-  display: block;
-  text-decoration: none;
-  color: inherit;
-}
-
-.dateLine {
+  position: relative;
   display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 10px;
-}
+  flex-direction: column;
+  height: 100%;
+  @include m.surface;
+  overflow: hidden;
+  isolation: isolate;
+  transition: border-color 0.4s, transform 0.6s v.$ease-drop;
+  @include m.settle(36px);
 
-.day {
-  font-family: v.$font-mono;
-  font-size: 0.7rem;
-  color: v.$accent;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.expiredBadge {
-  font-family: v.$font-mono;
-  font-size: 0.58rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 1px 6px;
-  border-radius: 2px;
-  margin-left: auto;
-}
-
-.hour {
-  font-family: v.$font-mono;
-  font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.35);
-}
-
-.title {
-  font-family: v.$font-serif;
-  font-size: clamp(1rem, 2vw, 1.4rem);
-  font-weight: 400;
-  margin: 0 0 6px;
-  line-height: 1.2;
-}
-
-.place {
-  font-family: v.$font-mono;
-  font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.4);
-  margin: 0 0 8px;
-}
-
-.price {
-  font-family: v.$font-mono;
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.6);
-  margin: 0 0 8px;
-}
-
-.desc {
-  font-size: 0.82rem;
-  color: rgba(255, 255, 255, 0.4);
-  line-height: 1.5;
-  margin: 8px 0 0;
-}
-
-.recurring {
-  border-color: rgba(109, 93, 252, 0.12);
-
-  &:hover {
-    border-color: rgba(109, 93, 252, 0.3);
+  &:hover,
+  &:focus-within {
+    border-color: rgba(143, 211, 232, 0.4);
+    transform: translateY(-3px);
   }
 }
 
-.recurringBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 10px;
-  padding: 3px 10px;
-  background: rgba(109, 93, 252, 0.06);
-  border: 1px solid rgba(109, 93, 252, 0.15);
-  align-self: flex-start;
+.calendar {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-bottom: 1px solid v.$line;
+  background:
+    radial-gradient(60% 80% at 50% 55%, rgba(v.$accent, 0.18), transparent 70%),
+    v.$ink;
 }
 
-.recurringIcon {
-  color: v.$accent;
-  font-size: 0.72rem;
+.sigil {
+  position: absolute;
+  inset: -30% 0;
+  margin: auto;
+  width: 120%;
+  height: auto;
+  color: v.$puddle;
+  opacity: 0.55;
+}
+
+.calDay {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   line-height: 1;
 }
 
-.recurringLabel {
-  font-family: v.$font-mono;
-  font-size: 0.55rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: v.$accent;
+.calNum {
+  @include m.display(clamp(2.6rem, 2rem + 2vw, 3.6rem));
+  color: v.$paper;
+}
+
+.calMonth {
+  @include m.hud(v.$puddle);
+  margin-top: 0.4rem;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.25rem 1.25rem 1.4rem;
+  flex: 1;
+}
+
+.recurringBadge {
+  @include m.hud(v.$ember);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  text-transform: none;
+  letter-spacing: 0.04em;
+}
+
+.recurringIcon {
+  font-size: 0.9rem;
+}
+
+.recurringLabel {}
+
+.dateLine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.day,
+.hour {
+  @include m.hud(v.$mist);
+}
+
+.hour {
+  color: v.$puddle;
+}
+
+.expiredBadge {
+  @include m.hud(v.$ink);
+  background: v.$fog;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.title {
+  @include m.display(v.$step-1);
+  font-weight: 400;
+  margin: 0.25rem 0 0;
+}
+
+.inner {
+  color: v.$paper;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  &:hover { opacity: 1; color: v.$puddle; }
+
+  &:focus-visible {
+    outline: none;
+    &::after { outline: 2px solid var(--focus); outline-offset: -2px; }
+  }
+}
+
+.place {
+  font-family: v.$font-display;
+  font-style: italic;
+  color: v.$mist;
+  margin: 0;
+}
+
+.price {
+  @include m.hud(v.$paper);
+  margin: 0;
+}
+
+.desc {
+  font-size: 0.9rem;
+  color: v.$mist;
+  margin: 0;
 }
 
 .tags {
-  margin-top: 16px;
+  position: relative;
+  z-index: 1;
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: 0.75rem;
+}
+
+.recurring .calendar {
+  background:
+    radial-gradient(60% 80% at 50% 55%, rgba(255, 179, 138, 0.14), transparent 70%),
+    v.$ink;
+}
+
+.expired {
+  filter: saturate(0.2);
+
+  .calNum, .title { color: v.$mist; }
+  &:hover { filter: none; }
 }

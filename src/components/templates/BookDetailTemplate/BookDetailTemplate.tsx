@@ -6,6 +6,7 @@ import { formatDate } from '@/utils/formatDate';
 import { sanitizeMarkdown } from '@/utils/sanitizeMarkdown';
 import type { Book, User } from '@/types';
 import styles from './BookDetailTemplate.module.scss';
+import { DropSigil } from '@/components/atoms/DropSigil/DropSigil';
 
 interface BookDetailTemplateProps {
   book: Book;
@@ -24,6 +25,7 @@ export function BookDetailTemplate({ book, author }: BookDetailTemplateProps) {
 
         <article className={styles.bookArticle}>
           <header className={styles.bookHeader}>
+            <DropSigil seed={book.id} text={book.content} size="100%" className={styles.sigil} eye={false} />
             <div className={styles.meta}>
               <div className={styles.authorBlock}>
                 <span className={styles.label}>Publicado por</span>
