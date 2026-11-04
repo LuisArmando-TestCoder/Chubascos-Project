@@ -65,3 +65,15 @@ export async function notifyFollowers(userId: string, itemData: Record<string, u
 export function generateContentHash(content: string): string {
   return crypto.createHash('sha256').update(content || '').digest('hex').substring(0, 16);
 }
+
+/**
+ * One tag, or a whole branch of the taxonomy. Firestore caps
+ * `array-contains-any` at 30 values; callers pass the most-used first.
+ */
+export function tagFilter(tagId: string | string[]): [admin.firestore.WhereFilterOp, string | string[]] {
+  if (Array.isArray(tagId)) {
+    const ids = [...new Set(tagId.filter((id) => typeof id === 'string' && id.length > 0))].slice(0, 30);
+    return ids.length === 1 ? ['array-contains', ids[0]] : ['array-contains-any', ids];
+  }
+  return ['array-contains', tagId];
+}

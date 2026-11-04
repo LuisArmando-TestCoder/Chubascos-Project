@@ -9,7 +9,8 @@ import {
 import { dropAt, drop, toneFor } from '@/lib/fluid/bus';
 import type { Post, Event, Tag, Book } from '@/types';
 import styles from './buscar.module.scss';
-import { BuscarTagCloud } from './components/BuscarTagCloud';
+import { TagExplorer } from '@/components/organisms/TagExplorer/TagExplorer';
+import { TagLineage } from './components/TagLineage';
 import { BuscarTabs, type TabType } from './components/BuscarTabs';
 import { BuscarResults } from './components/BuscarResults';
 import { PoemHits } from './components/PoemHits';
@@ -24,6 +25,9 @@ interface BuscarContentProps {
   initialTagResult: TagSearchResult | null;
   initialPoemResult: PoemResult | null;
 }
+
+/** The branch the current results came from (tag + descendants). */
+const scopeOf = (r: TagSearchResult, fallback: string) => (r.scope.length ? r.scope : fallback);
 
 const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -157,41 +161,41 @@ export function BuscarContent({ tags, initialTag, initialType, initialQuery, ini
 
   const loadMorePosts = useCallback(async () => {
     if (!selectedTag || !result?.postCursor) return;
-    const r = await searchPostsByTag(selectedTag, 10, result.postCursor);
+    const r = await searchPostsByTag(scopeOf(result, selectedTag), 10, result.postCursor);
     await fetchMissingTags(r.items);
     append('posts', r.items, 'postCursor', r.nextCursor);
   }, [selectedTag, result, fetchMissingTags, append]);
 
   const loadMoreBooks = useCallback(async () => {
     if (!selectedTag || !result?.bookCursor) return;
-    const r = await searchBooksByTag(selectedTag, 10, result.bookCursor);
+    const r = await searchBooksByTag(scopeOf(result, selectedTag), 10, result.bookCursor);
     await fetchMissingTags(r.items);
     append('books', r.items, 'bookCursor', r.nextCursor);
   }, [selectedTag, result, fetchMissingTags, append]);
 
   const loadMoreEvents = useCallback(async () => {
     if (!selectedTag || !result?.eventCursor) return;
-    const r = await searchEventsByTag(selectedTag, 10, result.eventCursor);
+    const r = await searchEventsByTag(scopeOf(result, selectedTag), 10, result.eventCursor);
     await fetchMissingTags(r.items);
     append('events', r.items, 'eventCursor', r.nextCursor);
   }, [selectedTag, result, fetchMissingTags, append]);
 
   const loadMoreUsers = useCallback(async () => {
     if (!selectedTag || !result?.userCursor) return;
-    const r = await searchPublicUsersByTag(selectedTag, result.userCursor);
+    const r = await searchPublicUsersByTag(scopeOf(result, selectedTag), result.userCursor);
     append('users', r.items, 'userCursor', r.nextCursor);
   }, [selectedTag, result, append]);
 
   const loadExpiredEvents = useCallback(async (tag: string, reset = true) => {
     if (!tag) return;
     setExpiredLoading(true);
-    const r = await searchExpiredEventsByTag(tag, 10, reset ? undefined : expiredEventCursor || undefined);
+    const r = await searchExpiredEventsByTag(result?.scope.length ? result.scope : tag, 10, reset ? undefined : expiredEventCursor || undefined);
     await fetchMissingTags(r.items);
     setExpiredEvents((prev) => (reset ? r.items : [...prev, ...r.items]));
     setExpiredEventCursor(r.nextCursor);
     setExpiredLoaded(true);
     setExpiredLoading(false);
-  }, [expiredEventCursor, fetchMissingTags]);
+  }, [expiredEventCursor, fetchMissingTags, result]);
 
   const handleToggleExpired = useCallback(() => {
     if (!showExpiredEvents && !expiredLoaded && selectedTag) loadExpiredEvents(selectedTag, true);
@@ -206,6 +210,12 @@ export function BuscarContent({ tags, initialTag, initialType, initialQuery, ini
   }, [tags, query]);
 
   const textMode = query.trim().length >= 2;
+  // Tab counts cover the whole branch that was searched, not just the tag.
+  const branchCount = (key: 'usedByPosts' | 'usedByEvents' | 'usedByBooks') => {
+    const ids = result?.scope.length ? result.scope : selectedTag ? [selectedTag] : [];
+    if (!ids.length || ids.some((id) => !tagMap[id])) return undefined;
+    return ids.reduce((sum, id) => sum + (tagMap[id][key] || 0), 0);
+  };
   const selectedTagObj = tagMap[selectedTag];
 
   return (
@@ -259,14 +269,16 @@ export function BuscarContent({ tags, initialTag, initialType, initialQuery, ini
 
           <section className={styles.tagSection} aria-labelledby="tags-heading" hidden={textMode}>
             <h2 id="tags-heading" className={styles.subhead}>
-              <span>Etiquetas</span>
+              <span>Explorar etiquetas</span>
               <span className={styles.subheadCount}>{tags.length}</span>
             </h2>
-            <BuscarTagCloud
+            <TagExplorer
+              mode="browse"
+              label="Explorar etiquetas"
               tags={tags}
-              selectedTag={selectedTag}
+              activeTagId={selectedTag}
               loading={loading}
-              onSelectTag={selectTag}
+              onSelect={(tag, el) => selectTag(tag.id, el)}
             />
           </section>
 
@@ -275,13 +287,16 @@ export function BuscarContent({ tags, initialTag, initialType, initialQuery, ini
               <h2 id="results-heading" className={styles.subhead}>
                 <span>Bajo {selectedTagObj ? <em className={styles.tagName}>#{selectedTagObj.value}</em> : 'esta etiqueta'}</span>
               </h2>
+              {selectedTagObj && (
+                <TagLineage tag={selectedTagObj} tags={tags} scopeSize={result?.scope.length ?? 1} onSelect={selectTag} />
+              )}
               <BuscarTabs
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 counts={{
-                  posts: selectedTagObj?.usedByPosts ?? result?.posts.length ?? 0,
-                  events: selectedTagObj?.usedByEvents ?? result?.events.length ?? 0,
-                  books: selectedTagObj?.usedByBooks ?? result?.books.length ?? 0,
+                  posts: branchCount('usedByPosts') ?? result?.posts.length ?? 0,
+                  events: branchCount('usedByEvents') ?? result?.events.length ?? 0,
+                  books: branchCount('usedByBooks') ?? result?.books.length ?? 0,
                   users: result?.users.length ?? 0,
                 }}
                 showCounts={!!selectedTag}

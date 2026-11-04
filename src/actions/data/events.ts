@@ -4,7 +4,7 @@ import { db } from '@/firebase/admin';
 import * as admin from 'firebase-admin';
 import { EventSchema } from '@/utils/validation';
 import type { Event } from '@/types';
-import { toData, serialize, PAGE_SIZE, notifyFollowers, generateContentHash } from './common';
+import { toData, serialize, PAGE_SIZE, notifyFollowers, generateContentHash, tagFilter } from './common';
 import { sendNotificationEmail } from '@/utils/sendEmail';
 import { getNextOccurrenceFromCron } from '@/utils/cronUtils';
 import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
@@ -86,7 +86,7 @@ export async function getEvent(eventId: string): Promise<Event | null> {
 }
 
 export async function searchEventsByTag(
-  tagId: string,
+  tagId: string | string[],
   limitNum: number = PAGE_SIZE,
   cursor?: string
 ): Promise<{ items: Event[]; nextCursor: string | null }> {
@@ -98,7 +98,7 @@ export async function searchEventsByTag(
   try {
     const now = admin.firestore.Timestamp.now();
     let q: admin.firestore.Query = db.collection('events')
-      .where('tagIds', 'array-contains', tagId)
+      .where('tagIds', ...tagFilter(tagId))
       .where('day', '>=', now)
       .orderBy('day', 'asc')
       .limit(limitNum);
@@ -118,7 +118,7 @@ export async function searchEventsByTag(
 }
 
 export async function searchExpiredEventsByTag(
-  tagId: string,
+  tagId: string | string[],
   limitNum: number = PAGE_SIZE,
   cursor?: string
 ): Promise<{ items: Event[]; nextCursor: string | null }> {
@@ -127,7 +127,7 @@ export async function searchExpiredEventsByTag(
   try {
     const now = admin.firestore.Timestamp.now();
     let q: admin.firestore.Query = db.collection('events')
-      .where('tagIds', 'array-contains', tagId)
+      .where('tagIds', ...tagFilter(tagId))
       .where('day', '<', now)
       .orderBy('day', 'desc')
       .limit(limitNum);

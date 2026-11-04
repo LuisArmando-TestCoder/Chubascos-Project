@@ -5,7 +5,7 @@ import * as admin from 'firebase-admin';
 import { BookSchema } from '@/utils/validation';
 import { generateSlug } from '@/utils/generateSlug';
 import type { Book } from '@/types';
-import { toData, serialize, PAGE_SIZE, notifyFollowers, generateContentHash } from './common';
+import { toData, serialize, PAGE_SIZE, notifyFollowers, generateContentHash, tagFilter } from './common';
 import { getUserProfileByEmail } from './users';
 
 export async function getUserBooks(userId: string): Promise<Book[]> {
@@ -56,7 +56,7 @@ export async function getBook(userId: string, slugOrId: string): Promise<Book | 
 }
 
 export async function searchBooksByTag(
-  tagId: string,
+  tagId: string | string[],
   limitNum: number = PAGE_SIZE,
   cursor?: string
 ): Promise<{ items: Book[]; nextCursor: string | null }> {
@@ -64,7 +64,7 @@ export async function searchBooksByTag(
 
   try {
     let q: admin.firestore.Query = db.collectionGroup('books')
-      .where('tagIds', 'array-contains', tagId)
+      .where('tagIds', ...tagFilter(tagId))
       .where('isVisible', '==', true)
       .orderBy('updatedAt', 'desc')
       .limit(limitNum);

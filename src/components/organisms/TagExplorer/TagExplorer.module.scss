@@ -1,0 +1,327 @@
+@use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
+
+// Falling through the taxonomy: each column sits a little deeper in the water.
+
+.explorer {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+}
+
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.crumbWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.crumb {
+  @include m.hud(v.$mist);
+  min-height: 32px;
+  padding: 0 0.4rem;
+  border-radius: v.$radius;
+  transition: color 0.3s;
+
+  &:hover { color: v.$paper; }
+
+  &[aria-current='location'] {
+    color: v.$puddle;
+  }
+}
+
+.crumbSep {
+  color: v.$fog;
+}
+
+.pickBar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pickCount {
+  @include m.hud(v.$puddle);
+}
+
+.filter {
+  min-height: 40px;
+  width: min(260px, 60vw);
+  padding: 0 1rem;
+  background: transparent;
+  border: 1px solid v.$line-strong;
+  border-radius: 999px;
+  color: v.$paper;
+  font-family: v.$font-display;
+  font-size: 1rem;
+
+  &::placeholder { color: v.$fog; font-style: italic; }
+  &:focus-visible { outline: none; border-color: v.$puddle; }
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+}
+
+.chip {
+  min-height: 32px;
+  padding: 0 0.8rem;
+  border-radius: 999px;
+  background: v.$puddle;
+  color: v.$ink;
+  font-family: v.$font-hud;
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+
+  span { margin-left: 0.3em; opacity: 0.7; }
+  &:hover { background: v.$paper; }
+}
+
+// ── Columns ─────────────────────────────────────────────────────────────────
+.columns {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  border: 1px solid v.$line;
+  border-radius: 6px;
+  background: v.$ink-2;
+  scrollbar-width: thin;
+  min-height: 360px;
+}
+
+.column {
+  flex: 0 0 auto;
+  width: clamp(230px, 24vw, 280px);
+  max-height: 460px;
+  overflow-y: auto;
+  scroll-snap-align: start;
+  border-right: 1px solid v.$line;
+  // Deeper levels sit lower in the water: a touch darker, a touch bluer.
+  background: color-mix(in srgb, v.$ink calc(var(--depth) * 9%), rgba(143, 211, 232, calc(var(--depth) * 0.012)));
+  scrollbar-width: thin;
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: column-in 0.45s v.$ease-drop both;
+  }
+
+  &:last-child { border-right: 0; }
+}
+
+@keyframes column-in {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: none; }
+}
+
+.colHead {
+  @include m.hud(v.$fog);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.9rem 1rem 0.6rem;
+  background: v.$ink-2;
+  box-shadow: 0 1px 0 v.$line;
+  text-transform: none;
+  letter-spacing: 0.04em;
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.list {
+  margin: 0;
+  padding: 0 0.35rem 0.6rem;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.item {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 44px;
+  padding: 0.45rem 0.65rem;
+  border-radius: 4px;
+  text-align: left;
+  color: v.$paper;
+  transition: background 0.25s, color 0.25s;
+
+  &:hover { background: rgba(236, 235, 228, 0.05); }
+  &:focus-visible { outline-offset: -2px; }
+
+  &.open {
+    background: rgba(143, 211, 232, 0.1);
+    .chevron { color: v.$puddle; transform: translateX(2px); }
+  }
+
+  &.active {
+    background: v.$puddle;
+    color: v.$ink;
+    .count, .chevron, .itemGloss { color: rgba(6, 7, 10, 0.7); }
+  }
+
+  // Branches nobody has written in yet: still explorable, just quieter.
+  &.dry:not(.active) {
+    color: v.$mist;
+  }
+}
+
+.rootItem {
+  .itemLabel {
+    font-family: v.$font-display;
+    font-size: 1.35rem;
+    font-weight: 300;
+  }
+}
+
+.itemText {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.itemLabel {
+  font-family: v.$font-display;
+  font-size: 1.05rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.itemGloss {
+  font-family: v.$font-display;
+  font-style: italic;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: v.$mist;
+}
+
+.itemMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.count {
+  @include m.hud(v.$fog);
+  font-size: 0.62rem;
+}
+
+.chevron {
+  color: v.$fog;
+  font-size: 1.1rem;
+  transition: transform 0.4s v.$ease-drop, color 0.3s;
+}
+
+.pickedDot {
+  @include m.hud(v.$ink);
+  min-width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: v.$puddle;
+  font-size: 0.58rem;
+}
+
+.spinner {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  animation: ripple-out 0.9s v.$ease-drop infinite;
+}
+
+// A drop you can fill: the pick control.
+.toggle {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 50%;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    border: 1px solid v.$mist;
+    transition: background 0.3s, border-color 0.3s, transform 0.4s v.$ease-drop;
+  }
+
+  &:hover::before { border-color: v.$puddle; transform: scale(1.15); }
+  &:disabled { opacity: 0.35; cursor: not-allowed; }
+}
+
+.toggleOn::before {
+  background: v.$puddle;
+  border-color: v.$puddle;
+  box-shadow: 0 0 0 4px rgba(143, 211, 232, 0.18);
+}
+
+// ── Flat results (filter) ───────────────────────────────────────────────────
+.hits {
+  margin: 0;
+  padding: 0.4rem;
+  border: 1px solid v.$line;
+  border-radius: 6px;
+  background: v.$ink-2;
+  max-height: 460px;
+  overflow-y: auto;
+}
+
+.hit {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.hitLabel {
+  flex: 1;
+  display: grid;
+  gap: 0.1rem;
+  min-height: 44px;
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  border-radius: 4px;
+
+  &:hover { background: rgba(236, 235, 228, 0.05); }
+}
+
+.hitName {
+  font-family: v.$font-display;
+  font-size: 1.05rem;
+  color: v.$paper;
+}
+
+.hitPath {
+  @include m.hud(v.$fog);
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 0.64rem;
+}

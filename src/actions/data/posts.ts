@@ -5,7 +5,7 @@ import * as admin from 'firebase-admin';
 import { PostSchema } from '@/utils/validation';
 import { generateSlug } from '@/utils/generateSlug';
 import type { Post, SerializedTimestamp } from '@/types';
-import { toData, serialize, PAGE_SIZE, evictLiveFeed, notifyFollowers, generateContentHash } from './common';
+import { toData, serialize, PAGE_SIZE, evictLiveFeed, notifyFollowers, generateContentHash, tagFilter } from './common';
 import { getUserProfileByEmail } from './users';
 
 export async function getLiveFeed(limitNum: number = PAGE_SIZE, cursor?: string) {
@@ -121,7 +121,7 @@ export async function getNextPost(userId: string, currentUpdatedAt: admin.firest
 }
 
 export async function searchPostsByTag(
-  tagId: string,
+  tagId: string | string[],
   limitNum: number = PAGE_SIZE,
   cursor?: string
 ): Promise<{ items: Post[]; nextCursor: string | null }> {
@@ -129,7 +129,7 @@ export async function searchPostsByTag(
 
   try {
     let q: admin.firestore.Query = db.collectionGroup('posts')
-      .where('tagIds', 'array-contains', tagId)
+      .where('tagIds', ...tagFilter(tagId))
       .where('isVisible', '==', true)
       .orderBy('updatedAt', 'desc')
       .limit(limitNum);

@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "nuke": "npx tsx src/scripts/nuke.ts",
-    "seed": "npx tsx src/scripts/seed.ts"
+    "seed": "npx tsx src/scripts/seed.ts",
+    "seed:taxonomy": "npx tsx src/scripts/seed-taxonomy.ts"
   },
   "dependencies": {
     "@upstash/ratelimit": "^2.0.8",

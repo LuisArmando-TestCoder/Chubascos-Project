@@ -48,6 +48,7 @@ stay as they are because the hero uses them.
 | `DropField` | event cards, studio preview | Real raindrops: the hero's capillary-wave shader in miniature. One shared WebGL context feeds every visible field |
 | `WaterText` | footer wordmark | Text as a texture that washes away along a blurred pointer trail (scroll-aware) and re-forms |
 | `SectionHeader` | every section | title + drifting hollow *echo* word. **No kickers or numbering above headings** |
+| `TagExplorer` | buscar, studio pickers | Fall through the taxonomy column by column (TAXONOMIA.md). `browse` searches a whole branch; `pick` fills drops up to a max |
 | Events slider | home | a slow current: drifts by itself, pauses on hover/focus, wheel scrolls it sideways |
 | `RainGauge` | layout (≥ 768px) | scroll depth as rainfall; pure CSS scroll timeline |
 | `FluidLayer` | layout | the water under every page |

@@ -3,7 +3,7 @@
 import { db } from '@/firebase/admin';
 import * as admin from 'firebase-admin';
 import type { User } from '@/types';
-import { toData, serialize, PAGE_SIZE } from './common';
+import { toData, serialize, PAGE_SIZE, tagFilter } from './common';
 
 export async function getUsers(limitNum: number = PAGE_SIZE, cursor?: string) {
   if (!db) return { items: [], nextCursor: null };
@@ -65,14 +65,14 @@ export async function searchUsers(
 }
 
 export async function searchUsersByTag(
-  tagId: string,
+  tagId: string | string[],
   limitNum: number = PAGE_SIZE,
   cursor?: string
 ): Promise<{ items: User[]; nextCursor: string | null }> {
   if (!db) return { items: [], nextCursor: null };
 
   let q: admin.firestore.Query = db.collection('users')
-    .where('tagIds', 'array-contains', tagId)
+    .where('tagIds', ...tagFilter(tagId))
     .limit(limitNum);
 
   if (cursor) {

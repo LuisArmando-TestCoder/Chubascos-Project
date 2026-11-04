@@ -16,6 +16,7 @@ import { searchPostsByTag } from './posts';
 import { searchBooksByTag } from './books';
 import { searchEventsByTag } from './events';
 import { searchUsersByTag } from './users';
+import { TAXON_INDEX, subtreeSlugs } from '@/data/tagTaxonomy';
 
 const TAG_ID = /^[A-Za-z0-9_-]{1,64}$/;
 const RESULTS = 10;
@@ -24,6 +25,8 @@ const CORPUS_MAX = 1000;
 export type PublicUser = Pick<User, 'id' | 'username' | 'bio' | 'tagIds' | 'contacts' | 'createdAt'> & { email: string };
 
 export type TagSearchResult = {
+  /** The tag plus its taxonomy descendants actually searched (≤ 30, most-used first). */
+  scope: string[];
   posts: Post[]; postCursor: string | null;
   books: Book[]; bookCursor: string | null;
   events: Event[]; eventCursor: string | null;
@@ -48,13 +51,10 @@ function toPublicUser(u: User): PublicUser {
 
 const tagMapOf = (tags: Tag[]) => Object.fromEntries(tags.map((t) => [t.id, t]));
 
-// ── Tag cloud ────────────────────────────────────────────────────────────────
+// ── Tag cloud: every tag (the taxonomy explorer needs empty branches too) ──
 const cachedTagCloud = unstable_cache(
-  async () => {
-    const tags = await getTags(300);
-    return tags.filter((t) => (t.usedByPosts || 0) + (t.usedByEvents || 0) + (t.usedByBooks || 0) > 0);
-  },
-  ['search:tag-cloud:v1'],
+  async () => getTags(1000),
+  ['search:tag-cloud:v2'],
   { revalidate: 60, tags: ['tags'] }
 );
 
@@ -67,13 +67,32 @@ export async function getTagCloud(): Promise<Tag[]> {
   }
 }
 
+const usage = (t: Tag) => (t.usedByPosts || 0) + (t.usedByEvents || 0) + (t.usedByBooks || 0);
+
+/**
+ * A tag searches its whole branch: "Amor" also finds "Desamor" and
+ * "Mutual pining". Firestore allows 30 values per query, so the branch is
+ * ranked by usage and trimmed, the chosen tag always first.
+ */
+async function resolveScope(tagId: string): Promise<string[]> {
+  const tags = await getTagCloud();
+  const self = tags.find((t) => t.id === tagId);
+  const canonical = self ? TAXON_INDEX.canonical.get(self.slug) : undefined;
+  const node = canonical ? TAXON_INDEX.bySlug.get(canonical) : undefined;
+  if (!node) return [tagId];
+  const slugs = new Set(subtreeSlugs(node));
+  const branch = tags.filter((t) => slugs.has(t.slug) && t.id !== tagId && usage(t) > 0).sort((a, b) => usage(b) - usage(a));
+  return [tagId, ...branch.map((t) => t.id)].slice(0, 30);
+}
+
 // ── Tag search: four collections, one trip ───────────────────────────────────
 async function runTagSearch(tagId: string): Promise<TagSearchResult> {
+  const scope = await resolveScope(tagId);
   const [posts, books, events, users] = await Promise.all([
-    searchPostsByTag(tagId, RESULTS),
-    searchBooksByTag(tagId, RESULTS),
-    searchEventsByTag(tagId, RESULTS),
-    searchUsersByTag(tagId, RESULTS),
+    searchPostsByTag(scope, RESULTS),
+    searchBooksByTag(scope, RESULTS),
+    searchEventsByTag(scope, RESULTS),
+    searchUsersByTag(scope, RESULTS),
   ]);
   const ids = [
     tagId,
@@ -83,6 +102,7 @@ async function runTagSearch(tagId: string): Promise<TagSearchResult> {
   ];
   const tags = await getTagsByIds(ids);
   return {
+    scope,
     posts: posts.items, postCursor: posts.nextCursor,
     books: books.items, bookCursor: books.nextCursor,
     events: events.items, eventCursor: events.nextCursor,
@@ -92,6 +112,7 @@ async function runTagSearch(tagId: string): Promise<TagSearchResult> {
 }
 
 const EMPTY: TagSearchResult = {
+  scope: [],
   posts: [], postCursor: null, books: [], bookCursor: null,
   events: [], eventCursor: null, users: [], userCursor: null, tagMap: {},
 };
@@ -99,7 +120,7 @@ const EMPTY: TagSearchResult = {
 export async function searchByTag(tagId: string): Promise<TagSearchResult> {
   if (typeof tagId !== 'string' || !TAG_ID.test(tagId)) return EMPTY;
   try {
-    return await unstable_cache(() => runTagSearch(tagId), ['search:tag:v1', tagId], {
+    return await unstable_cache(() => runTagSearch(tagId), ['search:tag:v2', tagId], {
       revalidate: 30,
       tags: ['search', `tag:${tagId}`],
     })();
@@ -110,9 +131,10 @@ export async function searchByTag(tagId: string): Promise<TagSearchResult> {
 }
 
 /** Public-safe users for "load more" on the poets tab. */
-export async function searchPublicUsersByTag(tagId: string, cursor?: string) {
-  if (typeof tagId !== 'string' || !TAG_ID.test(tagId)) return { items: [] as PublicUser[], nextCursor: null };
-  const res = await searchUsersByTag(tagId, RESULTS, cursor);
+export async function searchPublicUsersByTag(tagId: string | string[], cursor?: string) {
+  const ids = (Array.isArray(tagId) ? tagId : [tagId]).filter((id) => typeof id === 'string' && TAG_ID.test(id)).slice(0, 30);
+  if (ids.length === 0) return { items: [] as PublicUser[], nextCursor: null };
+  const res = await searchUsersByTag(ids, RESULTS, cursor);
   return { items: res.items.map(toPublicUser), nextCursor: res.nextCursor };
 }
 

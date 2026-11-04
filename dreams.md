@@ -18,3 +18,10 @@
 - **Sync SHA-256** (`utils/sha256.ts`) was needed because sigils render on the server and the client in the same pass. Web Crypto is async and Node crypto is server-only. It is verified against Node's `createHash`.
 - **Scroll traps are the main risk of hover-wheel sliders.** The events row hands the wheel back to the page at its ends and uses `data-lenis-prevent-wheel` so Lenis doesn't fight it.
 - **Canvases can't paint outside their element**, and `mask-image` clips to the border box too: the footer wordmark needed padding for its ascenders rather than a negative inset.
+
+## 2026-11-04 · Tag taxonomy
+
+- **Separate the axes before adding tags.** The old flat cloud mixed form, theme, mood, tradition and place. Seven roots, each answering one question, made the tree obvious and gave every legacy tag a single home (aliases absorb duplicates like `poesa`).
+- **The tree lives in code, tags live in Firestore, joined by slug.** Versioned and reviewable, no schema change, and `seed-taxonomy.ts` is idempotent.
+- **Branch search was a root-cause change:** `tagFilter()` lets every existing `search*ByTag` accept one id or a branch (≤ 30, `array-contains-any`), so load-more and expired events stay consistent without parallel APIs.
+- Next: let authors propose new tags under a branch, moderated, instead of editing the file.

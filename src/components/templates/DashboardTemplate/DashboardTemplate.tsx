@@ -9,8 +9,8 @@ import { CronScheduleInput } from '@/components/molecules/CronScheduleInput/Cron
 import { dateToCron } from '@/utils/cronUtils';
 import { Footer } from '@/components/organisms/Footer/Footer';
 import {
-  createPost, updatePost, updateUserProfile, createEvent, updateEvent, createShader, updateShader, getTags, deletePost, deleteEvent,
-  createBook, updateBook, deleteBook
+  createPost, updatePost, updateUserProfile, createEvent, updateEvent, createShader, updateShader, deletePost, deleteEvent,
+  createBook, updateBook, deleteBook, getTagCloud
 } from '@/actions/data';
 import { logout } from '@/actions/auth';
 import { generateSlug } from '@/utils/generateSlug';
@@ -22,6 +22,7 @@ import { BookDownloadButton } from '@/components/molecules/BookDownloadButton/Bo
 import styles from './DashboardTemplate.module.scss';
 import { DropSigil } from '@/components/atoms/DropSigil/DropSigil';
 import { DropField } from '@/components/atoms/DropField/DropField';
+import { TagExplorer } from '@/components/organisms/TagExplorer/TagExplorer';
 import { sanitizeMarkdown } from '@/utils/sanitizeMarkdown';
 
 const ShaderCanvas = dynamic(() => import('@/components/organisms/ShaderCanvas/ShaderCanvas'), { ssr: false });
@@ -85,7 +86,7 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
     async function loadTags() {
       setTagsLoading(true);
       try {
-        const tags = await getTags(100);
+        const tags = await getTagCloud(); // every tag: the picker walks the whole taxonomy
         setAvailableTags(tags);
       } catch (e) {
         console.error('Failed to load tags', e);
@@ -537,30 +538,16 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
                   <label className={styles.label}>Mis etiquetas (máx 10) — aparecen en “Poetas” del buscador</label>
                   <div className={styles.tagsContainer}>
                     {tagsLoading ? (
-                      <p>Cargando etiquetas...</p>
+                      <p className={styles.msg}>Cargando etiquetas…</p>
                     ) : (
-                      <div className={styles.tagList}>
-                        {availableTags.map(tag => {
-                          const isSelected = profileTags.includes(tag.id);
-                          return (
-                            <button
-                              key={tag.id}
-                              type="button"
-                              onClick={() => {
-                                if (isSelected) {
-                                  setProfileTags(prev => prev.filter(id => id !== tag.id));
-                                } else if (profileTags.length < 10) {
-                                  setProfileTags(prev => [...prev, tag.id]);
-                                }
-                              }}
-                              className={`${styles.tagButton} ${isSelected ? styles.tagSelected : ''}`}
-                              disabled={!isSelected && profileTags.length >= 10}
-                            >
-                              #{tag.value || tag.slug}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <TagExplorer
+                        mode="pick"
+                        label="Etiquetas de tu perfil"
+                        tags={availableTags}
+                        selectedIds={profileTags}
+                        max={10}
+                        onToggle={(id) => setProfileTags((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.length < 10 ? [...prev, id] : prev))}
+                      />
                     )}
                   </div>
                 </div>
@@ -593,30 +580,16 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
                   <label className={styles.label}>Etiquetas (máx 4)</label>
                   <div className={styles.tagsContainer}>
                     {tagsLoading ? (
-                      <p>Cargando etiquetas...</p>
+                      <p className={styles.msg}>Cargando etiquetas…</p>
                     ) : (
-                      <div className={styles.tagList}>
-                        {availableTags.map(tag => {
-                          const isSelected = postTags.includes(tag.id);
-                          return (
-                            <button
-                              key={tag.id}
-                              type="button"
-                              onClick={() => {
-                                if (isSelected) {
-                                  setPostTags(prev => prev.filter(id => id !== tag.id));
-                                } else if (postTags.length < 4) {
-                                  setPostTags(prev => [...prev, tag.id]);
-                                }
-                              }}
-                              className={`${styles.tagButton} ${isSelected ? styles.tagSelected : ''}`}
-                              disabled={!isSelected && postTags.length >= 4}
-                            >
-                              #{tag.value || tag.slug}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <TagExplorer
+                        mode="pick"
+                        label="Etiquetas del poema"
+                        tags={availableTags}
+                        selectedIds={postTags}
+                        max={4}
+                        onToggle={(id) => setPostTags((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.length < 4 ? [...prev, id] : prev))}
+                      />
                     )}
                   </div>
                 </div>
@@ -785,30 +758,16 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
                   <label className={styles.label}>Etiquetas (máx 4)</label>
                   <div className={styles.tagsContainer}>
                     {tagsLoading ? (
-                      <p>Cargando etiquetas...</p>
+                      <p className={styles.msg}>Cargando etiquetas…</p>
                     ) : (
-                      <div className={styles.tagList}>
-                        {availableTags.map(tag => {
-                          const isSelected = eventTags.includes(tag.id);
-                          return (
-                            <button
-                              key={tag.id}
-                              type="button"
-                              onClick={() => {
-                                if (isSelected) {
-                                  setEventTags(prev => prev.filter(id => id !== tag.id));
-                                } else if (eventTags.length < 4) {
-                                  setEventTags(prev => [...prev, tag.id]);
-                                }
-                              }}
-                              className={`${styles.tagButton} ${isSelected ? styles.tagSelected : ''}`}
-                              disabled={!isSelected && eventTags.length >= 4}
-                            >
-                              #{tag.value || tag.slug}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <TagExplorer
+                        mode="pick"
+                        label="Etiquetas del evento"
+                        tags={availableTags}
+                        selectedIds={eventTags}
+                        max={4}
+                        onToggle={(id) => setEventTags((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.length < 4 ? [...prev, id] : prev))}
+                      />
                     )}
                   </div>
                 </div>
@@ -915,30 +874,16 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
                   <label className={styles.label}>Etiquetas (máx 4)</label>
                   <div className={styles.tagsContainer}>
                     {tagsLoading ? (
-                      <p>Cargando etiquetas...</p>
+                      <p className={styles.msg}>Cargando etiquetas…</p>
                     ) : (
-                      <div className={styles.tagList}>
-                        {availableTags.map(tag => {
-                          const isSelected = bookTags.includes(tag.id);
-                          return (
-                            <button
-                              key={tag.id}
-                              type="button"
-                              onClick={() => {
-                                if (isSelected) {
-                                  setBookTags(prev => prev.filter(id => id !== tag.id));
-                                } else if (bookTags.length < 4) {
-                                  setBookTags(prev => [...prev, tag.id]);
-                                }
-                              }}
-                              className={`${styles.tagButton} ${isSelected ? styles.tagSelected : ''}`}
-                              disabled={!isSelected && bookTags.length >= 4}
-                            >
-                              #{tag.value || tag.slug}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <TagExplorer
+                        mode="pick"
+                        label="Etiquetas del libro"
+                        tags={availableTags}
+                        selectedIds={bookTags}
+                        max={4}
+                        onToggle={(id) => setBookTags((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.length < 4 ? [...prev, id] : prev))}
+                      />
                     )}
                   </div>
                 </div>
