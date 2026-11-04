@@ -1,7 +1,9 @@
 @use '@/styles/variables' as v;
 @use '@/styles/mixins' as m;
 
-// The studio: where you prepare the next rain.
+// The studio. A writing desk by a window in the rain: one quiet rail that
+// knows who you are and what you have made, one wide workspace for the
+// thing you are making now, and a live pane showing how it will fall.
 
 .page {
   min-height: 100vh;
@@ -9,83 +11,161 @@
 }
 
 .inner {
-  @include m.container(1100px);
-  padding-block: clamp(2.5rem, 8vh, 5rem) 4rem;
+  @include m.container(1360px);
+  display: grid;
+  gap: clamp(2rem, 4vw, 4rem);
+  padding-block: clamp(2rem, 6vh, 4rem) 4rem;
+
+  @media (min-width: v.$laptop) {
+    grid-template-columns: 280px minmax(0, 1fr);
+    align-items: start;
+  }
 }
 
-.header {
-  margin-bottom: clamp(2rem, 5vh, 3rem);
+// ── Rail ────────────────────────────────────────────────────────────────────
+.rail {
+  display: grid;
+  gap: 2rem;
+
+  @media (min-width: v.$laptop) {
+    position: sticky;
+    top: calc(v.$header-height + 24px);
+    max-height: calc(100vh - #{v.$header-height} - 48px);
+    overflow-y: auto;
+    @include m.hide-scrollbar;
+    padding-right: 1rem;
+    border-right: 1px solid v.$line;
+  }
 }
 
-.headerTop {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.greetingRow {
+.identity {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
 .greetingSigil {
   color: v.$rain-soft;
+  flex-shrink: 0;
 }
 
 .studioLabel {
   @include m.hud(v.$fog);
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.35rem;
 }
 
 .greeting {
-  @include m.display(v.$step-3);
+  @include m.display(clamp(1.6rem, 1.3rem + 1vw, 2.2rem));
   color: v.$paper;
+  overflow-wrap: anywhere;
+}
+
+// Readouts: what has fallen so far.
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
   margin: 0;
+  background: v.$line;
+  border: 1px solid v.$line;
+  border-radius: v.$radius;
+  overflow: hidden;
 }
 
-.headerActions {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
+.stat {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.9rem 1rem;
+  background: v.$ink-2;
+
+  dt { @include m.hud(v.$fog); font-size: 0.6rem; }
+
+  dd {
+    margin: 0;
+    font-family: v.$font-display;
+    font-size: 1.9rem;
+    font-weight: 300;
+    line-height: 1;
+    color: v.$paper;
+    font-variant-numeric: tabular-nums;
+  }
 }
 
-.profileLink {
-  @include m.ripple-button(v.$paper);
-}
-
-.logoutBtn {
-  @include m.ripple-button(v.$danger);
-  border-color: rgba(v.$danger, 0.35);
-}
-
+// Vertical tabs: chapters of the studio.
 .tabs {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  border-bottom: 1px solid v.$line;
+  flex-direction: column;
+  gap: 0.15rem;
+
+  @media (max-width: calc(v.$laptop - 1px)) {
+    flex-direction: row;
+    overflow-x: auto;
+    @include m.hide-scrollbar;
+    border-bottom: 1px solid v.$line;
+  }
 }
 
 .tabGroup {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.tab {
   position: relative;
+  flex: 1;
+  min-height: 48px;
+  padding: 0 1rem;
+  text-align: left;
+  font-family: v.$font-display;
+  font-size: 1.2rem;
+  color: v.$mist;
+  border-radius: v.$radius;
+  transition: color 0.3s, background 0.3s;
+
+  // A drop marks where you are.
+  &::before {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: v.$puddle;
+    transform: translate(0, -50%) scale(0);
+    transition: transform 0.5s v.$ease-drop;
+  }
+
+  &:hover { color: v.$paper; background: rgba(236, 235, 228, 0.03); }
+  &:focus-visible { outline-offset: -2px; }
+
+  &.activeTab {
+    color: v.$paper;
+    font-style: italic;
+    background: linear-gradient(90deg, rgba(143, 211, 232, 0.08), transparent);
+    &::before { transform: translate(0, -50%) scale(1); }
+  }
+
+  @media (max-width: calc(v.$laptop - 1px)) {
+    white-space: nowrap;
+    font-size: 1.05rem;
+  }
 }
 
 .newItemBtn {
   @include m.hud(v.$puddle);
-  min-height: 30px;
+  min-height: 28px;
   display: inline-flex;
   align-items: center;
-  padding: 0 0.8rem;
-  margin-right: 0.5rem;
+  padding: 0 0.7rem;
   border: 1px solid rgba(143, 211, 232, 0.35);
   border-radius: 999px;
   white-space: nowrap;
+  font-size: 0.58rem;
   transition: background 0.3s, color 0.3s;
 
   &:hover {
@@ -95,31 +175,34 @@
   }
 }
 
-.tab {
-  @include m.hud(v.$mist);
-  position: relative;
-  min-height: 48px;
-  padding: 0 1rem;
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid v.$line;
+}
 
-  &::after {
-    content: '';
-    position: absolute;
-    left: 1rem;
-    right: 1rem;
-    bottom: -1px;
-    height: 2px;
-    background: v.$puddle;
-    transform: scaleX(0);
-    transition: transform 0.5s v.$ease-drop;
-  }
+.profileLink { @include m.ripple-button(v.$paper); }
 
-  &:hover { color: v.$paper; }
-  &:focus-visible { outline-offset: -4px; }
+.logoutBtn {
+  @include m.ripple-button(v.$danger);
+  border-color: rgba(v.$danger, 0.35);
+}
 
-  &.activeTab {
-    color: v.$paper;
-    &::after { transform: scaleX(1); }
-  }
+// ── Workspace ───────────────────────────────────────────────────────────────
+.workspace {
+  min-width: 0;
+}
+
+.workspaceHeader {
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid v.$line;
+}
+
+.workspaceTitle {
+  @include m.display(v.$step-3);
+  color: v.$paper;
 }
 
 .panel {
@@ -127,6 +210,88 @@
   flex-direction: column;
   gap: 2rem;
   padding-top: 2.5rem;
+}
+
+// The poem editor: form on the left, the poem falling on the right.
+.panelSplit {
+  display: grid;
+  gap: clamp(2rem, 4vw, 3.5rem);
+
+  @media (min-width: v.$desktop) {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 0.9fr);
+    align-items: start;
+  }
+}
+
+.formCol {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  min-width: 0;
+}
+
+.preview {
+  @media (min-width: v.$desktop) {
+    position: sticky;
+    top: calc(v.$header-height + 24px);
+  }
+}
+
+.previewSurface {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 420px;
+  max-height: calc(100vh - #{v.$header-height} - 48px);
+  overflow-y: auto;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  border: 1px solid v.$line-strong;
+  border-radius: 6px;
+  background: v.$ink;
+
+  // Legibility veil over the live water.
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(to bottom, rgba(6, 7, 10, 0.2), rgba(6, 7, 10, 0.78) 45%);
+    pointer-events: none;
+  }
+}
+
+.previewLabel {
+  @include m.hud(v.$puddle);
+  display: block;
+  margin-bottom: 1.25rem;
+}
+
+.previewTitle {
+  @include m.display(v.$step-2);
+  color: v.$paper;
+  margin-bottom: 1.5rem;
+}
+
+.previewBody {
+  @include m.poem-body;
+  font-size: 1.05rem;
+
+  p { margin-bottom: 1.4em; white-space: pre-wrap; color: v.$paper; }
+  em { color: v.$rain-soft; }
+  blockquote { border-left: 1px solid v.$puddle; padding-left: 1rem; color: v.$mist; font-style: italic; }
+}
+
+.previewEmpty {
+  font-family: v.$font-display;
+  font-style: italic;
+  color: v.$mist;
+}
+
+.previewMeta {
+  @include m.hud(v.$fog);
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid v.$line;
 }
 
 .field {

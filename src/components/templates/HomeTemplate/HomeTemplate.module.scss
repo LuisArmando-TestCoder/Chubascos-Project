@@ -7,39 +7,57 @@
   padding-block: clamp(5rem, 14vh, 10rem) 0;
 }
 
-// The first section rises over the hero's last frame, like a waterline.
-.record {
-  margin-top: -1px;
-  background: linear-gradient(to bottom, v.$black, transparent 40%);
-  padding-top: clamp(6rem, 18vh, 12rem);
-}
 
 .sectionInner {
   @include m.container;
 }
 
-.liveIndicator {
-  @include m.hud(v.$ember);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+
+
+// ─── Events slider: a slow current you can grab ─────────────────────────────
+.slider {
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  padding-block: 0.5rem 1.5rem;
+  margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+  // Fade the edges: the row comes from and goes into the rain.
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  cursor: ew-resize;
+
+  &::-webkit-scrollbar { display: none; }
+
+  &:focus-visible {
+    outline-offset: -4px;
+  }
 }
 
-.liveDot {
-  position: relative;
-  width: 7px;
-  height: 7px;
-  background: v.$ember;
-  border-radius: 50%;
+.slides {
+  display: flex;
+  gap: clamp(12px, 2vw, 24px);
+  width: max-content;
+  margin: 0;
+  padding: 0 v.$gutter;
+}
 
-  &::after {
-    content: '';
-    position: absolute;
-    inset: -6px;
-    border-radius: 50%;
-    border: 1px solid v.$ember;
-    animation: ripple-out 2.4s v.$ease-drop infinite;
-  }
+.slide {
+  width: clamp(260px, 26vw, 340px);
+  flex-shrink: 0;
+}
+
+.sliderControls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sliderBtn {
+  @include m.ripple-button(v.$paper);
+  min-width: 44px;
+  padding: 0;
+  font-family: v.$font-ui;
+  letter-spacing: 0;
+  font-size: 1rem;
 }
 
 // ─── Grids ─────────────────────────────────────────────────────────────────────

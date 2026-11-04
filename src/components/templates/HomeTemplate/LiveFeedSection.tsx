@@ -17,17 +17,8 @@ export function LiveFeedSection({ posts, tagMap = {} }: LiveFeedSectionProps) {
       <div className={styles.sectionInner}>
         <SectionHeader
           id="feed-heading"
-          index={3}
-          total={4}
-          kicker="Charcos frescos"
           title={i18n.home.liveFeed.title}
           echo="charcos"
-          aside={
-            <span className={styles.liveIndicator}>
-              <span className={styles.liveDot} aria-hidden="true" />
-              lloviendo ahora
-            </span>
-          }
         />
         <ol className={styles.feedList}>
           {posts.map((post) => (

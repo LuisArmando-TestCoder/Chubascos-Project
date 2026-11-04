@@ -14,7 +14,7 @@ export function UserCard({ user, badge }: UserCardProps) {
     <article className={styles.card} data-drop="paper">
       {badge && <span className={styles.badge}>{badge}</span>}
       <div className={styles.avatar} aria-hidden="true">
-        <DropSigil seed={user.id} text={user.bio} size="100%" glyph={name.slice(0, 1).toUpperCase()} />
+        <DropSigil name={name} size="100%" glyph={name.slice(0, 1).toUpperCase()} />
       </div>
       <div className={styles.info}>
         <h3 className={styles.name}>

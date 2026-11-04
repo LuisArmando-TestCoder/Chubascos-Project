@@ -1,0 +1,18 @@
+@use '@/styles/variables' as v;
+
+.field {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.2s v.$ease-out;
+
+  // Fade in only once the shader has painted (no black flash, no-JS safe).
+  &[data-live='true'] {
+    opacity: 1;
+  }
+}

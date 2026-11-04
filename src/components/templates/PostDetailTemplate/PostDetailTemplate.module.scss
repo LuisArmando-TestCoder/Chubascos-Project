@@ -35,8 +35,6 @@
   isolation: isolate;
 }
 
-// The poem's own puddle, drawn from its lines, behind its title.
-.sigil { @include m.hero-sigil; }
 
 .meta {
   display: flex;

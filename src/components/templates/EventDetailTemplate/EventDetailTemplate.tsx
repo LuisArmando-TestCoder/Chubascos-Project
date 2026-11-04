@@ -12,7 +12,6 @@ import i18n from '@/utils/i18n';
 import type { Event, Tag } from '@/types';
 
 import styles from './EventDetailTemplate.module.scss';
-import { DropSigil } from '@/components/atoms/DropSigil/DropSigil';
 import { plume } from '@/lib/fluid/bus';
 
 function hostOf(url: string): string {
@@ -39,7 +38,6 @@ export function EventDetailTemplate({ event, tags = [] }: EventDetailTemplatePro
       <div className={styles.contentGrid}>
         <article className={styles.article}>
           <header className={styles.header}>
-            <DropSigil seed={event.id} text={event.description} size="100%" className={styles.sigil} wobble={0.7} eye={false} />
             {isRecurring && (
               <button
                 className={styles.recurringBanner}

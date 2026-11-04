@@ -76,7 +76,6 @@ export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCur
           {/* Poems section */}
           <section className={styles.poemsSection}>
             <div className={styles.sectionHeader}>
-              <span className={styles.label}>Obra publicada</span>
               <h2 className={styles.sectionTitle}>Poemas</h2>
             </div>
 
@@ -105,7 +104,6 @@ export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCur
           {initialEvents.length > 0 && (
             <section className={styles.eventsSection}>
               <div className={styles.sectionHeader}>
-                <span className={styles.label}>Presencia en vivo</span>
                 <h2 className={styles.sectionTitle}>Eventos</h2>
               </div>
 
@@ -162,7 +160,6 @@ export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCur
           {initialBooks.length > 0 && (
             <section className={styles.booksSection}>
               <div className={styles.sectionHeader}>
-                <span className={styles.label}>Publicaciones y Detalles</span>
                 <h2 className={styles.sectionTitle}>Libros</h2>
               </div>
 

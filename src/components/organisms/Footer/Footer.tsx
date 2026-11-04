@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import i18n from '@/utils/i18n';
+import { WaterText } from '@/components/organisms/WaterText/WaterText';
 import styles from './Footer.module.scss';
 
 export function Footer() {
@@ -9,7 +10,7 @@ export function Footer() {
       <div className={styles.horizon} aria-hidden="true" />
       <div className={styles.inner}>
         <div className={styles.mark}>
-          <p className={styles.brand}>{i18n.home.hero.title}</p>
+          <WaterText text={i18n.home.hero.title} className={styles.brand} />
           <p className={styles.sub}>{i18n.home.hero.subtitle}</p>
         </div>
         <nav className={styles.nav} aria-label="Pie de página">

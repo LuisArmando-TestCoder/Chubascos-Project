@@ -28,7 +28,7 @@ export function UserSidebar({ user }: UserSidebarProps) {
       <header className={styles.profileHeader}>
         <div className={styles.avatarBlock}>
           <div className={styles.avatar} aria-hidden="true">
-            <DropSigil seed={user.id} text={user.bio} size="100%" glyph={name.slice(0, 1).toUpperCase()} />
+            <DropSigil name={name} size="100%" glyph={name.slice(0, 1).toUpperCase()} />
           </div>
           <span className={styles.label}>Voz en el registro</span>
         </div>

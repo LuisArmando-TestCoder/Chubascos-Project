@@ -16,9 +16,6 @@ export function UsersSection({ users }: UsersSectionProps) {
       <div className={styles.sectionInner}>
         <SectionHeader
           id="users-heading"
-          index={4}
-          total={4}
-          kicker="Quién llueve"
           title={i18n.home.poets.title}
           echo="voces"
         />

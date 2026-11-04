@@ -5,7 +5,7 @@
 .card {
   position: relative;
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: 1fr;
   gap: 0 clamp(1rem, 2.5vw, 2rem);
   padding: clamp(1.5rem, 3vw, 2.25rem) clamp(0.5rem, 1.5vw, 1.25rem);
   border-top: 1px solid v.$line;
@@ -13,7 +13,7 @@
   @include m.settle;
 
   @media (min-width: v.$tablet) {
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: 1fr auto;
   }
 
   // Wet-glass highlight that follows the row on hover.
@@ -30,16 +30,6 @@
   &:hover::before,
   &:focus-within::before {
     opacity: 1;
-  }
-}
-
-.sigil {
-  color: v.$mist;
-  transition: color 0.4s;
-
-  .card:hover &,
-  .card:focus-within & {
-    color: v.$puddle;
   }
 }
 
@@ -125,13 +115,13 @@
 }
 
 .stratum {
-  grid-column: 2;
+  grid-column: 1;
   display: flex;
   gap: 1rem;
   margin-top: 1rem;
 
   @media (min-width: v.$tablet) {
-    grid-column: 3;
+    grid-column: 2;
     flex-direction: column;
     align-items: flex-end;
     gap: 0.35rem;

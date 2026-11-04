@@ -22,7 +22,6 @@
   margin-bottom: clamp(3rem, 8vh, 5rem);
 }
 
-.sigil { @include m.hero-sigil(rgba(143, 211, 232, 0.4)); }
 
 .meta {
   display: flex;

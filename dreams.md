@@ -10,3 +10,11 @@
 - **WebGPU can't be screenshotted in headless sandboxes** (even a bare canvas renders white). The sim was verified in Node with Dawn (`webgpu` npm) + lavapipe instead. Keep that harness idea for future shader work.
 - **Caching:** tag cloud 60s, tag searches 30s, poem corpus 120s (`unstable_cache`). New posts may take up to 2 min to become searchable. If that matters, call `revalidateTag('search')` from create/update/delete post.
 - Next time, start from a design token pass *and* a contrast audit in the same step; most of the old UI's accessibility debt was text at 20–45% white.
+
+## 2026-11-04 · Second pass after feedback
+
+- **Ornament has to earn its place.** Kickers like "01 / 04 · Charcos frescos" above headings read as cheesy, and ring glyphs beside every poem competed with the verse. Rule: either it is real (shader water, a sigil that encodes identity) or it goes.
+- **Draw water with water.** SVG rings that *imitate* drops lost to the hero's GLSL. The fix was to reuse the hero's own `addWave` physics. To stay under the browser's ~16 WebGL-context limit, one shared context renders every small field and blits into 2D canvases.
+- **Sync SHA-256** (`utils/sha256.ts`) was needed because sigils render on the server and the client in the same pass. Web Crypto is async and Node crypto is server-only. It is verified against Node's `createHash`.
+- **Scroll traps are the main risk of hover-wheel sliders.** The events row hands the wheel back to the page at its ends and uses `data-lenis-prevent-wheel` so Lenis doesn't fight it.
+- **Canvases can't paint outside their element**, and `mask-image` clips to the border box too: the footer wordmark needed padding for its ascenders rather than a negative inset.

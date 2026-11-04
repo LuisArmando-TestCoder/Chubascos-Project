@@ -27,20 +27,23 @@
   place-items: center;
   overflow: hidden;
   border-bottom: 1px solid v.$line;
+  isolation: isolate;
+  // Shown until (or instead of, without WebGL) the live water paints.
   background:
     radial-gradient(60% 80% at 50% 55%, rgba(v.$accent, 0.18), transparent 70%),
     v.$ink;
+
+  // Keep the date legible over bright crests.
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(40% 60% at 50% 50%, rgba(6, 7, 10, 0.55), transparent 75%);
+    pointer-events: none;
+  }
 }
 
-.sigil {
-  position: absolute;
-  inset: -30% 0;
-  margin: auto;
-  width: 120%;
-  height: auto;
-  color: v.$puddle;
-  opacity: 0.55;
-}
 
 .calDay {
   position: relative;

@@ -27,9 +27,6 @@
   margin-bottom: 2rem;
 }
 
-.label {
-  @include m.hud(v.$rain-soft);
-}
 
 .sectionTitle {
   @include m.display(v.$step-3);

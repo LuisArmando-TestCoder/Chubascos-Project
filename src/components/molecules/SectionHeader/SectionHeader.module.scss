@@ -12,7 +12,7 @@
   position: absolute;
   z-index: -1;
   left: -0.04em;
-  top: -0.55em;
+  top: -0.35em;
   font-family: v.$font-display;
   font-size: clamp(5rem, 3rem + 14vw, 16rem);
   font-weight: 300;
@@ -27,30 +27,8 @@
   @include m.drift(6vh, -10vh);
 }
 
-.meta {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.9rem;
-}
 
-.index {
-  @include m.hud(v.$rain-soft);
-}
 
-.kicker {
-  @include m.hud(v.$fog);
-  display: inline-flex;
-  align-items: center;
-  gap: 1rem;
-
-  &::before {
-    content: '';
-    width: 2.5rem;
-    height: 1px;
-    background: v.$line-strong;
-  }
-}
 
 .row {
   display: flex;

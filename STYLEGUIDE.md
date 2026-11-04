@@ -36,14 +36,19 @@ stay as they are because the hero uses them.
   `$measure` (38rem).
 - Verse keeps its line breaks (`white-space: pre-wrap` on `p`). Never flatten
   a poem into one line of prose.
+- No decorative rings next to poems in lists or behind poem pages: the poem
+  is the image. If rings appear, they are either a poet's generative sigil or
+  real water (GLSL / WebGPU), never a static drawing of water.
 
 ## 3. Motifs (reuse them; don't invent near-copies)
 
 | Motif | Where | What it means |
 | --- | --- | --- |
-| `DropSigil` | cards, avatars, page headers | The puddle a piece leaves behind: rings follow its lines and rhythm, and it is deterministic |
-| `SectionHeader` | every section | index `01 / 04` · kicker · title · drifting hollow *echo* word |
-| `Pluviograma` | home | the visual history: poems placed on a time axis |
+| `DropSigil name=…` | poets (cards, profile, studio) | Generative rings from **SHA-256(name)**: each digest byte sets one trait (ring count, spacing, harmonics, phase, dashes, satellites, rotation) |
+| `DropField` | event cards, studio preview | Real raindrops: the hero's capillary-wave shader in miniature. One shared WebGL context feeds every visible field |
+| `WaterText` | footer wordmark | Text as a texture that washes away along a blurred pointer trail (scroll-aware) and re-forms |
+| `SectionHeader` | every section | title + drifting hollow *echo* word. **No kickers or numbering above headings** |
+| Events slider | home | a slow current: drifts by itself, pauses on hover/focus, wheel scrolls it sideways |
 | `RainGauge` | layout (≥ 768px) | scroll depth as rainfall; pure CSS scroll timeline |
 | `FluidLayer` | layout | the water under every page |
 | Rail + drops | legal pages, lists | a timeline of clauses or items |

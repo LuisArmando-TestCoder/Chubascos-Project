@@ -21,6 +21,8 @@ import { DashboardPostsList } from './DashboardPostsList';
 import { BookDownloadButton } from '@/components/molecules/BookDownloadButton/BookDownloadButton';
 import styles from './DashboardTemplate.module.scss';
 import { DropSigil } from '@/components/atoms/DropSigil/DropSigil';
+import { DropField } from '@/components/atoms/DropField/DropField';
+import { sanitizeMarkdown } from '@/utils/sanitizeMarkdown';
 
 const ShaderCanvas = dynamic(() => import('@/components/organisms/ShaderCanvas/ShaderCanvas'), { ssr: false });
 
@@ -40,9 +42,10 @@ interface DashboardTemplateProps {
 
 type DashTab = 'perfil' | 'nuevo-poema' | 'nuevo-evento' | 'mis-libros';
 
-function timestampToDateString(ts: any): string {
-  if (!ts) return '';
-  const secs = typeof ts?.seconds === 'number' ? ts.seconds : 0;
+function timestampToDateString(ts: unknown): string {
+  if (!ts || typeof ts !== 'object') return '';
+  const raw = (ts as { seconds?: unknown }).seconds;
+  const secs = typeof raw === 'number' ? raw : 0;
   if (!secs) return '';
   const d = new Date(secs * 1000);
   const y = d.getFullYear();
@@ -104,10 +107,10 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
   useEffect(() => {
     setPostTags(editPost?.tagIds ?? []);
   }, [editPost?.id]);
-  const [postVisible, setPostVisible] = useState(editPost ? (editPost as any).isVisible !== false : true);
-  const [postIndexed, setPostIndexed] = useState(editPost ? (editPost as any).isIndexed !== false : true);
+  const [postVisible, setPostVisible] = useState(editPost ? editPost.isVisible !== false : true);
+  const [postIndexed, setPostIndexed] = useState(editPost ? editPost.isIndexed !== false : true);
   // editingShaderId tracks the existing shader to update when editing a post
-  const [editingShaderId, setEditingShaderId] = useState<string | null>((editPost as any)?.shaderId || null);
+  const [editingShaderId, setEditingShaderId] = useState<string | null>(editPost?.shaderId || null);
   const [postShaderCode, setPostShaderCode] = useState(editShader?.glslCode || '');
   const [shaderPreviewCode, setShaderPreviewCode] = useState(editShader?.glslCode || DEFAULT_SHADER);
   const [showShaderEditor, setShowShaderEditor] = useState(false);
@@ -399,6 +402,23 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
     window.location.href = '/';
   };
 
+  // ── Studio read-outs (pure derivations, no new state) ──────────────────
+  const verseCount = (text: string) => text.split('\n').filter((l) => l.trim()).length;
+  const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length;
+  const stats = [
+    { label: 'Poemas', value: userPosts.length },
+    { label: 'Visibles', value: userPosts.filter((p) => p.isVisible).length },
+    { label: 'Versos', value: userPosts.reduce((n, p) => n + verseCount(p.content), 0) },
+    { label: 'Libros', value: userBooks.length },
+  ];
+  const TAB_TITLES: Record<DashTab, string> = {
+    'perfil': 'Tu perfil',
+    'nuevo-poema': editingPostId ? 'Editar poema' : 'Nuevo poema',
+    'nuevo-evento': editingEventId ? 'Editar evento' : 'Nuevo evento',
+    'mis-libros': editingBookId ? 'Editar libro' : 'Nuevo libro',
+  };
+  const previewHtml = activeTab === 'nuevo-poema' && postContent ? sanitizeMarkdown(postContent) : '';
+
   return (
     <>
       {/* Live shader preview as full-page background when editor is open */}
@@ -418,25 +438,25 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
       )}
       <div className={styles.page} style={{ position: 'relative', zIndex: 2, background: 'transparent' }}>
         <div className={styles.inner}>
-          <header className={styles.header}>
-            <div className={styles.headerTop}>
-              <div className={styles.greetingRow}>
-                <DropSigil seed={user.id} text={bio} size={72} className={styles.greetingSigil} glyph={name.slice(0, 1).toUpperCase()} />
-                <div>
-                  <span className={styles.studioLabel}>Tu taller · {userPosts.length} {userPosts.length === 1 ? 'poema' : 'poemas'}</span>
-                  <h1 className={styles.greeting}>Bienvenido, {name}</h1>
-                </div>
-              </div>
-              <div className={styles.headerActions}>
-                <Link href={`/u/${encodeURIComponent(user.id)}`} className={styles.profileLink}>
-                  Ver perfil →
-                </Link>
-                <button className={styles.logoutBtn} onClick={handleLogout} aria-label="Cerrar sesión">
-                  Salir
-                </button>
+          <aside className={styles.rail}>
+            <div className={styles.identity}>
+              <DropSigil name={name} size={88} className={styles.greetingSigil} glyph={name.slice(0, 1).toUpperCase()} />
+              <div>
+                <span className={styles.studioLabel}>Taller de</span>
+                <h1 className={styles.greeting}>{name}</h1>
               </div>
             </div>
-            <nav className={styles.tabs} role="tablist">
+
+            <dl className={styles.stats}>
+              {stats.map((s) => (
+                <div key={s.label} className={styles.stat}>
+                  <dt>{s.label}</dt>
+                  <dd>{s.value}</dd>
+                </div>
+              ))}
+            </dl>
+
+            <nav className={styles.tabs} role="tablist" aria-orientation="vertical" aria-label="Secciones del taller">
               {(['perfil', 'nuevo-poema', 'nuevo-evento', 'mis-libros'] as DashTab[]).map((tab) => {
                 const isEditing =
                   (tab === 'nuevo-poema' && editingPostId) ||
@@ -485,7 +505,21 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
                 );
               })}
             </nav>
-          </header>
+
+            <div className={styles.headerActions}>
+              <Link href={`/u/${encodeURIComponent(user.id)}`} className={styles.profileLink}>
+                Ver perfil público
+              </Link>
+              <button className={styles.logoutBtn} onClick={handleLogout} aria-label="Cerrar sesión">
+                Salir
+              </button>
+            </div>
+          </aside>
+
+          <section className={styles.workspace} aria-labelledby="taller-titulo">
+            <header className={styles.workspaceHeader}>
+              <h2 id="taller-titulo" className={styles.workspaceTitle}>{TAB_TITLES[activeTab]}</h2>
+            </header>
 
           <AnimatePresence mode="wait">
             {activeTab === 'perfil' && (
@@ -500,7 +534,7 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
                   <span className={styles.charCount}>{bio.length}/500</span>
                 </div>
                 <div className={styles.field}>
-                  <label className={styles.label}>Mis etiquetas (máx 10) — aparecen en "Poetas" del buscador</label>
+                  <label className={styles.label}>Mis etiquetas (máx 10) — aparecen en “Poetas” del buscador</label>
                   <div className={styles.tagsContainer}>
                     {tagsLoading ? (
                       <p>Cargando etiquetas...</p>
@@ -541,7 +575,8 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
             )}
 
             {activeTab === 'nuevo-poema' && (
-              <motion.div key="nuevo-poema" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className={styles.panel}>
+              <motion.div key="nuevo-poema" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className={`${styles.panel} ${styles.panelSplit}`}>
+                <div className={styles.formCol}>
                 <div className={styles.field}>
                   <label className={styles.label} htmlFor="postTitle">Título</label>
                   <input id="postTitle" className={styles.input} value={postTitle} onChange={(e) => setPostTitle(e.target.value)} placeholder="El nombre de tu poema" />
@@ -698,6 +733,23 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
 
                 <DashboardPostsList items={userPosts} activeId={editingPostId} type="post" />
                 <DashboardPostsList items={userBooks} type="book" />
+                </div>
+
+                <aside className={styles.preview} aria-label="Vista previa del poema">
+                  <div className={styles.previewSurface}>
+                    <DropField seed={editingPostId || 'nuevo-poema'} tint="rain" density={0.18} />
+                    <span className={styles.previewLabel}>Así caerá</span>
+                    <h3 className={styles.previewTitle}>{postTitle || 'Sin título todavía'}</h3>
+                    {previewHtml ? (
+                      <div className={styles.previewBody} dangerouslySetInnerHTML={{ __html: previewHtml }} />
+                    ) : (
+                      <p className={styles.previewEmpty}>Escribe y aquí verás tu poema como lo leerán.</p>
+                    )}
+                    <p className={styles.previewMeta}>
+                      {verseCount(postContent)} versos · {wordCount(postContent)} palabras
+                    </p>
+                  </div>
+                </aside>
               </motion.div>
             )}
 
@@ -944,6 +996,7 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
               </motion.div>
             )}
           </AnimatePresence>
+          </section>
         </div>
       </div>
       <Footer />

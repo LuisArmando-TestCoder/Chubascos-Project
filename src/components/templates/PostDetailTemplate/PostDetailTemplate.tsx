@@ -9,7 +9,6 @@ import { useScrollDirection } from '@/hooks/useScrollDirection';
 import { useLenis } from 'lenis/react';
 import { getPreviousPost, getNextPost } from '@/actions/data';
 import { TagPill } from '@/components/atoms/TagPill/TagPill';
-import { DropSigil } from '@/components/atoms/DropSigil/DropSigil';
 import { plume } from '@/lib/fluid/bus';
 import { UserSidebar } from '@/components/organisms/UserSidebar/UserSidebar';
 import { formatDate } from '@/utils/formatDate';
@@ -118,7 +117,6 @@ export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: 
 
         <article ref={articleRef} className={styles.poemArticle}>
           <header className={styles.poemHeader}>
-            <DropSigil seed={post.id} text={post.content} size="100%" className={styles.sigil} eye={false} />
             <div className={styles.meta}>
               <div className={styles.authorBlock}>
                 <span className={styles.label}>Visitar perfil</span>

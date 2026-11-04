@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { TagPill } from '@/components/atoms/TagPill/TagPill';
-import { DropSigil } from '@/components/atoms/DropSigil/DropSigil';
 import { formatDate } from '@/utils/formatDate';
 import type { Post, Tag, Book } from '@/types';
 import styles from './PostCard.module.scss';
@@ -41,7 +40,6 @@ export function PostCard({ post, authorName, tags = [], showAuthor = false, badg
 
   return (
     <article className={`${styles.card} ${type === 'book' ? styles.book : ''}`} data-drop="rain">
-      <DropSigil seed={post.id} text={post.content} size={56} className={styles.sigil} />
       <div className={styles.body}>
         {badge && <span className={styles.badge}>{badge}</span>}
         <h3 className={styles.title}>

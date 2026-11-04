@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { TagPill } from '@/components/atoms/TagPill/TagPill';
-import { DropSigil } from '@/components/atoms/DropSigil/DropSigil';
+import { DropField } from '@/components/atoms/DropField/DropField';
 import { formatDate } from '@/utils/formatDate';
 import { cronToHuman } from '@/utils/cronUtils';
 import type { Event, Tag } from '@/types';
@@ -32,7 +32,7 @@ export function EventCard({ event, tags = [], expired = false }: EventCardProps)
       data-drop="puddle"
     >
       <div className={styles.calendar} aria-hidden="true">
-        <DropSigil seed={event.id} text={event.description} size="100%" className={styles.sigil} wobble={0.6} eye={false} />
+        <DropField seed={event.id} tint={isRecurring ? 'ember' : 'puddle'} density={0.45} />
         {parts && (
           <span className={styles.calDay}>
             <span className={styles.calNum}>{parts.d}</span>

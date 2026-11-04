@@ -47,3 +47,25 @@
   font-size: 30px;
   font-weight: 300;
 }
+
+// Dashed rings keep drifting slowly: the mark is alive, never a static logo.
+.dashed {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: dash-flow 14s linear infinite;
+  }
+}
+
+@keyframes dash-flow {
+  to { stroke-dashoffset: -1; }
+}
+
+.satellite {
+  fill: v.$rain-soft;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.6s v.$ease-drop;
+
+  :global(:hover) > .sigil & {
+    transform: scale(1.6);
+  }
+}
