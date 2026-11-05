@@ -54,6 +54,7 @@ stay as they are because the hero uses them.
 | `FluidLayer` | layout | the water under every page |
 | Rail + drops | legal pages, lists | a timeline of clauses or items |
 | `Stage` + `StageProgress` | studio forms (`DashboardTemplate/studio`) | a form as steps on a rail of drops; a drop fills when its step has what it needs. Optional steps have a dashed drop. Titles are italic Newsreader, never numbered |
+| `HintTip` | beside every stage title | explanations live behind a small drop: hover, focus or tap opens them; words fall in one by one out of a blur. Text stays in the DOM (`aria-describedby`); Escape or a tap elsewhere closes |
 | `SaveBar` | foot of every studio form | sticky edge of the desk: one status line (`role=status`) and the one primary action. ⌘/Ctrl + ↵ saves |
 | `Choice` | visibility, frequency, price | native radios dressed as cards (`cards`) or pills (`segmented`); arrow keys for free |
 | Occurrence timeline | event studio | upcoming dates as drops on a vertical rail; the next one glows puddle |

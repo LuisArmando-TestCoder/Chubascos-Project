@@ -1,0 +1,165 @@
+@use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
+
+// Help that falls in like rain: a drop beside the title; on hover the words
+// arrive one by one, each settling out of a soft blur.
+
+// Static: the tip anchors to the nearest positioned ancestor (the stage header).
+.wrap {
+  display: inline-flex;
+  align-items: center;
+}
+
+.trigger {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-left: 0.35rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: none;
+  color: v.$fog;
+  cursor: help;
+  vertical-align: middle;
+  transition: color v.$duration-fast, border-color v.$duration-fast, background v.$duration-fast;
+
+  // Larger hit area than the drawing (44px target).
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+  }
+
+  // A ring spreads from the drop when the tip opens.
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px solid v.$puddle;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  &:hover,
+  &[data-open] {
+    color: v.$puddle;
+    border-color: rgba(143, 211, 232, 0.35);
+    background: rgba(143, 211, 232, 0.06);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    &[data-open]::after { animation: tip-ripple 0.9s v.$ease-drop; }
+  }
+
+  @include m.focus-ring(2px);
+}
+
+.icon {
+  width: 12px;
+  height: 12px;
+  fill: currentColor;
+  transition: transform 0.5s v.$ease-drop;
+
+  .trigger[data-open] & { transform: translateY(1px) scale(1.08); }
+}
+
+.tip {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  left: 0;
+  z-index: 6;
+  width: min(100%, 46ch);
+  padding: 0.95rem 1.15rem 1rem;
+  border: 1px solid v.$line-strong;
+  border-radius: 4px;
+  background:
+    linear-gradient(180deg, rgba(143, 211, 232, 0.07), transparent 40%),
+    v.$ink-2; // opaque: the field underneath must not show through
+  box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(6, 7, 10, 0.6);
+  font-family: v.$font-ui;
+  font-size: 0.9rem;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: 0;
+  text-transform: none;
+  color: v.$mist;
+  text-align: left;
+  pointer-events: none;
+
+  // Hidden but present: screen readers keep the description.
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px) scale(0.985);
+  transform-origin: top left;
+  transition:
+    opacity 0.35s v.$ease-drop,
+    transform 0.5s v.$ease-drop,
+    visibility 0s linear 0.35s;
+
+  &[data-open] {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    pointer-events: auto;
+    transition: opacity 0.35s v.$ease-drop, transform 0.5s v.$ease-drop, visibility 0s;
+  }
+
+  // A thin line of light along the top edge, like a meniscus.
+  &::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 12px;
+    right: 40%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, v.$puddle, transparent);
+    opacity: 0.7;
+  }
+
+  code {
+    font-family: v.$font-hud;
+    font-size: 0.82em;
+    color: v.$paper;
+  }
+
+  em { color: v.$rain-soft; }
+  strong { color: v.$paper; font-weight: 500; }
+}
+
+.text { display: block; }
+
+// Each word falls into place: from a blur, slightly above, to still water.
+.word {
+  display: inline-block;
+
+  @media (prefers-reduced-motion: no-preference) {
+    .tip[data-open] & {
+      animation: word-fall 0.7s v.$ease-drop both;
+      animation-delay: calc(min(var(--i), 60) * 18ms + 60ms);
+    }
+  }
+}
+
+@keyframes word-fall {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateY(-0.45em);
+  }
+  60% { filter: blur(0.5px); }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+  }
+}
+
+@keyframes tip-ripple {
+  from { transform: scale(0.6); opacity: 0.8; }
+  to { transform: scale(2.2); opacity: 0; }
+}

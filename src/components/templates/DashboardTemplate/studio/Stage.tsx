@@ -1,5 +1,6 @@
 'use client';
-import { useId, type ReactNode } from 'react';
+import { useId, useRef, type ReactNode } from 'react';
+import { HintTip } from './HintTip';
 import { scrollToStage } from './hooks';
 import styles from './Studio.module.scss';
 
@@ -21,15 +22,19 @@ interface StageProps extends StageMeta {
  */
 export function Stage({ id, title, hint, done, optional, children }: StageProps) {
   const headingId = useId();
+  const headerRef = useRef<HTMLElement>(null);
   const state = done ? 'Listo' : optional ? 'Opcional' : 'Pendiente';
   return (
     <section id={id} className={styles.stage} data-done={done || undefined} aria-labelledby={headingId}>
       <span className={styles.stageDrop} aria-hidden="true" />
-      <header className={styles.stageHeader}>
-        <h3 id={headingId} className={styles.stageTitle}>{title}</h3>
+      <header ref={headerRef} className={styles.stageHeader}>
+        <span className={styles.stageTitleRow}>
+          <h3 id={headingId} className={styles.stageTitle}>{title}</h3>
+          {/* The explanation lives behind a drop: on hover, focus or tap. */}
+          {hint && <HintTip label={`Ayuda: ${title}`} hoverZone={headerRef}>{hint}</HintTip>}
+        </span>
         <span className={styles.stageState}>{state}</span>
       </header>
-      {hint && <p className={styles.stageHint}>{hint}</p>}
       <div className={styles.stageBody}>{children}</div>
     </section>
   );
