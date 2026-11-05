@@ -4,15 +4,16 @@ import { QrModalButton } from '@/components/molecules/QrModalButton/QrModalButto
 import { UserSidebar } from '@/components/organisms/UserSidebar/UserSidebar';
 import { formatDate } from '@/utils/formatDate';
 import { sanitizeMarkdown } from '@/utils/sanitizeMarkdown';
-import type { Book, User } from '@/types';
+import type { Book, Event, User } from '@/types';
 import styles from './BookDetailTemplate.module.scss';
 
 interface BookDetailTemplateProps {
   book: Book;
   author: User;
+  authorEvents?: Event[];
 }
 
-export function BookDetailTemplate({ book, author }: BookDetailTemplateProps) {
+export function BookDetailTemplate({ book, author, authorEvents }: BookDetailTemplateProps) {
   const authorName = author.username || author.email.split('@')[0];
   const bookUrl = typeof window !== 'undefined' ? `${window.location.origin}/u/${book.userId}/b/${book.slug}` : '';
   const safeHtml = sanitizeMarkdown(book.content);
@@ -20,7 +21,7 @@ export function BookDetailTemplate({ book, author }: BookDetailTemplateProps) {
   return (
     <main className={styles.page}>
       <div className={styles.contentGrid}>
-        <UserSidebar user={author} />
+        <UserSidebar user={author} events={authorEvents} />
 
         <article className={styles.bookArticle}>
           <header className={styles.bookHeader}>

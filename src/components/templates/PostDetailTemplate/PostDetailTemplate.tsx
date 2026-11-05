@@ -13,7 +13,7 @@ import { plume } from '@/lib/fluid/bus';
 import { UserSidebar } from '@/components/organisms/UserSidebar/UserSidebar';
 import { formatDate } from '@/utils/formatDate';
 import { sanitizeMarkdown } from '@/utils/sanitizeMarkdown';
-import type { Post, User, Shader, Tag } from '@/types';
+import type { Post, User, Shader, Tag, Event } from '@/types';
 import styles from './PostDetailTemplate.module.scss';
 import { WaterText } from '@/components/organisms/WaterText/WaterText';
 
@@ -26,12 +26,14 @@ interface PostDetailTemplateProps {
   post: Post;
   author: User;
   shader: Shader | null;
+  /** The author's events, for the scrollable rail in the left column. */
+  authorEvents?: Event[];
   tags?: Tag[];
   prevPost: Post | null;
   nextPost: Post | null;
 }
 
-export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: initialPrev, nextPost: initialNext }: PostDetailTemplateProps) {
+export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: initialPrev, nextPost: initialNext, authorEvents }: PostDetailTemplateProps) {
   const [prevPost, setPrevPost] = useState<Post | null>(initialPrev);
   const [nextPost, setNextPost] = useState<Post | null>(initialNext);
   const [footerTransform, setFooterTransform] = useState(0);
@@ -114,7 +116,7 @@ export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: 
       )}
 
       <div className={styles.contentGrid}>
-        <UserSidebar user={author} />
+        <UserSidebar user={author} events={authorEvents} />
 
         <article ref={articleRef} className={styles.poemArticle}>
           <header className={styles.poemHeader}>

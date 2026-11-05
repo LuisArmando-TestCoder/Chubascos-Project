@@ -11,6 +11,10 @@
   @media (min-width: v.$laptop) {
     position: sticky;
     top: calc(v.$header-height + 32px);
+    // Never taller than the window: the events rail absorbs the difference.
+    max-height: calc(100vh - #{v.$header-height} - 56px);
+    overflow-y: auto;
+    @include m.hide-scrollbar;
   }
 }
 

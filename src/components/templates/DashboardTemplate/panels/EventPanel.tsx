@@ -13,7 +13,6 @@ import {
 import { isSafeUrl } from '@/utils/validation';
 import { plume } from '@/lib/fluid/bus';
 import type { Event, Tag, User } from '@/types';
-import { DashboardEventsList } from '../DashboardEventsList';
 import { Stage, StageProgress, type StageMeta } from '../studio/Stage';
 import { Field } from '../studio/Field';
 import { Choice } from '../studio/Choice';
@@ -33,8 +32,9 @@ type PriceMode = 'unset' | 'free' | 'paid';
 
 interface EventPanelProps {
   user: User;
-  events: Event[];
   editEvent?: Event | null;
+  /** "Repetir": a past event copied into a fresh form (new date to choose). */
+  copyEvent?: Event | null;
   prevEvent?: Event | null;
   nextEvent?: Event | null;
   tags: Tag[];
@@ -80,23 +80,27 @@ function formFrom(e: Event | null | undefined, today: string, copy = false): For
 
 const same = (a: FormState, b: FormState) => JSON.stringify(a) === JSON.stringify(b);
 
-export function EventPanel({ user, events, editEvent, prevEvent, nextEvent, tags, tagsLoading, onSaved }: EventPanelProps) {
+export function EventPanel({ user, editEvent, copyEvent, prevEvent, nextEvent, tags, tagsLoading, onSaved }: EventPanelProps) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const [editingId, setEditingId] = useState<string | null>(editEvent?.id ?? null);
+  const editingId = editEvent?.id ?? null;
   // New events use the poet's own zone; the server render can't know it, so
   // it starts from the default and the browser value takes over after hydration.
   const clientZone = useSyncExternalStore(noopSubscribe, browserTimeZone, () => DEFAULT_EVENT_TIME_ZONE);
-  const timeZone = editEvent && isValidTimeZone(editEvent.timeZone)
-    ? editEvent.timeZone
-    : editEvent ? DEFAULT_EVENT_TIME_ZONE : clientZone;
+  const source = editEvent ?? copyEvent ?? null;
+  const timeZone = source && isValidTimeZone(source.timeZone)
+    ? source.timeZone
+    : source ? DEFAULT_EVENT_TIME_ZONE : clientZone;
   const today = todayIn(timeZone);
 
-  const [form, setForm] = useState<FormState>(() => formFrom(editEvent, today));
-  const [baseline, setBaseline] = useState<FormState>(form);
+  const [form, setForm] = useState<FormState>(() =>
+    editEvent ? formFrom(editEvent, today) : formFrom(copyEvent, today, true));
+  // A copy starts "dirty": nothing of it is saved yet.
+  const [baseline, setBaseline] = useState<FormState>(() => (copyEvent && !editEvent ? formFrom(null, today) : form));
   const [cronKey, setCronKey] = useState(0); // remounts the schedule picker on copy/reset
   const [touched, setTouched] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(
+    copyEvent && !editEvent ? `Copiamos «${copyEvent.title}». Elige la nueva fecha y crea el evento.` : '');
   const [tone, setTone] = useState<SaveTone>('idle');
   const [savedId, setSavedId] = useState<string | null>(editEvent?.id ?? null);
 
@@ -222,21 +226,6 @@ export function EventPanel({ user, events, editEvent, prevEvent, nextEvent, tags
   }, [saving, hasErrors, startInstant, editingId, form, recurring, timeZone, user.id, onSaved]);
 
   useSaveShortcut(rootRef, save);
-
-  const duplicate = (e: Event) => {
-    if (dirty && !window.confirm('Tienes cambios sin guardar en este evento. ¿Descartarlos y repetir el otro?')) return;
-    const next = formFrom(e, today, true);
-    setEditingId(null);
-    setSavedId(null);
-    setForm(next);
-    setBaseline(formFrom(null, today));
-    setCronKey((k) => k + 1);
-    setTouched(false);
-    setMessage(`Copiamos «${e.title}». Elige la nueva fecha.`);
-    setTone('idle');
-    try { window.history.replaceState(null, '', '/dashboard?tab=evento'); } catch { /* ignore */ }
-    document.getElementById('evento-cuando')?.scrollIntoView({ block: 'start' });
-  };
 
   const handleDelete = async () => {
     if (!editingId) return;
@@ -428,10 +417,6 @@ export function EventPanel({ user, events, editEvent, prevEvent, nextEvent, tags
         </div>
       </aside>
 
-      </div>
-
-      <div className={s.wide}>
-        <DashboardEventsList events={events} activeId={editingId} onDuplicate={duplicate} />
       </div>
     </div>
   );

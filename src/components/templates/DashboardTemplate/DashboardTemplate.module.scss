@@ -27,7 +27,12 @@
   display: grid;
   gap: 2rem;
 
+  > * { flex-shrink: 0; }
+
   @media (min-width: v.$laptop) {
+    // A column the events rail can grow into (see PoetEvents `fill`).
+    display: flex;
+    flex-direction: column;
     position: sticky;
     top: calc(v.$header-height + 24px);
     max-height: calc(100vh - #{v.$header-height} - 48px);

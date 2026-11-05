@@ -38,6 +38,11 @@ float hash(vec2 p) {
   p += dot(p, p + 34.23);
   return fract(p.x * p.y);
 }
+
+vec2 rainCycleKey(float cycle) {
+  float c = fract(mod(cycle, 997.0) * 0.61803398875);
+  return vec2(c, fract(c * 7.31 + 0.17)) * 13.0;
+}
 float smoothNoise(vec2 p) {
   vec2 i = floor(p); vec2 f = fract(p);
   float a = hash(i), b = hash(i + vec2(1.0, 0.0)), c = hash(i + vec2(0.0, 1.0)), d = hash(i + vec2(1.0, 1.0));
@@ -84,11 +89,14 @@ void main() {
   for (int y = -1; y <= 1; y++) {
     for (int x = -1; x <= 1; x++) {
       vec2 cell = id + vec2(float(x), float(y));
-      vec2 key = cell + uSeed;
+      vec2 home = cell + uSeed;
+      // Rhythm per cell, a fresh landing spot per fall (same idea as the hero).
+      float period = 2.4 + hash(home + 4.0) * 1.8;
+      float clock = uTime + hash(home + 3.0) * 100.0;
+      float localTime = mod(clock, period);
+      vec2 key = home + rainCycleKey(floor(clock / period));
       if (hash(key) > 1.0 - uDensity) {
         vec2 dropPos = (cell + vec2(hash(key + 1.0), hash(key + 2.0))) / 3.2;
-        float period = 2.4 + hash(key + 4.0) * 1.8;
-        float localTime = mod(uTime + hash(key + 3.0) * 100.0, period);
         addWave(dropPos, p, localTime, h, nrm);
       }
     }

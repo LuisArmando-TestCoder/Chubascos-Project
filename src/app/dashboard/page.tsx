@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 interface Props {
-  searchParams: Promise<{ edit?: string; id?: string; tab?: string }>;
+  searchParams: Promise<{ edit?: string; id?: string; tab?: string; copy?: string }>;
 }
 
 export default async function DashboardPage({ searchParams }: Props) {
@@ -19,7 +19,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   const user = await getUserProfile(session.userId);
   if (!user) redirect('/entrar');
 
-  const { edit, id, tab } = await searchParams;
+  const { edit, id, tab, copy } = await searchParams;
   // Every event the poet owns: the studio's history, and prev/next while editing.
   const userEventsPromise = getUserEvents(session.userId);
 
@@ -27,6 +27,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   let editShader: Shader | null = null;
   let editEvent: Event | null = null;
   let editBook: Book | null = null;
+  let copyEvent: Event | null = null;
   let editPrevPost: Post | null = null;
   let editNextPost: Post | null = null;
   let editPrevEvent: Event | null = null;
@@ -63,6 +64,11 @@ export default async function DashboardPage({ searchParams }: Props) {
     }
   }
 
+  if (!edit && copy) {
+    const source = await getEvent(copy);
+    if (source && source.ownerUserId === session.userId) copyEvent = source;
+  }
+
   // Fetch all user posts for the profile edit list (includes invisible ones)
   const [allPosts, allBooks, kindred, userEvents] = await Promise.all([
     getUserAllPosts(session.userId),
@@ -73,7 +79,7 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   return (
     <DashboardTemplate
-      key={editPost?.id || editEvent?.id || editBook?.id || 'dashboard'}
+      key={editPost?.id || editEvent?.id || editBook?.id || (copyEvent ? `copy-${copyEvent.id}` : 'dashboard')}
       user={user}
       userPosts={allPosts}
       userBooks={allBooks}
@@ -82,6 +88,7 @@ export default async function DashboardPage({ searchParams }: Props) {
       editPost={editPost}
       editShader={editShader}
       editEvent={editEvent}
+      copyEvent={copyEvent}
       editBook={editBook}
       editPrevPost={editPrevPost}
       editNextPost={editNextPost}

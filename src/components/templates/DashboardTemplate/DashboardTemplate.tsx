@@ -17,6 +17,7 @@ import { ProfilePanel } from './panels/ProfilePanel';
 import { PoemPanel } from './panels/PoemPanel';
 import { EventPanel } from './panels/EventPanel';
 import { BookPanel } from './panels/BookPanel';
+import { PoetEvents } from '@/components/organisms/PoetEvents/PoetEvents';
 import { poemStats } from './studio/text';
 import styles from './DashboardTemplate.module.scss';
 
@@ -29,6 +30,8 @@ interface DashboardTemplateProps {
   editBook?: Book | null;
   editShader?: Shader | null;
   editEvent?: Event | null;
+  /** `?copy=` — an event to repeat on a new date. */
+  copyEvent?: Event | null;
   editPrevPost?: Post | null;
   editNextPost?: Post | null;
   editPrevEvent?: Event | null;
@@ -44,13 +47,13 @@ const TAB_PARAM: Record<DashTab, string> = { 'perfil': 'perfil', 'nuevo-poema': 
 const PARAM_TAB = Object.fromEntries(Object.entries(TAB_PARAM).map(([k, v]) => [v, k])) as Record<string, DashTab>;
 
 export function DashboardTemplate({
-  user, userPosts = [], userBooks = [], userEvents = [], editPost, editBook, editShader, editEvent,
+  user, userPosts = [], userBooks = [], userEvents = [], editPost, editBook, editShader, editEvent, copyEvent,
   editPrevPost, editNextPost, editPrevEvent, editNextEvent, kindred = [], initialTab,
 }: DashboardTemplateProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<DashTab>(() => {
     if (editPost) return 'nuevo-poema';
-    if (editEvent) return 'nuevo-evento';
+    if (editEvent || copyEvent) return 'nuevo-evento';
     if (editBook) return 'mis-libros';
     return (initialTab && PARAM_TAB[initialTab]) || 'perfil';
   });
@@ -127,7 +130,7 @@ export function DashboardTemplate({
     <>
       <div className={styles.page}>
         <div className={styles.inner}>
-          <aside className={styles.rail}>
+          <aside className={styles.rail} data-lenis-prevent>
             <div className={styles.identity}>
               <DropSigil name={name} size={88} className={styles.greetingSigil} glyph={name.slice(0, 1).toUpperCase()} />
               <div>
@@ -171,6 +174,9 @@ export function DashboardTemplate({
               ))}
             </div>
 
+            {/* Every event, upcoming and past, reachable from any chapter. */}
+            <PoetEvents events={userEvents} isOwner activeId={editEvent?.id} title="Tus eventos" fill />
+
             <div className={styles.headerActions}>
               <Link href={`/u/${encodeURIComponent(user.id)}`} className={styles.profileLink}>
                 Ver perfil público
@@ -212,8 +218,8 @@ export function DashboardTemplate({
                 )}
                 {tab === 'nuevo-evento' && (
                   <EventPanel
-                    user={user} events={userEvents}
-                    editEvent={editEvent} prevEvent={editPrevEvent} nextEvent={editNextEvent}
+                    user={user}
+                    editEvent={editEvent} copyEvent={copyEvent} prevEvent={editPrevEvent} nextEvent={editNextEvent}
                     tags={availableTags} tagsLoading={tagsLoading} onSaved={refresh}
                   />
                 )}

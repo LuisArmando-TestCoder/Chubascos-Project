@@ -6,15 +6,18 @@ import { useSession } from '@/hooks/useSession';
 import { QrModal } from '@/components/organisms/QrModal/QrModal';
 import { DropSigil } from '@/components/atoms/DropSigil/DropSigil';
 import { plume } from '@/lib/fluid/bus';
-import type { User } from '@/types';
+import type { Event, User } from '@/types';
+import { PoetEvents } from '@/components/organisms/PoetEvents/PoetEvents';
 import styles from './UserSidebar.module.scss';
 import { WaterText } from '@/components/organisms/WaterText/WaterText';
 
 interface UserSidebarProps {
   user: User;
+  /** The poet's events, shown as a scrollable rail in this column. */
+  events?: Event[];
 }
 
-export function UserSidebar({ user }: UserSidebarProps) {
+export function UserSidebar({ user, events }: UserSidebarProps) {
   const [qrOpen, setQrOpen] = useState(false);
   const { isUserSaved, saveUser, unsaveUser } = useSavedItems();
   const { session } = useSession();
@@ -25,7 +28,7 @@ export function UserSidebar({ user }: UserSidebarProps) {
   const profileUrl = typeof window !== 'undefined' ? `${window.location.origin}/u/${user.id}` : `/u/${user.id}`;
 
   return (
-    <aside className={styles.sidebar}>
+    <aside className={styles.sidebar} data-lenis-prevent>
       <header className={styles.profileHeader}>
         <div className={styles.avatarBlock}>
           <div className={styles.avatar} aria-hidden="true">
@@ -83,6 +86,8 @@ export function UserSidebar({ user }: UserSidebarProps) {
           </div>
         </section>
       )}
+
+      {events && <PoetEvents events={events} isOwner={isOwner} fill />}
 
       <QrModal isOpen={qrOpen} onClose={() => setQrOpen(false)} url={profileUrl} label={name} />
     </aside>

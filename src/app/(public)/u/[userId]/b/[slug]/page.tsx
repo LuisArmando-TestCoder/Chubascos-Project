@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getBook, getUserProfile, getUserProfileByEmail } from '@/actions/data';
+import { getBook, getUserProfile, getUserProfileByEmail, getUserEvents } from '@/actions/data';
 import { BookDetailTemplate } from '@/components/templates/BookDetailTemplate/BookDetailTemplate';
 import { Footer } from '@/components/organisms/Footer/Footer';
 
@@ -45,9 +45,11 @@ export default async function BookDetailPage({ params }: Props) {
     notFound();
   }
 
+  const authorEvents = await getUserEvents(book.userId).catch(() => []);
+
   return (
     <>
-      <BookDetailTemplate book={book} author={user!} />
+      <BookDetailTemplate book={book} author={user!} authorEvents={authorEvents} />
       <Footer />
     </>
   );

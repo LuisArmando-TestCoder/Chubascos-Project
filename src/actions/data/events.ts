@@ -177,13 +177,18 @@ export async function searchExpiredEventsByTag(
   }
 }
 
+const MAX_EVENTS_PER_POET = 1000;
+
 export async function getUserEvents(userId: string): Promise<Event[]> {
   if (!db) return [];
   // Auto-renew expired recurring events before querying
   await refreshExpiredRecurringEvents();
+  // No orderBy here (it would need a composite index), so take every event
+  // the poet owns and sort below. A `.limit()` without an order returned an
+  // arbitrary slice by document id: new events could silently go missing.
   const snapshot = await db.collection('events')
     .where('ownerUserId', '==', userId)
-    .limit(50)
+    .limit(MAX_EVENTS_PER_POET)
     .get();
   const events = snapshot.docs.map(toData) as Event[];
   const now = Date.now();

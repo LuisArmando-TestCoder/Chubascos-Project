@@ -1,15 +1,13 @@
 'use client';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { PostCard } from '@/components/molecules/PostCard/PostCard';
-import { EventCard } from '@/components/molecules/EventCard/EventCard';
 import { UserSidebar } from '@/components/organisms/UserSidebar/UserSidebar';
 import { DashboardPostsList } from '@/components/templates/DashboardTemplate/DashboardPostsList';
 import { getUserPosts, getTagsByIds } from '@/actions/data';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useSession } from '@/hooks/useSession';
 import i18n from '@/utils/i18n';
-import { isEventPast } from '@/utils/eventTime';
 import type { User, Post, Event, Tag, Book } from '@/types';
 import styles from './UserProfileTemplate.module.scss';
 import { WaterText } from '@/components/organisms/WaterText/WaterText';
@@ -26,22 +24,15 @@ interface UserProfileTemplateProps {
   kindred?: Kindred[];
 }
 
-function isEventExpired(event: Event): boolean {
-  return isEventPast(event);
-}
-
 export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCursor, initialEvents, initialBooks = [], initialTagMap = {}, kindred = [] }: UserProfileTemplateProps) {
   const [posts, setPosts] = useState<Post[]>(initialPosts);
   const [cursor, setCursor] = useState<string | null>(initialCursor);
   const [loading, setLoading] = useState(false);
-  const [showExpiredEvents, setShowExpiredEvents] = useState(false);
   // tagMap accumulates resolved Tag objects keyed by their ID
   const [tagMap, setTagMap] = useState<Record<string, Tag>>(initialTagMap);
   const { session } = useSession();
   const isOwner = session.isLoggedIn && session.userId === user.id;
 
-  const upcomingEvents = useMemo(() => initialEvents.filter((e) => !isEventExpired(e)), [initialEvents]);
-  const expiredEvents = useMemo(() => initialEvents.filter((e) => isEventExpired(e)), [initialEvents]);
 
   // Helper: resolve tagIds → Tag[]
   const resolveTags = useCallback((tagIds: string[] = []): Tag[] =>
@@ -73,7 +64,7 @@ export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCur
   return (
     <main className={styles.page}>
       <div className={styles.contentGrid}>
-        <UserSidebar user={user} />
+        <UserSidebar user={user} events={initialEvents} />
 
         <article className={styles.profileArticle}>
           {/* Poems section */}
@@ -105,62 +96,6 @@ export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCur
 
           {/* Who writes like this voice, read from the tags of their work */}
           <KindredVoices voices={kindred} />
-
-          {/* Events section */}
-          {initialEvents.length > 0 && (
-            <section className={styles.eventsSection}>
-              <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}><WaterText text="Eventos" /></h2>
-              </div>
-
-              {upcomingEvents.length === 0 && expiredEvents.length > 0 && (
-                <p className={styles.empty}>No hay eventos próximos.</p>
-              )}
-
-              {upcomingEvents.length > 0 && (
-                <div className={styles.eventsGrid}>
-                  {upcomingEvents.map((event, i) => (
-                    <motion.div
-                      key={event.id}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      initial={{ opacity: 0, y: 16 }}
-                      transition={{ duration: 0.4, delay: i * 0.08 }}
-                      viewport={{ once: true }}
-                    >
-                      <EventCard event={event} tags={resolveTags(event.tagIds)} />
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-
-              {expiredEvents.length > 0 && (
-                <>
-                  <button
-                    className={styles.expiredToggle}
-                    onClick={() => setShowExpiredEvents((v) => !v)}
-                    aria-expanded={showExpiredEvents}
-                  >
-                    {showExpiredEvents ? '▲ Ocultar expirados' : `▼ Ver eventos expirados (${expiredEvents.length})`}
-                  </button>
-
-                  {showExpiredEvents && (
-                    <div className={styles.eventsGrid}>
-                      {expiredEvents.map((event, i) => (
-                        <motion.div
-                          key={event.id}
-                          initial={{ opacity: 0, y: 12 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.04 }}
-                        >
-                          <EventCard event={event} tags={resolveTags(event.tagIds)} expired />
-                        </motion.div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-            </section>
-          )}
 
           {/* Books section */}
           {initialBooks.length > 0 && (

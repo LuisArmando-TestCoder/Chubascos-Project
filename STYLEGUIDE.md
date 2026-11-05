@@ -45,7 +45,7 @@ stay as they are because the hero uses them.
 | Motif | Where | What it means |
 | --- | --- | --- |
 | `DropSigil name=…` | poets (cards, profile, studio) | Generative rings from **SHA-256(name)**: each digest byte sets one trait (ring count, spacing, harmonics, phase, dashes, satellites, rotation) |
-| `DropField` | event cards, studio preview | Real raindrops: the hero's capillary-wave shader in miniature. One shared WebGL context feeds every visible field |
+| `DropField` | event cards, studio preview | Real raindrops: the hero's capillary-wave shader in miniature. One shared WebGL context feeds every visible field. Like the hero, each cell keeps its rhythm but every fall re-seeds where it lands (`rainCycleKey`) |
 | `WaterText` | every heading (except H1s that aren't names), every poem name and user name, footer wordmark | Text as a texture that washes away along a blurred pointer trail (scroll-aware) and re-forms. One shared WebGL context for the whole page; real text stays in the DOM |
 | `SectionHeader` | every section | title + drifting hollow *echo* word. **No kickers or numbering above headings** |
 | `TagExplorer` | buscar, studio pickers | Fall through the taxonomy column by column (TAXONOMIA.md). `browse` searches a whole branch; `pick` fills drops up to a max |
@@ -56,7 +56,8 @@ stay as they are because the hero uses them.
 | `Stage` + `StageProgress` | studio forms (`DashboardTemplate/studio`) | a form as steps on a rail of drops; a drop fills when its step has what it needs. Optional steps have a dashed drop. Titles are italic Newsreader, never numbered |
 | `SaveBar` | foot of every studio form | sticky edge of the desk: one status line (`role=status`) and the one primary action. ⌘/Ctrl + ↵ saves |
 | `Choice` | visibility, frequency, price | native radios dressed as cards (`cards`) or pills (`segmented`); arrow keys for free |
-| Occurrence timeline | event studio, `DashboardEventsList` | upcoming dates as drops on a vertical rail; the next one glows puddle |
+| Occurrence timeline | event studio | upcoming dates as drops on a vertical rail; the next one glows puddle |
+| `PoetEvents` | left column of profile, poem, book and the studio rail | a poet's evenings (Próximos / Historial) scrolling inside the column; `fill` lets it take the column's free height. Owners get Editar / Repetir |
 
 ## 4. Interaction → water (`src/lib/fluid/bus.ts`)
 

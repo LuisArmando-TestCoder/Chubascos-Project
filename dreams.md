@@ -43,3 +43,10 @@
 - **jsPDF's Times only has Windows-1252.** Emoji and CJK printed as mojibake. The PDF path now filters to printable glyphs; embedding a TTF (Newsreader) would be the real upgrade.
 - Lint was not running; it now uses `eslint-config-next` (core-web-vitals + typescript) and is clean except one warning in the hero shader, which stays untouched by rule.
 - Still open: user ids are emails, so `/u/<email>` URLs and `searchUsers` expose addresses. That needs a public handle or an opaque id.
+
+## 2026-11-05 · Missing events, events in the left column, honest rain
+
+- **`.limit()` without `.orderBy()` is a random sample.** `getUserEvents` took 50 events in document-id order, so with more than 50 a brand-new event could simply not be there (studio history, profile). It now loads every event of the poet (capped at 1000) and sorts in code; no composite index needed.
+- **Content below an infinite list is unreachable.** Profile events sat under infinitely loading poems. They now live in the sticky left column, as a rail that scrolls on its own (`PoetEvents`), on profile, poem and book pages and in the studio.
+- **Sticky column + growing child:** `flex: 1 1 0` on the rail and the list, with a real `min-height` on the list and no `min-height: 0` on the rail, so it fills the free space and the column scrolls when there isn't any. `min-height: 0` made the list overflow onto the buttons below.
+- **Procedural rain looked mechanical** because `hash(cell)` fixed both which cells rain and where. Re-seeding by `floor(time / period)` keeps the rhythm and varies the landing spot. Keep the per-cycle key small (golden-ratio fraction × 13) so `hash()` stays precise in `mediump` on phones.

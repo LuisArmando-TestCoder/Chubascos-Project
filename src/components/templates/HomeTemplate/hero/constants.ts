@@ -32,6 +32,13 @@ float fbm(vec2 p) {
     return value;
 }
 
+// A small, bounded offset per fall (golden-ratio sequence): distinct for ~1000
+// consecutive cycles and small enough to keep hash() precise in mediump.
+vec2 rainCycleKey(float cycle) {
+    float c = fract(mod(cycle, 997.0) * 0.61803398875);
+    return vec2(c, fract(c * 7.31 + 0.17)) * 13.0;
+}
+
 // Physics constants moved to uniform-like defines for performance
 #define WAVE_SPEED 0.4
 #define WAVENUMBER 70.0
@@ -90,9 +97,13 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     for(int y=-1; y<=1; y++) {
         for(int x=-1; x<=1; x++) {
             vec2 cell = id + vec2(float(x), float(y));
-            if (hash(cell) > 0.92) {
-                vec2 dropPos = (cell + vec2(hash(cell+1.0), hash(cell+2.0))) / 4.0;
-                float localTime = mod(iTime * 1.5 + hash(cell + 3.0) * 100.0, 3.0);
+            // Each cell keeps its own rhythm, but every fall is a new drop:
+            // the cycle number re-seeds where (and whether) it lands.
+            float clock = iTime * 1.5 + hash(cell + 3.0) * 100.0;
+            float localTime = mod(clock, 3.0);
+            vec2 key = cell + rainCycleKey(floor(clock / 3.0));
+            if (hash(key) > 0.92) {
+                vec2 dropPos = (cell + vec2(hash(key + 1.0), hash(key + 2.0))) / 4.0;
                 addWave(dropPos, p, localTime, totalHeight, normalOffset);
             }
         }
