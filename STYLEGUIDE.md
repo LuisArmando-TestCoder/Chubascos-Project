@@ -19,7 +19,7 @@ water that reacts when you touch it.
 | `$rain` | `#6d5dfc` | brand violet = the hero shader's accent. Fills and glows only, **never small text** (3.8:1) |
 | `$rain-soft` | `#a59bff` | violet for text and links on ink (≥ 7:1) |
 | `$puddle` | `#8fd3e8` | secondary accent: focus, active state, primary actions |
-| `$ember` | `#ffb38a` | rare warm signal: live, recurring |
+| `$ember` | `#673ab7` | rare warm signal: live, recurring |
 | `$line`, `$line-strong` | paper at 9% / 20% | hairlines |
 
 Legacy tokens (`$font-serif`, `$font-sans`, `$black`, `$white`, `$accent`…)
