@@ -100,3 +100,15 @@ hidden, and **is off with `prefers-reduced-motion`**.
 - Every animation and the fluid layer respect `prefers-reduced-motion`.
   Lenis falls back to native scroll.
 - Decorative graphics (`DropSigil`, gauge, water) are `aria-hidden`.
+
+## 8. Logo — «Chubasco»
+
+Three slanted strokes of wind-driven rain, uneven in length like lines of verse. No drop, no puddle: just the downpour.
+
+- **Grid:** 64 × 64, round caps, all strokes share one slope (−0.25).
+- **Display version** (≥ 24 px): `M39 11 29 51 M23 17 15 49 M49 29 43 53`, stroke 5–6, `$rain-soft`.
+- **Favicon version** (≤ 32 px): `M40 6 28 56 M21 14 12 50 M54 26 47 56`, stroke 8 — longer and heavier so it survives 16 px.
+- **Colour:** `$rain-soft` (#a59bff) on ink; `#5a49e8` on light surfaces (in `app/icon.svg` via `prefers-color-scheme`).
+- **Lockup:** mark + «CHUBASCOS» in Newsreader, uppercase, 0.16em tracking, 12 px gap at header size.
+- **Component:** `components/atoms/LogoMark` (strokes "fall" on hover of the parent link; static with reduced motion).
+- **Files:** `app/icon.svg`, `app/favicon.ico` (16/32/48), `app/apple-icon.png` (180, ink background), `public/icons/icon-{192,512}.png`, `public/icons/icon-maskable-512.png`, `app/manifest.ts`.

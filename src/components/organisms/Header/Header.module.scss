@@ -30,30 +30,17 @@
 .logo {
   display: inline-flex;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
   color: v.$paper;
   min-height: 44px;
 
   &:hover { opacity: 1; }
 }
 
-.logoDrop {
-  position: relative;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: v.$rain;
-  box-shadow: 0 0 12px rgba(v.$accent, 0.8);
-
-  // A ring leaves the drop every few seconds: the record is always running.
-  &::after {
-    content: '';
-    position: absolute;
-    inset: -7px;
-    border: 1px solid v.$rain-soft;
-    border-radius: 50%;
-    animation: ripple-out 3.2s v.$ease-drop infinite;
-  }
+.logoMark {
+  // Optical alignment: the strokes lean right, so nudge the mark up a hair to
+  // sit on the cap height of the word.
+  transform: translateY(-1px);
 }
 
 .logoWord {

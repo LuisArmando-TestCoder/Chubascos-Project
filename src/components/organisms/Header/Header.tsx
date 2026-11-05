@@ -7,6 +7,7 @@ import { useSession } from '@/hooks/useSession';
 import { useScrollDirection } from '@/hooks/useScrollDirection';
 import { drop } from '@/lib/fluid/bus';
 import i18n from '@/utils/i18n';
+import LogoMark from '@/components/atoms/LogoMark/LogoMark';
 import styles from './Header.module.scss';
 
 export function Header() {
@@ -69,7 +70,7 @@ export function Header() {
       <header className={`${styles.header} ${isHidden && !menuOpen ? styles.hidden : ''}`} role="banner">
         <div className={styles.inner}>
           <Link href="/" className={styles.logo} aria-label="Chubascos, inicio">
-            <span className={styles.logoDrop} aria-hidden="true" />
+            <LogoMark size={22} className={styles.logoMark} />
             <span className={styles.logoWord}>Chubascos</span>
           </Link>
           <nav className={styles.actions} aria-label="Acciones principales">

@@ -1,0 +1,44 @@
+@use '@/styles/variables' as v;
+
+// Each stroke is drawn as a dash that can slide along its own path, so on
+// hover the rain "falls": every line leaves through the bottom and comes back
+// in from the top, staggered like a gust.
+.mark {
+  display: block;
+  flex-shrink: 0;
+  overflow: visible;
+
+  path {
+    fill: none;
+    stroke: v.$rain-soft;
+    stroke-width: 6;
+    stroke-linecap: round;
+    stroke-dasharray: 100 100;
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :global(a):hover > .mark path,
+  :global(a):focus-visible > .mark path {
+    animation: fall 1.1s linear both;
+  }
+
+  :global(a):hover > .mark .b,
+  :global(a):focus-visible > .mark .b {
+    animation-delay: 0.08s;
+  }
+
+  :global(a):hover > .mark .c,
+  :global(a):focus-visible > .mark .c {
+    animation-delay: 0.16s;
+  }
+}
+
+// Falling out accelerates like a drop; coming back in settles like the water.
+@keyframes fall {
+  0% { stroke-dashoffset: 0; animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+  40% { stroke-dashoffset: -100; }
+  40.01% { stroke-dashoffset: 100; animation-timing-function: v.$ease-drop; }
+  100% { stroke-dashoffset: 0; }
+}
