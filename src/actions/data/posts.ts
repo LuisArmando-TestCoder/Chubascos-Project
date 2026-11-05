@@ -2,10 +2,10 @@
 
 import { db } from '@/firebase/admin';
 import * as admin from 'firebase-admin';
-import { PostSchema } from '@/utils/validation';
-import { generateSlug } from '@/utils/generateSlug';
+import { PostSchema, firstIssue } from '@/utils/validation';
 import type { Post, SerializedTimestamp } from '@/types';
-import { toData, serialize, PAGE_SIZE, evictLiveFeed, notifyFollowers, generateContentHash, tagFilter } from './common';
+import { toData, serialize, PAGE_SIZE, evictLiveFeed, notifyFollowers, generateContentHash, tagFilter, existingTagIds, applyTagDelta, uniqueSlug } from './common';
+import { isActor, FORBIDDEN } from './guard';
 import { getUserProfileByEmail } from './users';
 
 export async function getLiveFeed(limitNum: number = PAGE_SIZE, cursor?: string) {
@@ -154,17 +154,37 @@ export async function searchPostsByTag(
   }
 }
 
+/** A shader may only be attached by its owner, and only while it exists. */
+async function ownedShaderId(userId: string, shaderId: string | null | undefined): Promise<string | null> {
+  if (!db || !shaderId) return null;
+  const doc = await db.collection('shaders').doc(shaderId).get();
+  const data = doc.data();
+  return doc.exists && data?.ownerUserId === userId && !data?.isDeleted ? doc.id : null;
+}
+
 export async function createPost(userId: string, data: unknown) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
-  
-  try {
-    const validated = PostSchema.parse(data);
-    const postRef = db.collection('users').doc(userId).collection('posts').doc();
-    const now = admin.firestore.FieldValue.serverTimestamp();
-    const slug = validated.slug || generateSlug(validated.title);
+  if (!(await isActor(userId))) return FORBIDDEN;
 
+  try {
+    const parsed = PostSchema.safeParse(data);
+    if (!parsed.success) return { success: false, error: firstIssue(parsed.error, 'Revisa el poema.') };
+    const validated = parsed.data;
+
+    const postsCol = db.collection('users').doc(userId).collection('posts');
+    const postRef = postsCol.doc();
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const [slug, tagIds, shaderId] = await Promise.all([
+      uniqueSlug(postsCol, validated.slug || validated.title, 'poema'),
+      existingTagIds(validated.tagIds),
+      ownedShaderId(userId, validated.shaderId),
+    ]);
+
+    const { shaderId: _ignored, ...fields } = validated;
     const postData = {
-      ...validated,
+      ...fields,
+      ...(shaderId ? { shaderId } : {}),
+      tagIds,
       slug,
       id: postRef.id,
       userId,
@@ -174,21 +194,16 @@ export async function createPost(userId: string, data: unknown) {
 
     const batch = db.batch();
     batch.set(postRef, postData);
+    applyTagDelta(batch, [], tagIds, 'usedByPosts');
 
-    for (const tagId of validated.tagIds || []) {
-      const tagRef = db.collection('tags').doc(tagId);
-      batch.update(tagRef, { usedByPosts: admin.firestore.FieldValue.increment(1) });
-    }
-
-    if (validated.shaderId) {
-      const shaderRef = db.collection('shaders').doc(validated.shaderId);
-      batch.update(shaderRef, { usedBy: admin.firestore.FieldValue.increment(1) });
+    if (shaderId) {
+      batch.update(db.collection('shaders').doc(shaderId), { usedBy: admin.firestore.FieldValue.increment(1) });
     }
 
     if (postData.isIndexed && postData.isVisible) {
       const liveFeedRef = db.collection('live_feed').doc(postRef.id);
       batch.set(liveFeedRef, postData);
-      
+
       const contentHash = generateContentHash(postData.content);
       const hashRef = db.collection('users').doc(userId).collection('notified_hashes').doc(contentHash);
       const hashDoc = await hashRef.get();
@@ -196,12 +211,9 @@ export async function createPost(userId: string, data: unknown) {
       if (!hashDoc.exists) {
         batch.set(hashRef, { createdAt: now });
         await batch.commit();
-        console.log(`[Notificación] Enviando correos para el post ${postRef.id}`);
         evictLiveFeed().catch(console.error);
         notifyFollowers(userId, postData, 'post').catch(console.error);
         return { success: true, id: postRef.id, slug };
-      } else {
-        console.log(`[Anti-Spam] Contenido duplicado detectado. Saltando notificación para ${postRef.id}.`);
       }
     }
 
@@ -215,50 +227,81 @@ export async function createPost(userId: string, data: unknown) {
 
 export async function updatePost(userId: string, postId: string, data: unknown) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!(await isActor(userId))) return FORBIDDEN;
 
   try {
-    const validated = PostSchema.partial().parse(data);
-    const postRef = db.collection('users').doc(userId).collection('posts').doc(postId);
+    const parsed = PostSchema.partial().safeParse(data);
+    if (!parsed.success) return { success: false, error: firstIssue(parsed.error, 'Revisa el poema.') };
+    const validated = parsed.data;
+
+    const postsCol = db.collection('users').doc(userId).collection('posts');
+    const postRef = postsCol.doc(postId);
     const existing = await postRef.get();
     if (!existing.exists) return { success: false, error: 'Poema no encontrado.' };
+    const prev = existing.data()!;
 
     const now = admin.firestore.FieldValue.serverTimestamp();
-    const slug = validated.slug || (validated.title ? generateSlug(validated.title) : existing.data()?.slug);
+    // URLs are permanent: the slug only changes when the poet edits it.
+    const slug = validated.slug && validated.slug !== prev.slug
+      ? await uniqueSlug(postsCol, validated.slug, 'poema', postId)
+      : prev.slug;
 
-    const updateData: any = { slug, updatedAt: now };
+    const updateData: Record<string, unknown> = { slug, updatedAt: now };
     for (const [key, value] of Object.entries(validated)) {
-      if (value !== undefined) updateData[key] = value;
+      if (value !== undefined && key !== 'slug' && key !== 'shaderId' && key !== 'tagIds') updateData[key] = value;
     }
-    
+
     const batch = db.batch();
+
+    if (validated.tagIds) {
+      const tagIds = await existingTagIds(validated.tagIds);
+      updateData.tagIds = tagIds;
+      applyTagDelta(batch, await existingTagIds(prev.tagIds), tagIds, 'usedByPosts');
+    }
+
+    if (validated.shaderId !== undefined) {
+      const nextShader = await ownedShaderId(userId, validated.shaderId);
+      const prevShader: string | undefined = prev.shaderId;
+      if (validated.shaderId && !nextShader) return { success: false, error: 'Ese shader no está disponible.' };
+      if (nextShader !== (prevShader ?? null)) {
+        if (prevShader) batch.update(db.collection('shaders').doc(prevShader), { usedBy: admin.firestore.FieldValue.increment(-1) });
+        if (nextShader) batch.update(db.collection('shaders').doc(nextShader), { usedBy: admin.firestore.FieldValue.increment(1) });
+      }
+      updateData.shaderId = nextShader ?? admin.firestore.FieldValue.delete();
+    }
+
     batch.update(postRef, updateData);
 
-    const merged = { ...existing.data(), ...updateData };
+    const merged = { ...prev, ...updateData };
+    if (!nextShaderKept(merged)) delete merged.shaderId;
     const isPublic = merged.isIndexed && merged.isVisible;
     const liveFeedRef = db.collection('live_feed').doc(postId);
 
     if (isPublic) {
-      batch.set(liveFeedRef, { ...merged }, { merge: true });
+      batch.set(liveFeedRef, merged);
     } else {
       batch.delete(liveFeedRef);
     }
 
     await batch.commit();
 
-    if (isPublic) {
-      evictLiveFeed().catch(console.error);
-      // NOTE: We don't notify followers on updates
-    }
+    if (isPublic) evictLiveFeed().catch(console.error);
 
-    return { success: true };
+    return { success: true, slug };
   } catch (error: unknown) {
     console.error('updatePost error:', error);
     return { success: false, error: 'No se pudo actualizar el poema.' };
   }
 }
 
+/** A FieldValue.delete() sentinel can't be copied into another document. */
+function nextShaderKept(merged: Record<string, unknown>): boolean {
+  return typeof merged.shaderId === 'string';
+}
+
 export async function deletePost(userId: string, postId: string) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!(await isActor(userId))) return FORBIDDEN;
 
   try {
     const postRef = db.collection('users').doc(userId).collection('posts').doc(postId);
@@ -270,15 +313,11 @@ export async function deletePost(userId: string, postId: string) {
 
     batch.delete(postRef);
     batch.delete(db.collection('live_feed').doc(postId));
-
-    for (const tagId of postData?.tagIds || []) {
-      const tagRef = db.collection('tags').doc(tagId);
-      batch.update(tagRef, { usedByPosts: admin.firestore.FieldValue.increment(-1) });
-    }
+    applyTagDelta(batch, await existingTagIds(postData?.tagIds), [], 'usedByPosts');
 
     if (postData?.shaderId) {
       const shaderRef = db.collection('shaders').doc(postData.shaderId);
-      batch.update(shaderRef, { usedBy: admin.firestore.FieldValue.increment(-1) });
+      if ((await shaderRef.get()).exists) batch.update(shaderRef, { usedBy: admin.firestore.FieldValue.increment(-1) });
     }
 
     await batch.commit();

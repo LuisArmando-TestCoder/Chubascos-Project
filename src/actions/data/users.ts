@@ -3,7 +3,9 @@
 import { db } from '@/firebase/admin';
 import * as admin from 'firebase-admin';
 import type { User } from '@/types';
-import { toData, serialize, PAGE_SIZE, tagFilter } from './common';
+import { toData, serialize, PAGE_SIZE, tagFilter, existingTagIds } from './common';
+import { isActor, FORBIDDEN } from './guard';
+import { ProfileUpdateSchema, USERNAME_RE, firstIssue } from '@/utils/validation';
 
 export async function getUsers(limitNum: number = PAGE_SIZE, cursor?: string) {
   if (!db) return { items: [], nextCursor: null };
@@ -86,6 +88,26 @@ export async function searchUsersByTag(
   return { items, nextCursor };
 }
 
+async function usernameTakenBy(usernameLower: string): Promise<string | null> {
+  if (!db) return null;
+  const snap = await db.collection('users').where('usernameLower', '==', usernameLower).limit(1).get();
+  return snap.empty ? null : snap.docs[0].id;
+}
+
+/** Live check for the studio: is this name valid and free for me? */
+export async function checkUsernameAvailable(
+  userId: string,
+  username: string,
+): Promise<{ available: boolean; reason?: string }> {
+  const name = String(username ?? '').trim();
+  if (name.length < 3) return { available: false, reason: 'Al menos 3 caracteres.' };
+  if (name.length > 32) return { available: false, reason: 'Hasta 32 caracteres.' };
+  if (!USERNAME_RE.test(name)) return { available: false, reason: 'Sin espacios ni símbolos (solo . _ -).' };
+  if (!db || !(await isActor(userId))) return { available: true };
+  const owner = await usernameTakenBy(name.toLowerCase());
+  return owner && owner !== userId ? { available: false, reason: 'Ese nombre ya tiene dueño.' } : { available: true };
+}
+
 export async function updateUserProfile(userId: string, data: {
   username?: string;
   bio?: string;
@@ -93,28 +115,26 @@ export async function updateUserProfile(userId: string, data: {
   tagIds?: string[];
 }) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!(await isActor(userId))) return FORBIDDEN;
 
   try {
+    // An empty name means "keep none": skip it rather than failing the save.
+    const input = { ...data, username: data?.username?.trim() ? data.username : undefined };
+    const parsed = ProfileUpdateSchema.safeParse(input);
+    if (!parsed.success) return { success: false, error: firstIssue(parsed.error, 'Revisa tu perfil.') };
+    const valid = parsed.data;
+
     const updateData: Record<string, unknown> = {};
-    if (data.username !== undefined) {
-      if (data.username.length < 3 || data.username.length > 32) {
-        return { success: false, error: 'Nombre de usuario debe tener entre 3 y 32 caracteres.' };
-      }
-      updateData.username = data.username;
-      updateData.usernameLower = data.username.toLowerCase();
+    if (valid.username !== undefined) {
+      const lower = valid.username.toLowerCase();
+      const owner = await usernameTakenBy(lower);
+      if (owner && owner !== userId) return { success: false, error: 'Ese nombre de usuario ya está en uso.' };
+      updateData.username = valid.username;
+      updateData.usernameLower = lower;
     }
-    if (data.bio !== undefined) {
-      if (data.bio.length > 500) return { success: false, error: 'Biografía muy larga (máx 500).' };
-      updateData.bio = data.bio;
-    }
-    if (data.contacts !== undefined) {
-      if (data.contacts.length > 5) return { success: false, error: 'Máximo 5 contactos.' };
-      updateData.contacts = data.contacts;
-    }
-    if (data.tagIds !== undefined) {
-      if (data.tagIds.length > 10) return { success: false, error: 'Máximo 10 etiquetas en el perfil.' };
-      updateData.tagIds = data.tagIds;
-    }
+    if (valid.bio !== undefined) updateData.bio = valid.bio.trim();
+    if (valid.contacts !== undefined) updateData.contacts = valid.contacts;
+    if (valid.tagIds !== undefined) updateData.tagIds = await existingTagIds(valid.tagIds);
 
     await db.collection('users').doc(userId).update(updateData);
     return { success: true };

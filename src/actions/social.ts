@@ -2,9 +2,11 @@
 
 import { db } from '@/firebase/admin';
 import * as admin from 'firebase-admin';
+import { isActorEmail, FORBIDDEN } from './data/guard';
 
 export async function saveUser(followerEmail: string, followedUserId: string) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!(await isActorEmail(followerEmail))) return FORBIDDEN;
   try {
     const batch = db.batch();
     
@@ -32,6 +34,7 @@ export async function saveUser(followerEmail: string, followedUserId: string) {
 
 export async function savePost(userEmail: string, postId: string) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!(await isActorEmail(userEmail))) return FORBIDDEN;
   try {
     const postRef = db.collection('users').doc(userEmail).collection('saved_posts').doc(postId);
     await postRef.set({
@@ -47,6 +50,7 @@ export async function savePost(userEmail: string, postId: string) {
 
 export async function unsavePost(userEmail: string, postId: string) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!(await isActorEmail(userEmail))) return FORBIDDEN;
   try {
     await db.collection('users').doc(userEmail).collection('saved_posts').doc(postId).delete();
     return { success: true };
@@ -58,6 +62,7 @@ export async function unsavePost(userEmail: string, postId: string) {
 
 export async function saveEvent(userEmail: string, eventId: string) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!(await isActorEmail(userEmail))) return FORBIDDEN;
   try {
     const eventRef = db.collection('users').doc(userEmail).collection('saved_events').doc(eventId);
     await eventRef.set({
@@ -73,6 +78,7 @@ export async function saveEvent(userEmail: string, eventId: string) {
 
 export async function unsaveEvent(userEmail: string, eventId: string) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!(await isActorEmail(userEmail))) return FORBIDDEN;
   try {
     await db.collection('users').doc(userEmail).collection('saved_events').doc(eventId).delete();
     return { success: true };
@@ -84,6 +90,7 @@ export async function unsaveEvent(userEmail: string, eventId: string) {
 
 export async function unsaveUser(followerEmail: string, followedUserId: string) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!(await isActorEmail(followerEmail))) return FORBIDDEN;
   try {
     const batch = db.batch();
     

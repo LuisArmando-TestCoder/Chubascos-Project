@@ -1,4 +1,5 @@
 import cronstrue from 'cronstrue/i18n';
+import { isValidTimeZone, wallClockIn, zonedToInstant } from './eventTime';
 
 const DAY_NAMES_ES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const DAY_NAMES_SHORT_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -54,6 +55,14 @@ export function cronToHuman(cron: string): string {
     return `Cada ${ordinal} ${dayName.toLowerCase()} del mes a las ${nth.time}`;
   }
 
+  const weekly = parseCron(cron);
+  if (WEEKLY_RE.test(cron.trim().replace(/\s+/g, ' ')) && weekly.days.length > 0) {
+    if (weekly.days.length === 7) return `Todos los días a las ${weekly.time}`;
+    const names = [...weekly.days].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map((d) => DAY_NAMES_ES[d].toLowerCase());
+    const joined = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}`;
+    return `Cada ${joined} a las ${weekly.time}`;
+  }
+
   try {
     return cronstrue.toString(cron, { locale: 'es', use24HourTimeFormat: true });
   } catch {
@@ -81,7 +90,7 @@ export function dateToCron(dateStr: string, timeStr: string): string {
 export function buildCron(days: number[], timeStr: string): string {
   if (days.length === 0) return '';
   const [hours, minutes] = parseTime(timeStr);
-  const daysPart = days.sort((a, b) => a - b).join(',');
+  const daysPart = [...new Set(days)].sort((a, b) => a - b).join(',');
   return `${minutes} ${hours} * * ${daysPart}`;
 }
 
@@ -277,7 +286,7 @@ export function getOrdinalLabel(nth: number, long = false): string {
 export function buildMultiNthWeekdayCron(nths: number[], dayOfWeek: number, timeStr: string): string {
   if (nths.length === 0) return '';
   if (nths.length === 1) return buildNthWeekdayCron(nths[0], dayOfWeek, timeStr);
-  return nths
+  return [...new Set(nths)]
     .sort((a, b) => a - b)
     .map(n => buildNthWeekdayCron(n, dayOfWeek, timeStr))
     .filter(Boolean)
@@ -325,61 +334,103 @@ export function isMultiNthWeekdayCron(cron: string): boolean {
 // ---------------------------------------------------------------------------
 
 /**
- * Compute the next occurrence date from a cron expression.
- * Handles both weekly ("M H * * DOW,DOW") and monthly Nth-weekday ("M H range * DOW") patterns.
- * @param cronExpression The cron string
- * @param from Reference date (defaults to now)
- * @returns The next Date, or null if unparseable
+ * Compute the next occurrence from a cron expression, on the wall clock of
+ * `timeZone` (the venue's zone). Handles weekly ("M H * * DOW,DOW"), monthly
+ * Nth-weekday ("M H 1-7 * DOW") and pipe-joined combinations.
+ *
+ * Dates are walked on a naive UTC calendar and only converted to a real
+ * instant at the end, so the server's own zone never leaks into the result.
+ * @param timeZone IANA zone; defaults to the runtime's zone (legacy behaviour)
+ * @returns The next Date strictly after `from`, or null if unparseable
  */
 export function getNextOccurrenceFromCron(
   cronExpression: string,
-  from: Date = new Date()
+  from: Date = new Date(),
+  timeZone?: string
 ): Date | null {
-  // Handle pipe-separated multi-patterns: find soonest from all sub-patterns
-  if (cronExpression.includes('|')) {
-    const subPatterns = cronExpression.split('|').map(s => s.trim());
-    const candidates = subPatterns
-      .map(p => getNextOccurrenceFromCron(p, from))
-      .filter(Boolean) as Date[];
-    if (candidates.length === 0) return null;
-    return candidates.reduce((a, b) => (a < b ? a : b));
-  }
+  const tz = timeZone && isValidTimeZone(timeZone) ? timeZone : localZone();
+  const rules = cronRules(cronExpression);
+  if (!rules) return null;
 
-  // Try monthly Nth-weekday first
-  const nthData = parseNthWeekdayCron(cronExpression);
-  if (nthData) {
-    const [hours, minutes] = nthData.time.split(':').map(Number);
-    const next = getNextNthWeekdayOccurrence(nthData.nth, nthData.dayOfWeek, from);
-    next.setHours(hours, minutes, 0, 0);
-    // If the time already passed today, get next month's occurrence
-    if (next <= from) {
-      const dayAfter = new Date(next);
-      dayAfter.setDate(dayAfter.getDate() + 1);
-      const nextNext = getNextNthWeekdayOccurrence(nthData.nth, nthData.dayOfWeek, dayAfter);
-      nextNext.setHours(hours, minutes, 0, 0);
-      return nextNext;
-    }
-    return next;
-  }
-
-  // Try weekly pattern
-  const { days, time } = parseCron(cronExpression);
-  if (days.length === 0 || !time) return null;
-
-  const [hours, minutes] = time.split(':').map(Number);
-  
-  // Check the next 8 days (guarantees finding a match)
-  for (let offset = 0; offset <= 7; offset++) {
-    const candidate = new Date(from);
-    candidate.setDate(candidate.getDate() + offset);
-    candidate.setHours(hours, minutes, 0, 0);
-    
-    if (days.includes(candidate.getDay()) && candidate > from) {
-      return candidate;
+  const start = wallClockIn(from, tz);
+  let best: Date | null = null;
+  // 70 days covers "1st Monday" even when this month's has just passed.
+  for (let offset = 0; offset <= 70 && !best; offset++) {
+    const day = new Date(Date.UTC(start.year, start.month - 1, start.day + offset));
+    const dow = day.getUTCDay();
+    const dom = day.getUTCDate();
+    for (const r of rules) {
+      const dayMatches = r.nth ? dow === r.days[0] && Math.ceil(dom / 7) === r.nth && dom <= 28 : r.days.includes(dow);
+      if (!dayMatches) continue;
+      const instant = zonedToInstant(
+        { year: day.getUTCFullYear(), month: day.getUTCMonth() + 1, day: dom, hour: r.hour, minute: r.minute },
+        tz
+      );
+      if (instant > from && (!best || instant < best)) best = instant;
     }
   }
+  return best;
+}
 
-  return null;
+/** The next `count` occurrences after `from` (for timelines and previews). */
+export function listOccurrences(
+  cronExpression: string,
+  count: number,
+  from: Date = new Date(),
+  timeZone?: string
+): Date[] {
+  const out: Date[] = [];
+  let cursor = from;
+  for (let i = 0; i < count; i++) {
+    const next = getNextOccurrenceFromCron(cronExpression, cursor, timeZone);
+    if (!next) break;
+    out.push(next);
+    cursor = next;
+  }
+  return out;
+}
+
+const WEEKLY_RE = /^([0-5]?\d) ([01]?\d|2[0-3]) \* \* ([0-6](?:,[0-6])*)$/;
+
+/**
+ * Only the schedules the studio can build are accepted, so whatever is stored
+ * can always be read back, described and advanced.
+ */
+export function isSupportedCron(cron: unknown): cron is string {
+  if (typeof cron !== 'string' || cron.length === 0 || cron.length > 200) return false;
+  const parts = cron.split('|').map((p) => p.trim());
+  if (parts.length > 4) return false;
+  if (parts.length > 1) return parseMultiNthWeekdayCron(cron) !== null && parts.every((p) => parseNthWeekdayCron(p));
+  const only = parts[0].replace(/\s+/g, ' ');
+  return WEEKLY_RE.test(only) || parseNthWeekdayCron(only) !== null;
+}
+
+interface CronRule { nth: number | null; days: number[]; hour: number; minute: number }
+
+function cronRules(cron: string): CronRule[] | null {
+  if (!isSupportedCron(cron)) return null;
+  const rules: CronRule[] = [];
+  for (const part of cron.split('|').map((p) => p.trim())) {
+    const nth = parseNthWeekdayCron(part);
+    if (nth) {
+      const [hour, minute] = parseTime(nth.time);
+      rules.push({ nth: nth.nth, days: [nth.dayOfWeek], hour, minute });
+      continue;
+    }
+    const { days, time } = parseCron(part);
+    if (days.length === 0) return null;
+    const [hour, minute] = parseTime(time);
+    rules.push({ nth: null, days, hour, minute });
+  }
+  return rules;
+}
+
+function localZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
 }
 
 // ---------------------------------------------------------------------------

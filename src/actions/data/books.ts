@@ -2,10 +2,10 @@
 
 import { db } from '@/firebase/admin';
 import * as admin from 'firebase-admin';
-import { BookSchema } from '@/utils/validation';
-import { generateSlug } from '@/utils/generateSlug';
+import { BookSchema, firstIssue } from '@/utils/validation';
 import type { Book } from '@/types';
-import { toData, serialize, PAGE_SIZE, notifyFollowers, generateContentHash, tagFilter } from './common';
+import { toData, serialize, PAGE_SIZE, notifyFollowers, generateContentHash, tagFilter, existingTagIds, applyTagDelta, uniqueSlug } from './common';
+import { isActor, FORBIDDEN } from './guard';
 import { getUserProfileByEmail } from './users';
 
 export async function getUserBooks(userId: string): Promise<Book[]> {
@@ -91,15 +91,24 @@ export async function searchBooksByTag(
 
 export async function createBook(userId: string, data: unknown) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!(await isActor(userId))) return FORBIDDEN;
 
   try {
-    const validated = BookSchema.parse(data);
-    const bookRef = db.collection('users').doc(userId).collection('books').doc();
+    const parsed = BookSchema.safeParse(data);
+    if (!parsed.success) return { success: false, error: firstIssue(parsed.error, 'Revisa el libro.') };
+    const validated = parsed.data;
+
+    const booksCol = db.collection('users').doc(userId).collection('books');
+    const bookRef = booksCol.doc();
     const now = admin.firestore.FieldValue.serverTimestamp();
-    const slug = validated.slug || generateSlug(validated.title);
+    const [slug, tagIds] = await Promise.all([
+      uniqueSlug(booksCol, validated.slug || validated.title, 'libro'),
+      existingTagIds(validated.tagIds),
+    ]);
 
     const bookData = {
       ...validated,
+      tagIds,
       slug,
       id: bookRef.id,
       userId,
@@ -109,14 +118,10 @@ export async function createBook(userId: string, data: unknown) {
 
     const batch = db.batch();
     batch.set(bookRef, bookData);
-
-    for (const tagId of validated.tagIds || []) {
-      const tagRef = db.collection('tags').doc(tagId);
-      batch.update(tagRef, { usedByBooks: admin.firestore.FieldValue.increment(1) });
-    }
+    applyTagDelta(batch, [], tagIds, 'usedByBooks');
 
     if (bookData.isVisible) {
-      const contentHash = generateContentHash(bookData.title + ((bookData as any).description || bookData.content || ''));
+      const contentHash = generateContentHash(bookData.title + (bookData.content || ''));
       const hashRef = db.collection('users').doc(userId).collection('notified_hashes').doc(contentHash);
       const hashDoc = await hashRef.get();
 
@@ -138,25 +143,37 @@ export async function createBook(userId: string, data: unknown) {
 
 export async function updateBook(userId: string, bookId: string, data: unknown) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!(await isActor(userId))) return FORBIDDEN;
 
   try {
-    const validated = BookSchema.partial().parse(data);
-    const bookRef = db.collection('users').doc(userId).collection('books').doc(bookId);
+    const parsed = BookSchema.partial().safeParse(data);
+    if (!parsed.success) return { success: false, error: firstIssue(parsed.error, 'Revisa el libro.') };
+    const validated = parsed.data;
+
+    const booksCol = db.collection('users').doc(userId).collection('books');
+    const bookRef = booksCol.doc(bookId);
     const existing = await bookRef.get();
     if (!existing.exists) return { success: false, error: 'Libro no encontrado.' };
+    const prev = existing.data()!;
 
-    const now = admin.firestore.FieldValue.serverTimestamp();
-    const slug = validated.slug || (validated.title ? generateSlug(validated.title) : existing.data()?.slug);
+    const slug = validated.slug && validated.slug !== prev.slug
+      ? await uniqueSlug(booksCol, validated.slug, 'libro', bookId)
+      : prev.slug;
 
-    const updateData: any = { slug, updatedAt: now };
+    const updateData: Record<string, unknown> = { slug, updatedAt: admin.firestore.FieldValue.serverTimestamp() };
     for (const [key, value] of Object.entries(validated)) {
-      if (value !== undefined) {
-        updateData[key] = value;
-      }
+      if (value !== undefined && key !== 'slug' && key !== 'tagIds') updateData[key] = value;
     }
-    
-    await bookRef.update(updateData);
-    return { success: true };
+
+    const batch = db.batch();
+    if (validated.tagIds) {
+      const tagIds = await existingTagIds(validated.tagIds);
+      updateData.tagIds = tagIds;
+      applyTagDelta(batch, await existingTagIds(prev.tagIds), tagIds, 'usedByBooks');
+    }
+    batch.update(bookRef, updateData);
+    await batch.commit();
+    return { success: true, slug };
   } catch (error: unknown) {
     console.error('updateBook error:', error);
     return { success: false, error: 'No se pudo actualizar el libro.' };
@@ -165,21 +182,16 @@ export async function updateBook(userId: string, bookId: string, data: unknown) 
 
 export async function deleteBook(userId: string, bookId: string) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!(await isActor(userId))) return FORBIDDEN;
 
   try {
     const bookRef = db.collection('users').doc(userId).collection('books').doc(bookId);
     const existing = await bookRef.get();
     if (!existing.exists) return { success: false, error: 'Libro no encontrado.' };
 
-    const bookData = existing.data();
     const batch = db.batch();
     batch.delete(bookRef);
-
-    for (const tagId of bookData?.tagIds || []) {
-      const tagRef = db.collection('tags').doc(tagId);
-      batch.update(tagRef, { usedByBooks: admin.firestore.FieldValue.increment(-1) });
-    }
-
+    applyTagDelta(batch, await existingTagIds(existing.data()?.tagIds), [], 'usedByBooks');
     await batch.commit();
     return { success: true };
   } catch (error: unknown) {

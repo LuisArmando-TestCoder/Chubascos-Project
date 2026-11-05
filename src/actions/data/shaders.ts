@@ -5,6 +5,7 @@ import * as admin from 'firebase-admin';
 import { ShaderSchema } from '@/utils/validation';
 import type { Shader } from '@/types';
 import { toData, serialize, PAGE_SIZE } from './common';
+import { isActor, FORBIDDEN } from './guard';
 
 export async function getShader(shaderId: string): Promise<Shader | null> {
   if (!db) return null;
@@ -34,6 +35,7 @@ export async function getPublicShaders(limitNum: number = PAGE_SIZE, cursor?: st
 
 export async function createShader(userId: string, data: unknown) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!(await isActor(userId))) return FORBIDDEN;
 
   try {
     const validated = ShaderSchema.parse(data);
@@ -59,6 +61,7 @@ export async function createShader(userId: string, data: unknown) {
 
 export async function updateShader(userId: string, shaderId: string, data: unknown) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!(await isActor(userId))) return FORBIDDEN;
 
   try {
     const shaderRef = db.collection('shaders').doc(shaderId);
@@ -77,6 +80,7 @@ export async function updateShader(userId: string, shaderId: string, data: unkno
 
 export async function softDeleteShader(userId: string, shaderId: string) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!(await isActor(userId))) return FORBIDDEN;
 
   try {
     const shaderRef = db.collection('shaders').doc(shaderId);

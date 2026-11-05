@@ -2,25 +2,34 @@
 
 import { db } from '@/firebase/admin';
 import * as admin from 'firebase-admin';
-import { EventSchema } from '@/utils/validation';
+import { EventSchema, EventBaseSchema, firstIssue } from '@/utils/validation';
 import type { Event } from '@/types';
-import { toData, serialize, PAGE_SIZE, notifyFollowers, generateContentHash, tagFilter } from './common';
+import { toData, serialize, PAGE_SIZE, notifyFollowers, generateContentHash, tagFilter, existingTagIds, applyTagDelta } from './common';
+import { isActor, isActorEmail, FORBIDDEN } from './guard';
+import {
+  DEFAULT_EVENT_TIME_ZONE, EVENT_GRACE_MS, eventStartMs, isEventPast, isValidTimeZone, wallClockIn, wallTimeString,
+} from '@/utils/eventTime';
 import { sendNotificationEmail } from '@/utils/sendEmail';
 import { getNextOccurrenceFromCron } from '@/utils/cronUtils';
 import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
 /**
- * Refresh expired recurring events by updating their `day` field
- * to the next computed occurrence. This ensures they appear in
- * "upcoming" queries automatically.
+ * Refresh expired recurring events by moving `day` to the next occurrence,
+ * computed on the venue's wall clock. Throttled per server instance: it runs
+ * on read paths and should not cost a query on every request.
  */
+let lastRecurringRefresh = 0;
+const RECURRING_REFRESH_EVERY_MS = 60_000;
+
 async function refreshExpiredRecurringEvents(): Promise<void> {
   if (!db) return;
+  const nowMs = Date.now();
+  if (nowMs - lastRecurringRefresh < RECURRING_REFRESH_EVERY_MS) return;
+  lastRecurringRefresh = nowMs;
   try {
-    // Query all expired events (no composite index needed) and filter recurring in code
-    const now = admin.firestore.Timestamp.now();
+    const cutoff = admin.firestore.Timestamp.fromMillis(nowMs - EVENT_GRACE_MS);
     const snapshot = await db.collection('events')
-      .where('day', '<', now)
+      .where('day', '<', cutoff)
       .orderBy('day', 'desc')
       .limit(100)
       .get();
@@ -32,18 +41,17 @@ async function refreshExpiredRecurringEvents(): Promise<void> {
 
     for (const doc of snapshot.docs) {
       const data = doc.data();
-      // Only process recurring events with a cron expression
       if (!data.isRecurring || !data.cronExpression) continue;
 
-      const nextDate = getNextOccurrenceFromCron(data.cronExpression);
+      // Legacy recurring events have no zone; their hours were typed in Costa Rica.
+      const timeZone = isValidTimeZone(data.timeZone) ? data.timeZone : DEFAULT_EVENT_TIME_ZONE;
+      const nextDate = getNextOccurrenceFromCron(data.cronExpression, new Date(nowMs - EVENT_GRACE_MS), timeZone);
       if (!nextDate) continue;
 
-      const nextTimestamp = admin.firestore.Timestamp.fromDate(nextDate);
-      const nextHour = `${String(nextDate.getHours()).padStart(2, '0')}:${String(nextDate.getMinutes()).padStart(2, '0')}`;
-
       batch.update(doc.ref, {
-        day: nextTimestamp,
-        hour: nextHour,
+        day: admin.firestore.Timestamp.fromDate(nextDate),
+        hour: wallTimeString(wallClockIn(nextDate, timeZone)),
+        timeZone,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
       updates++;
@@ -55,15 +63,38 @@ async function refreshExpiredRecurringEvents(): Promise<void> {
   }
 }
 
+/** Upcoming = started less than EVENT_GRACE_MS ago (still happening) or later. */
+function upcomingCutoff() {
+  return admin.firestore.Timestamp.fromMillis(Date.now() - EVENT_GRACE_MS);
+}
+
+type ScheduleInput = { day: Date; hour: string; isRecurring?: boolean; cronExpression?: string; timeZone?: string };
+
+/**
+ * One source of truth for when an event happens. A recurring event's `day`
+ * and `hour` are always its next real occurrence on or after the chosen
+ * start date, so the card, the cron and the calendar never disagree.
+ */
+function normalizeSchedule(input: ScheduleInput): { day: Date; hour: string; timeZone: string; isRecurring: boolean; cronExpression?: string } {
+  const timeZone = isValidTimeZone(input.timeZone) ? input.timeZone : DEFAULT_EVENT_TIME_ZONE;
+  if (input.isRecurring && input.cronExpression) {
+    const from = new Date(Math.max(input.day.getTime() - 60_000, Date.now() - EVENT_GRACE_MS));
+    const next = getNextOccurrenceFromCron(input.cronExpression, from, timeZone);
+    if (next) {
+      return { day: next, hour: wallTimeString(wallClockIn(next, timeZone)), timeZone, isRecurring: true, cronExpression: input.cronExpression };
+    }
+  }
+  return { day: input.day, hour: input.hour, timeZone, isRecurring: false };
+}
+
 export async function getEvents(limitNum: number = PAGE_SIZE, cursor?: string) {
   if (!db) return { items: [], nextCursor: null };
 
   // Auto-renew expired recurring events before querying
   await refreshExpiredRecurringEvents();
 
-  const now = admin.firestore.Timestamp.now();
   let query = db.collection('events')
-    .where('day', '>=', now)
+    .where('day', '>=', upcomingCutoff())
     .orderBy('day', 'asc')
     .limit(limitNum);
 
@@ -96,10 +127,9 @@ export async function searchEventsByTag(
   await refreshExpiredRecurringEvents();
 
   try {
-    const now = admin.firestore.Timestamp.now();
     let q: admin.firestore.Query = db.collection('events')
       .where('tagIds', ...tagFilter(tagId))
-      .where('day', '>=', now)
+      .where('day', '>=', upcomingCutoff())
       .orderBy('day', 'asc')
       .limit(limitNum);
 
@@ -125,10 +155,9 @@ export async function searchExpiredEventsByTag(
   if (!db) return { items: [], nextCursor: null };
   
   try {
-    const now = admin.firestore.Timestamp.now();
     let q: admin.firestore.Query = db.collection('events')
       .where('tagIds', ...tagFilter(tagId))
-      .where('day', '<', now)
+      .where('day', '<', upcomingCutoff())
       .orderBy('day', 'desc')
       .limit(limitNum);
 
@@ -155,26 +184,39 @@ export async function getUserEvents(userId: string): Promise<Event[]> {
     .limit(50)
     .get();
   const events = snapshot.docs.map(toData) as Event[];
-  const nowSec = Date.now() / 1000;
+  const now = Date.now();
   const upcoming = events
-    .filter((e) => ((e.day as any)?.seconds ?? 0) >= nowSec)
-    .sort((a, b) => ((a.day as any)?.seconds ?? 0) - ((b.day as any)?.seconds ?? 0));
+    .filter((e) => !isEventPast(e, now))
+    .sort((a, b) => eventStartMs(a) - eventStartMs(b));
   const expired = events
-    .filter((e) => ((e.day as any)?.seconds ?? 0) < nowSec)
-    .sort((a, b) => ((b.day as any)?.seconds ?? 0) - ((a.day as any)?.seconds ?? 0));
+    .filter((e) => isEventPast(e, now))
+    .sort((a, b) => eventStartMs(b) - eventStartMs(a));
   return [...upcoming, ...expired];
 }
 
 export async function createEvent(userId: string, data: unknown) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!(await isActor(userId))) return FORBIDDEN;
 
   try {
-    const validated = EventSchema.parse(data);
+    const parsed = EventSchema.safeParse(data);
+    if (!parsed.success) return { success: false, error: firstIssue(parsed.error, 'Revisa los datos del evento.') };
+    const validated = parsed.data;
+
+    const schedule = normalizeSchedule(validated);
+    if (!schedule.isRecurring && schedule.day.getTime() + EVENT_GRACE_MS < Date.now()) {
+      return { success: false, error: 'Esa fecha ya pasó. Elige un día próximo.' };
+    }
+
+    const tagIds = await existingTagIds(validated.tagIds);
     const eventRef = db.collection('events').doc();
     const now = admin.firestore.FieldValue.serverTimestamp();
 
+    const { cronExpression, ...rest } = { ...validated, ...schedule };
     const eventData = {
-      ...validated,
+      ...rest,
+      ...(schedule.isRecurring ? { cronExpression } : {}),
+      tagIds,
       id: eventRef.id,
       ownerUserId: userId,
       createdAt: now,
@@ -183,11 +225,7 @@ export async function createEvent(userId: string, data: unknown) {
 
     const batch = db.batch();
     batch.set(eventRef, eventData);
-
-    for (const tagId of validated.tagIds || []) {
-      const tagRef = db.collection('tags').doc(tagId);
-      batch.update(tagRef, { usedByEvents: admin.firestore.FieldValue.increment(1) });
-    }
+    applyTagDelta(batch, [], tagIds, 'usedByEvents');
 
     const contentHash = generateContentHash(eventData.title + (eventData.description || ''));
     const hashRef = db.collection('users').doc(userId).collection('notified_hashes').doc(contentHash);
@@ -210,6 +248,7 @@ export async function createEvent(userId: string, data: unknown) {
 
 export async function joinEvent(eventId: string, userEmail: string) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!(await isActorEmail(userEmail))) return FORBIDDEN;
   try {
     const eventRef = db.collection('events').doc(eventId);
     const eventDoc = await eventRef.get();
@@ -244,6 +283,7 @@ export async function joinEvent(eventId: string, userEmail: string) {
 
 export async function acceptParticipant(eventId: string, ownerUserId: string, userEmail: string) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!(await isActor(ownerUserId))) return FORBIDDEN;
   try {
     const eventRef = db.collection('events').doc(eventId);
     const eventDoc = await eventRef.get();
@@ -273,33 +313,61 @@ export async function getEventParticipants(eventId: string) {
 
 export async function updateEvent(userId: string, eventId: string, data: unknown) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!(await isActor(userId))) return FORBIDDEN;
 
   try {
     const eventRef = db.collection('events').doc(eventId);
     const existing = await eventRef.get();
     if (!existing.exists) return { success: false, error: 'Evento no encontrado.' };
-    if (existing.data()?.ownerUserId !== userId) return { success: false, error: 'Sin permiso.' };
+    const prev = existing.data()!;
+    if (prev.ownerUserId !== userId) return FORBIDDEN;
 
-    const validated = EventSchema.partial().parse(data);
-    
-    const cleanData: any = {};
+    const parsed = EventBaseSchema.partial().safeParse(data);
+    if (!parsed.success) return { success: false, error: firstIssue(parsed.error, 'Revisa los datos del evento.') };
+    const validated = parsed.data;
+
+    const cleanData: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(validated)) {
       if (value !== undefined) cleanData[key] = value;
     }
-    
-    await eventRef.update({ ...cleanData, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+
+    // Any schedule change is re-normalized against the stored values.
+    const touchesSchedule = ['day', 'hour', 'isRecurring', 'cronExpression', 'timeZone'].some((k) => k in cleanData);
+    if (touchesSchedule) {
+      const isRecurring = validated.isRecurring ?? Boolean(prev.isRecurring);
+      const cronExpression = validated.cronExpression ?? (validated.isRecurring === false ? undefined : prev.cronExpression);
+      if (isRecurring && !cronExpression) {
+        return { success: false, error: 'Un evento recurrente necesita una programación.' };
+      }
+      const schedule = normalizeSchedule({
+        day: validated.day ?? (prev.day as admin.firestore.Timestamp).toDate(),
+        hour: validated.hour ?? prev.hour,
+        isRecurring,
+        cronExpression,
+        timeZone: validated.timeZone ?? prev.timeZone,
+      });
+      Object.assign(cleanData, schedule);
+      cleanData.cronExpression = schedule.isRecurring ? schedule.cronExpression : admin.firestore.FieldValue.delete();
+    }
+
+    const batch = db.batch();
+    if (validated.tagIds) {
+      const nextTags = await existingTagIds(validated.tagIds);
+      cleanData.tagIds = nextTags;
+      applyTagDelta(batch, await existingTagIds(prev.tagIds), nextTags, 'usedByEvents');
+    }
+    batch.update(eventRef, { ...cleanData, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    await batch.commit();
     return { success: true };
   } catch (error: unknown) {
     console.error('updateEvent error:', error);
-    if (error instanceof Error) {
-      return { success: false, error: 'No se pudo actualizar el evento: ' + error.message };
-    }
     return { success: false, error: 'No se pudo actualizar el evento.' };
   }
 }
 
 export async function deleteEvent(userId: string, eventId: string) {
   if (!db) return { success: false, error: 'Servicio no disponible.' };
+  if (!(await isActor(userId))) return FORBIDDEN;
 
   try {
     const eventRef = db.collection('events').doc(eventId);
@@ -310,9 +378,7 @@ export async function deleteEvent(userId: string, eventId: string) {
     const eventData = existing.data();
     const batch = db.batch();
     batch.delete(eventRef);
-    for (const tagId of eventData?.tagIds || []) {
-      batch.update(db.collection('tags').doc(tagId), { usedByEvents: admin.firestore.FieldValue.increment(-1) });
-    }
+    applyTagDelta(batch, await existingTagIds(eventData?.tagIds), [], 'usedByEvents');
     await batch.commit();
     return { success: true };
   } catch (error: unknown) {

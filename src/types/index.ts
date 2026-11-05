@@ -61,6 +61,8 @@ export type Event = {
   tagIds: string[];
   isRecurring?: boolean;
   cronExpression?: string;
+  /** IANA zone of the venue. Absent on events saved before it existed. */
+  timeZone?: string;
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;
 };
