@@ -11,6 +11,7 @@ import { useSession } from '@/hooks/useSession';
 import i18n from '@/utils/i18n';
 import type { User, Post, Event, Tag, Book } from '@/types';
 import styles from './UserProfileTemplate.module.scss';
+import { WaterText } from '@/components/organisms/WaterText/WaterText';
 
 interface UserProfileTemplateProps {
   user: User;
@@ -76,7 +77,7 @@ export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCur
           {/* Poems section */}
           <section className={styles.poemsSection}>
             <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>Poemas</h2>
+              <h2 className={styles.sectionTitle}><WaterText text="Poemas" /></h2>
             </div>
 
             <div className={styles.postsGrid}>
@@ -104,7 +105,7 @@ export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCur
           {initialEvents.length > 0 && (
             <section className={styles.eventsSection}>
               <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>Eventos</h2>
+                <h2 className={styles.sectionTitle}><WaterText text="Eventos" /></h2>
               </div>
 
               {upcomingEvents.length === 0 && expiredEvents.length > 0 && (
@@ -160,7 +161,7 @@ export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCur
           {initialBooks.length > 0 && (
             <section className={styles.booksSection}>
               <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>Libros</h2>
+                <h2 className={styles.sectionTitle}><WaterText text="Libros" /></h2>
               </div>
 
               <DashboardPostsList 

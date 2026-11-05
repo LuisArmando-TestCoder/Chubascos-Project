@@ -6,6 +6,7 @@ import { useSavedStore } from '@/store/saved';
 import { getSavedItems } from '@/actions/data';
 import i18n from '@/utils/i18n';
 import styles from './guardados.module.scss';
+import { WaterText } from '@/components/organisms/WaterText/WaterText';
 
 export default function GuardadosPage() {
   const { posts, users, events, unsavePost, unsaveUser, unsaveEvent } = useSavedStore();
@@ -109,9 +110,10 @@ export default function GuardadosPage() {
                              <span className={styles.itemLabel}>
                                {activeTab === 'posts' ? 'Poema' : activeTab === 'users' ? 'Poeta' : 'Evento'}
                              </span>
-                             <span className={styles.itemValue}>
-                               {activeTab === 'posts' ? item.title : activeTab === 'users' ? (item.username || item.email?.split('@')[0] || item.id) : item.title}
-                             </span>
+                             <WaterText
+                               className={styles.itemValue}
+                               text={activeTab === 'posts' ? item.title : activeTab === 'users' ? (item.username || item.email?.split('@')[0] || item.id) : item.title}
+                             />
                           </Link>
                           <button
                             className={styles.removeBtn}

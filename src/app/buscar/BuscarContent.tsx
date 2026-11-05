@@ -14,6 +14,7 @@ import { TagLineage } from './components/TagLineage';
 import { BuscarTabs, type TabType } from './components/BuscarTabs';
 import { BuscarResults } from './components/BuscarResults';
 import { PoemHits } from './components/PoemHits';
+import { WaterText } from '@/components/organisms/WaterText/WaterText';
 
 type PoemResult = { hits: PoemHit[]; tagMap: Record<string, Tag>; total: number };
 
@@ -269,7 +270,7 @@ export function BuscarContent({ tags, initialTag, initialType, initialQuery, ini
 
           <section className={styles.tagSection} aria-labelledby="tags-heading" hidden={textMode}>
             <h2 id="tags-heading" className={styles.subhead}>
-              <span>Explorar etiquetas</span>
+              <WaterText text="Explorar etiquetas" inline />
               <span className={styles.subheadCount}>{tags.length}</span>
             </h2>
             <TagExplorer
@@ -285,7 +286,7 @@ export function BuscarContent({ tags, initialTag, initialType, initialQuery, ini
           {!textMode && (
             <section className={styles.resultsSection} aria-labelledby="results-heading" aria-busy={loading}>
               <h2 id="results-heading" className={styles.subhead}>
-                <span>Bajo {selectedTagObj ? <em className={styles.tagName}>#{selectedTagObj.value}</em> : 'esta etiqueta'}</span>
+                <WaterText text={selectedTagObj ? `Bajo #${selectedTagObj.value}` : 'Bajo esta etiqueta'} inline />
               </h2>
               {selectedTagObj && (
                 <TagLineage tag={selectedTagObj} tags={tags} scopeSize={result?.scope.length ?? 1} onSelect={selectTag} />

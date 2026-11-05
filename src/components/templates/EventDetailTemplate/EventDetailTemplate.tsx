@@ -13,6 +13,7 @@ import type { Event, Tag } from '@/types';
 
 import styles from './EventDetailTemplate.module.scss';
 import { plume } from '@/lib/fluid/bus';
+import { WaterText } from '@/components/organisms/WaterText/WaterText';
 
 function hostOf(url: string): string {
   try { return new URL(url).hostname; } catch { return url; }
@@ -126,7 +127,7 @@ export function EventDetailTemplate({ event, tags = [] }: EventDetailTemplatePro
         <aside className={styles.sidebar}>
           {event.urls?.length > 0 && (
             <section className={styles.sidebarSection}>
-              <h3 className={styles.sidebarTitle}>Enlaces oficiales</h3>
+              <h3 className={styles.sidebarTitle}><WaterText text="Enlaces oficiales" /></h3>
               <div className={styles.linksList}>
                 {event.urls.map((url, i) => (
                   <a key={i} href={url} target="_blank" rel="noopener noreferrer" className={styles.externalLink}>
@@ -139,7 +140,7 @@ export function EventDetailTemplate({ event, tags = [] }: EventDetailTemplatePro
 
           {event.contacts?.length > 0 && (
             <section className={styles.sidebarSection}>
-              <h3 className={styles.sidebarTitle}>Contacto directo</h3>
+              <h3 className={styles.sidebarTitle}><WaterText text="Contacto directo" /></h3>
               <div className={styles.contactsList}>
                 {event.contacts.map((c, i) => (
                   <span key={i} className={styles.contactItem}>{c}</span>

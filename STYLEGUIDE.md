@@ -46,7 +46,7 @@ stay as they are because the hero uses them.
 | --- | --- | --- |
 | `DropSigil name=…` | poets (cards, profile, studio) | Generative rings from **SHA-256(name)**: each digest byte sets one trait (ring count, spacing, harmonics, phase, dashes, satellites, rotation) |
 | `DropField` | event cards, studio preview | Real raindrops: the hero's capillary-wave shader in miniature. One shared WebGL context feeds every visible field |
-| `WaterText` | footer wordmark | Text as a texture that washes away along a blurred pointer trail (scroll-aware) and re-forms |
+| `WaterText` | every heading (except H1s that aren't names), every poem name and user name, footer wordmark | Text as a texture that washes away along a blurred pointer trail (scroll-aware) and re-forms. One shared WebGL context for the whole page; real text stays in the DOM |
 | `SectionHeader` | every section | title + drifting hollow *echo* word. **No kickers or numbering above headings** |
 | `TagExplorer` | buscar, studio pickers | Fall through the taxonomy column by column (TAXONOMIA.md). `browse` searches a whole branch; `pick` fills drops up to a max |
 | Events slider | home | a slow current: drifts by itself, pauses on hover/focus, wheel scrolls it sideways |

@@ -10,7 +10,7 @@ export function Footer() {
       <div className={styles.horizon} aria-hidden="true" />
       <div className={styles.inner}>
         <div className={styles.mark}>
-          <WaterText text={i18n.home.hero.title} className={styles.brand} />
+          <WaterText as="p" text={i18n.home.hero.title} className={styles.brand} />
           <p className={styles.sub}>{i18n.home.hero.subtitle}</p>
         </div>
         <nav className={styles.nav} aria-label="Pie de página">

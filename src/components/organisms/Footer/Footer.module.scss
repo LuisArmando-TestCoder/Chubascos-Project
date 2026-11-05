@@ -41,6 +41,8 @@
 }
 
 .brand {
+  // Room for the watery canvas: the reflection mask clips at the border box.
+  padding-block: 0.25em 0.2em;
   @include m.display(clamp(3rem, 2rem + 8vw, 9rem));
   color: v.$paper;
   letter-spacing: 0.02em;

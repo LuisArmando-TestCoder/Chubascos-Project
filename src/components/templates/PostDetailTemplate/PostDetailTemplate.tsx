@@ -15,6 +15,7 @@ import { formatDate } from '@/utils/formatDate';
 import { sanitizeMarkdown } from '@/utils/sanitizeMarkdown';
 import type { Post, User, Shader, Tag } from '@/types';
 import styles from './PostDetailTemplate.module.scss';
+import { WaterText } from '@/components/organisms/WaterText/WaterText';
 
 const ShaderCanvas = dynamic(() => import('@/components/organisms/ShaderCanvas/ShaderCanvas'), {
   ssr: false,
@@ -121,7 +122,7 @@ export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: 
               <div className={styles.authorBlock}>
                 <span className={styles.label}>Visitar perfil</span>
                 <Link href={`/u/${post.userId}`} className={styles.authorName}>
-                  {authorName}
+                  <WaterText text={authorName} inline />
                 </Link>
               </div>
               <div className={styles.dateBlock}>
@@ -132,7 +133,7 @@ export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: 
               </div>
             </div>
 
-            <h1 className={styles.title}>{post.title}</h1>
+            <h1 className={styles.title}><WaterText text={post.title} /></h1>
             <p className={styles.reading}>
               <span>{verses} {verses === 1 ? 'verso' : 'versos'}</span>
               <span aria-hidden="true">·</span>
@@ -187,14 +188,14 @@ export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: 
             {nextPost && (
               <Link href={`/u/${post.userId}/p/${nextPost.slug}`} className={styles.navLink}>
                 <span className={styles.navLabel}>Anterior</span>
-                <span className={styles.navTitle}>{nextPost.title}</span>
+                <WaterText className={styles.navTitle} text={nextPost.title} />
               </Link>
             )}
             <div className={styles.navSpacer} />
             {prevPost && (
               <Link href={`/u/${post.userId}/p/${prevPost.slug}`} className={styles.navLink}>
                 <span className={styles.navLabel}>Siguiente</span>
-                <span className={styles.navTitle}>{prevPost.title}</span>
+                <WaterText className={styles.navTitle} text={prevPost.title} />
               </Link>
             )}
           </nav>

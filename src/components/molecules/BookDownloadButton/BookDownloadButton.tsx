@@ -5,6 +5,7 @@ import { BookPreviewModal } from '@/components/organisms/BookPreviewModal/BookPr
 import type { User, Post } from '@/types';
 import type { PageDescriptor } from '@/utils/pdfBook/pageModel';
 import styles from './BookDownloadButton.module.scss';
+import { WaterText } from '@/components/organisms/WaterText/WaterText';
 
 interface BookDownloadButtonProps {
   user: User;
@@ -82,7 +83,7 @@ export function BookDownloadButton({ user, posts }: BookDownloadButtonProps) {
     <div className={styles.wrapper}>
       <div className={styles.header}>
         <span className={styles.label}>Publicación</span>
-        <h3 className={styles.title}>Descargar libro</h3>
+        <h3 className={styles.title}><WaterText text="Descargar libro" /></h3>
         <p className={styles.hint}>
           Genera un PDF con portada, biografía, índice enlazado y todos tus poemas
           ({visiblePoems.length}), listo para enviar a una editorial. Verás una vista

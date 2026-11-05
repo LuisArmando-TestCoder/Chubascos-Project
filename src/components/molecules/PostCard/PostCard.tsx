@@ -3,6 +3,7 @@ import { TagPill } from '@/components/atoms/TagPill/TagPill';
 import { formatDate } from '@/utils/formatDate';
 import type { Post, Tag, Book } from '@/types';
 import styles from './PostCard.module.scss';
+import { WaterText } from '@/components/organisms/WaterText/WaterText';
 
 interface PostCardProps {
   post: Post | Book;
@@ -44,7 +45,7 @@ export function PostCard({ post, authorName, tags = [], showAuthor = false, badg
         {badge && <span className={styles.badge}>{badge}</span>}
         <h3 className={styles.title}>
           {/* The stretched link makes the whole card one target, tags stay reachable. */}
-          <Link href={href} className={styles.inner}>{post.title}</Link>
+          <Link href={href} className={styles.inner}><WaterText text={post.title} /></Link>
         </h3>
         <p className={styles.preview}>
           {lines.map((l, i) => (
@@ -54,7 +55,7 @@ export function PostCard({ post, authorName, tags = [], showAuthor = false, badg
         <footer className={styles.footer}>
           {showAuthor && name && (
             <Link href={`/u/${post.userId}`} className={styles.author}>
-              {name}
+              <WaterText text={name} inline />
             </Link>
           )}
           {tags.length > 0 && (

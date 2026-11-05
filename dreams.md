@@ -25,3 +25,9 @@
 - **The tree lives in code, tags live in Firestore, joined by slug.** Versioned and reviewable, no schema change, and `seed-taxonomy.ts` is idempotent.
 - **Branch search was a root-cause change:** `tagFilter()` lets every existing `search*ByTag` accept one id or a branch (≤ 30, `array-contains-any`), so load-more and expired events stay consistent without parallel APIs.
 - Next: let authors propose new tags under a branch, moderated, instead of editing the file.
+
+## 2026-11-04 · Water text everywhere
+
+- **A one-off effect becomes a system the moment it's liked.** The footer used its own WebGL context; repeating it on every title would have hit the browser's ~16-context limit on the first list of poems. It now runs on a shared engine (`lib/water/waterText.ts`), the same pattern as `dropRenderer`. Next time, build shader effects shared from the start.
+- **Match the browser's layout instead of re-implementing it:** glyphs are placed word by word from `Range.getClientRects()`, so wrapping, letter-spacing and text-transform match the DOM exactly.
+- Search-hit titles lost their <mark> highlight to the effect; matches are still highlighted in the snippet.

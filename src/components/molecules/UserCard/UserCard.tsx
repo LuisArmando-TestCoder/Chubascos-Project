@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { DropSigil } from '@/components/atoms/DropSigil/DropSigil';
 import type { User } from '@/types';
 import styles from './UserCard.module.scss';
+import { WaterText } from '@/components/organisms/WaterText/WaterText';
 
 interface UserCardProps {
   user: User;
@@ -18,7 +19,7 @@ export function UserCard({ user, badge }: UserCardProps) {
       </div>
       <div className={styles.info}>
         <h3 className={styles.name}>
-          <Link href={`/u/${user.id}`} className={styles.inner}>{name}</Link>
+          <Link href={`/u/${user.id}`} className={styles.inner}><WaterText text={name} /></Link>
         </h3>
         {user.bio && <p className={styles.bio}>{user.bio.slice(0, 90)}{user.bio.length > 90 ? '…' : ''}</p>}
       </div>

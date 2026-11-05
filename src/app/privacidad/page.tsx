@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Footer } from '@/components/organisms/Footer/Footer';
 import styles from './privacidad.module.scss';
+import { WaterText } from '@/components/organisms/WaterText/WaterText';
 
 export const metadata: Metadata = {
   title: 'Tu obra, tu derecho',
@@ -19,7 +20,7 @@ export default function PrivacidadPage() {
           </p>
 
           <section className={styles.section}>
-            <h2>Propiedad intelectual</h2>
+            <h2><WaterText text="Propiedad intelectual" /></h2>
             <p>
               Todo lo que publicas en Chubascos te pertenece a ti. No cedemos, vendemos ni
               licenciamos tu obra a terceros. Al publicar en esta plataforma, nos otorgas
@@ -32,7 +33,7 @@ export default function PrivacidadPage() {
           </section>
 
           <section className={styles.section}>
-            <h2>Datos que recopilamos</h2>
+            <h2><WaterText text="Datos que recopilamos" /></h2>
             <p>
               Solo recopilamos tu dirección de correo electrónico para que puedas acceder a la plataforma.
               No pedimos nombres reales, números de teléfono ni documentos de identidad.
@@ -44,7 +45,7 @@ export default function PrivacidadPage() {
           </section>
 
           <section className={styles.section}>
-            <h2>Notificaciones</h2>
+            <h2><WaterText text="Notificaciones" /></h2>
             <p>
               Si alguien te guarda como poeta favorito, podría recibir una notificación por correo
               cuando publiques nuevo contenido. Siempre puedes desactivar esto desde tu panel.
@@ -52,7 +53,7 @@ export default function PrivacidadPage() {
           </section>
 
           <section className={styles.section}>
-            <h2>Seguridad</h2>
+            <h2><WaterText text="Seguridad" /></h2>
             <p>
               Usamos autenticación sin contraseña: cada vez que quieras entrar, te enviamos
               un código temporal a tu correo. Este código expira en 10 minutos y solo puede
@@ -65,7 +66,7 @@ export default function PrivacidadPage() {
           </section>
 
           <section className={styles.section}>
-            <h2>Guardados locales</h2>
+            <h2><WaterText text="Guardados locales" /></h2>
             <p>
               Los poemas, poetas y eventos que guardas sin iniciar sesión se almacenan
               localmente en tu navegador. Esta información no sale de tu dispositivo.
@@ -73,7 +74,7 @@ export default function PrivacidadPage() {
           </section>
 
           <section className={styles.section}>
-            <h2>Eliminación de cuenta</h2>
+            <h2><WaterText text="Eliminación de cuenta" /></h2>
             <p>
               Puedes solicitar la eliminación completa de tu cuenta y toda tu obra desde
               tu panel. La eliminación es permanente e irreversible dentro de los 30 días

@@ -8,6 +8,7 @@ import { DropSigil } from '@/components/atoms/DropSigil/DropSigil';
 import { plume } from '@/lib/fluid/bus';
 import type { User } from '@/types';
 import styles from './UserSidebar.module.scss';
+import { WaterText } from '@/components/organisms/WaterText/WaterText';
 
 interface UserSidebarProps {
   user: User;
@@ -33,7 +34,7 @@ export function UserSidebar({ user }: UserSidebarProps) {
           <span className={styles.label}>Voz en el registro</span>
         </div>
 
-        <h1 className={styles.name}>{name}</h1>
+        <h1 className={styles.name}><WaterText text={name} /></h1>
 
         <div className={styles.bioBlock}>
           <span className={styles.label}>Biografía</span>
@@ -71,7 +72,7 @@ export function UserSidebar({ user }: UserSidebarProps) {
 
       {user.contacts && user.contacts.length > 0 && (
         <section className={styles.sidebarSection}>
-          <h3 className={styles.sidebarTitle}>Canales digitales</h3>
+          <h3 className={styles.sidebarTitle}><WaterText text="Canales digitales" /></h3>
           <div className={styles.linksList}>
             {user.contacts.map((c, i) => (
               <a key={i} href={c.url} target="_blank" rel="noopener noreferrer" className={styles.externalLink}>

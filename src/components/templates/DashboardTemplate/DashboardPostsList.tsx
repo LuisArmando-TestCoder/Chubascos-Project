@@ -4,6 +4,7 @@ import type { Post, Book } from '@/types';
 import styles from './DashboardPostsList.module.scss';
 
 import { sanitizeMarkdown } from '@/utils/sanitizeMarkdown';
+import { WaterText } from '@/components/organisms/WaterText/WaterText';
 
 interface DashboardPostsListProps {
   items: (Post | Book)[];
@@ -45,7 +46,7 @@ export function DashboardPostsList({ items, activeId, type, title, isPublic = fa
                 >
                   <span className={styles.index}>{String(index + 1).padStart(2, '0')}</span>
                   <div className={styles.contentCol}>
-                    <span className={styles.title}>{item.title}</span>
+                    <WaterText className={styles.title} text={item.title} />
                     {isPublic && type === 'book' && item.content && (
                       <div 
                         className={styles.details}

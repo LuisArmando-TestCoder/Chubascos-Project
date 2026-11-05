@@ -5,6 +5,7 @@ import { Button } from '@/components/atoms/Button/Button';
 import { PAGE } from '@/utils/pdfBook/geometry';
 import type { PageDescriptor, PageElement } from '@/utils/pdfBook/pageModel';
 import styles from './BookPreviewModal.module.scss';
+import { WaterText } from '@/components/organisms/WaterText/WaterText';
 
 interface BookPreviewModalProps {
   isOpen: boolean;
@@ -165,7 +166,7 @@ export function BookPreviewModal({ isOpen, pages, filename, onClose, onDownload 
             <header className={styles.header}>
               <div>
                 <span className={styles.label}>Vista previa</span>
-                <h2 className={styles.title}>{filename}</h2>
+                <h2 className={styles.title}><WaterText text={filename} /></h2>
               </div>
               <div className={styles.status}>
                 {streaming

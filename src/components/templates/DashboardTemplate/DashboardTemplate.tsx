@@ -24,6 +24,7 @@ import { DropSigil } from '@/components/atoms/DropSigil/DropSigil';
 import { DropField } from '@/components/atoms/DropField/DropField';
 import { TagExplorer } from '@/components/organisms/TagExplorer/TagExplorer';
 import { sanitizeMarkdown } from '@/utils/sanitizeMarkdown';
+import { WaterText } from '@/components/organisms/WaterText/WaterText';
 
 const ShaderCanvas = dynamic(() => import('@/components/organisms/ShaderCanvas/ShaderCanvas'), { ssr: false });
 
@@ -444,7 +445,7 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
               <DropSigil name={name} size={88} className={styles.greetingSigil} glyph={name.slice(0, 1).toUpperCase()} />
               <div>
                 <span className={styles.studioLabel}>Taller de</span>
-                <h1 className={styles.greeting}>{name}</h1>
+                <h1 className={styles.greeting}><WaterText text={name} /></h1>
               </div>
             </div>
 
@@ -519,7 +520,7 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
 
           <section className={styles.workspace} aria-labelledby="taller-titulo">
             <header className={styles.workspaceHeader}>
-              <h2 id="taller-titulo" className={styles.workspaceTitle}>{TAB_TITLES[activeTab]}</h2>
+              <h2 id="taller-titulo" className={styles.workspaceTitle}><WaterText text={TAB_TITLES[activeTab]} /></h2>
             </header>
 
           <AnimatePresence mode="wait">
@@ -712,7 +713,7 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
                   <div className={styles.previewSurface}>
                     <DropField seed={editingPostId || 'nuevo-poema'} tint="rain" density={0.18} />
                     <span className={styles.previewLabel}>Así caerá</span>
-                    <h3 className={styles.previewTitle}>{postTitle || 'Sin título todavía'}</h3>
+                    <h3 className={styles.previewTitle}><WaterText text={postTitle || 'Sin título todavía'} /></h3>
                     {previewHtml ? (
                       <div className={styles.previewBody} dangerouslySetInnerHTML={{ __html: previewHtml }} />
                     ) : (

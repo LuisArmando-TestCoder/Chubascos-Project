@@ -5,6 +5,7 @@ import { formatDate } from '@/utils/formatDate';
 import { cronToHuman } from '@/utils/cronUtils';
 import type { Event, Tag } from '@/types';
 import styles from './EventCard.module.scss';
+import { WaterText } from '@/components/organisms/WaterText/WaterText';
 
 interface EventCardProps {
   event: Event;
@@ -56,7 +57,7 @@ export function EventCard({ event, tags = [], expired = false }: EventCardProps)
           {expired && <span className={styles.expiredBadge}>expirado</span>}
         </div>
         <h3 className={styles.title}>
-          <Link href={`/e/${event.id}`} className={styles.inner}>{event.title}</Link>
+          <Link href={`/e/${event.id}`} className={styles.inner}><WaterText text={event.title} /></Link>
         </h3>
         <p className={styles.place}>{event.place}</p>
         {event.price !== undefined && (

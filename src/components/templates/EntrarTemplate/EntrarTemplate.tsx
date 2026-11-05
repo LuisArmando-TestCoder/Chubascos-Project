@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { requestOtp, verifyOtp } from '@/actions/auth';
 import i18n from '@/utils/i18n';
 import styles from './EntrarTemplate.module.scss';
+import { WaterText } from '@/components/organisms/WaterText/WaterText';
 
 export default function EntrarTemplate() {
   const [email, setEmail] = useState('');
@@ -139,7 +140,7 @@ export default function EntrarTemplate() {
         <div className={styles.normsSection}>
           <div className={styles.normsContent}>
             <div className={styles.normsGroup}>
-              <h2 className={styles.normsTitle}>{i18n.norms.communityTitle}</h2>
+              <h2 className={styles.normsTitle}><WaterText text={i18n.norms.communityTitle} /></h2>
               <ul className={styles.normsList}>
                 {normsItems.map((item, index) => (
                   <li key={index}>
@@ -150,7 +151,7 @@ export default function EntrarTemplate() {
             </div>
 
             <div className={styles.normsGroup}>
-              <h2 className={styles.normsTitle}>{i18n.norms.rightsTitle}</h2>
+              <h2 className={styles.normsTitle}><WaterText text={i18n.norms.rightsTitle} /></h2>
               <ul className={styles.normsList}>
                 {rightsItems.map((item, index) => {
                   const globalIndex = index + normsItems.length;

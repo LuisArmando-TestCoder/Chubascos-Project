@@ -9,6 +9,7 @@ import {
   getOrdinalLabel,
 } from '@/utils/cronUtils';
 import styles from './RecurringEventModal.module.scss';
+import { WaterText } from '@/components/organisms/WaterText/WaterText';
 
 interface RecurringEventModalProps {
   isOpen: boolean;
@@ -71,7 +72,7 @@ export function RecurringEventModal({
           </span>
         </div>
 
-        <h2 className={styles.title}>{eventTitle}</h2>
+        <h2 className={styles.title}><WaterText text={eventTitle} /></h2>
 
         <div className={styles.scheduleBlock}>
           <span className={styles.scheduleLabel}>Programación</span>

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import styles from './SectionHeader.module.scss';
+import { WaterText } from '@/components/organisms/WaterText/WaterText';
 
 interface SectionHeaderProps {
   id: string;
@@ -15,7 +16,7 @@ export function SectionHeader({ id, title, echo, aside }: SectionHeaderProps) {
     <header className={styles.header}>
       {echo && <span className={styles.echo} aria-hidden="true">{echo}</span>}
       <div className={styles.row}>
-        <h2 className={styles.title} id={id}>{title}</h2>
+        <h2 className={styles.title} id={id}><WaterText text={title} /></h2>
         {aside && <div className={styles.aside}>{aside}</div>}
       </div>
     </header>

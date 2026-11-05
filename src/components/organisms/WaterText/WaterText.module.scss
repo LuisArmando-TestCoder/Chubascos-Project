@@ -1,13 +1,13 @@
 .host {
   position: relative;
   display: block;
-  width: 100%;
-  // Room for ascenders and descenders: the canvas can't paint outside the box.
-  padding-block: 0.14em 0.08em;
+}
+
+.inline {
+  display: inline-block;
 }
 
 .text {
-  display: inline-block;
   transition: color 0.6s;
 
   // Once the shader paints, the DOM text stays (for reading, selection and
@@ -17,11 +17,15 @@
   }
 }
 
+// The canvas bleeds past the box so ascenders, accents and italics never clip.
 .canvas {
   position: absolute;
-  inset: 0;
-  width: 100% !important;
-  height: 100% !important;
+  top: -0.25em;
+  bottom: -0.25em;
+  left: -0.15em;
+  right: -0.15em;
+  width: calc(100% + 0.3em) !important;
+  height: calc(100% + 0.5em) !important;
   max-width: none;
   pointer-events: none;
 }

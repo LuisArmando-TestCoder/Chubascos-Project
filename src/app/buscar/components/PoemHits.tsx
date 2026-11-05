@@ -6,6 +6,7 @@ import { formatDate } from '@/utils/formatDate';
 import type { PoemHit } from '@/actions/data';
 import type { Tag } from '@/types';
 import styles from '../buscar.module.scss';
+import { WaterText } from '@/components/organisms/WaterText/WaterText';
 
 interface PoemHitsProps {
   query: string;
@@ -56,7 +57,7 @@ export function PoemHits({ query, loading, result, tagMap, matchingTags, onSelec
       )}
 
       <h2 id="poem-hits-heading" className={styles.subhead}>
-        <span>Dentro de los poemas</span>
+        <WaterText text="Dentro de los poemas" inline />
         {result && <span className={styles.subheadCount}>{result.total}</span>}
       </h2>
 
@@ -76,7 +77,7 @@ export function PoemHits({ query, loading, result, tagMap, matchingTags, onSelec
               <div className={styles.hitBody}>
                 <h3 className={styles.hitTitle}>
                   <Link href={`/u/${hit.userId}/p/${hit.slug}`} className={styles.hitLink}>
-                    <Highlight text={hit.title} query={query} />
+                    <WaterText text={hit.title} />
                   </Link>
                 </h3>
                 {hit.snippet && (
@@ -86,7 +87,7 @@ export function PoemHits({ query, loading, result, tagMap, matchingTags, onSelec
                 )}
                 <div className={styles.hitMeta}>
                   <Link href={`/u/${hit.userId}`} className={styles.hitAuthor}>
-                    <Highlight text={hit.authorName} query={query} />
+                    <WaterText text={hit.authorName} inline />
                   </Link>
                   <span className={styles.hitDate}>{formatDate(hit.updatedAt)}</span>
                   {(hit.tagIds || []).slice(0, 3).map((id) => tagMap[id]).filter(Boolean).map((t) => (
