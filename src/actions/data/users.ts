@@ -150,7 +150,7 @@ export async function getSavedItems(
 ) {
   if (!db || !userIds || userIds.length === 0) return { items: [] };
   
-  const items: any[] = [];
+  const items: Record<string, unknown>[] = [];
   const chunks = [];
   for (let i = 0; i < userIds.length; i += 10) {
     chunks.push(userIds.slice(i, i + 10));

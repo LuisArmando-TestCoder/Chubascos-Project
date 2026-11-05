@@ -8,13 +8,15 @@ import { generateSlug } from '@/utils/generateSlug';
 export const LIVE_FEED_MAX = 20;
 export const PAGE_SIZE = 10;
 
+// Firestore data is untyped at this boundary; callers cast to their domain type.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const serialize = (obj: any): any => {
   if (!obj || typeof obj !== 'object') return obj;
   if (Array.isArray(obj)) return obj.map(serialize);
   if (obj instanceof admin.firestore.Timestamp) {
     return { seconds: obj.seconds, nanoseconds: obj.nanoseconds };
   }
-  const serialized: any = {};
+  const serialized: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     serialized[key] = serialize(value);
   }

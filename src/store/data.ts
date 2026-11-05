@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 interface BatchCache {
-  items: any[];
+  items: unknown[];
   lastId: string | null;
   hasMore: boolean;
 }

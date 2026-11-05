@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import FocusTrap from 'focus-trap-react';
 import { Button } from '@/components/atoms/Button/Button';
 import { PAGE } from '@/utils/pdfBook/geometry';
 import type { PageDescriptor, PageElement } from '@/utils/pdfBook/pageModel';
@@ -103,24 +104,22 @@ function PageView({ page, scale }: { page: PageDescriptor; scale: number }) {
 
 export function BookPreviewModal({ isOpen, pages, filename, onClose, onDownload }: BookPreviewModalProps) {
   const scale = PREVIEW_WIDTH / PAGE.width;
-  // How many pages have been streamed into the DOM so far.
-  const [visibleCount, setVisibleCount] = useState(0);
+  // How many pages of *this* set have been streamed into the DOM so far.
+  // Keyed by the pages array: a new composition starts again from zero.
+  const [stream, setStream] = useState<{ pages: PageDescriptor[]; count: number }>({ pages, count: 0 });
+  const visibleCount = isOpen && stream.pages === pages ? stream.count : 0;
   const rafRef = useRef<number | null>(null);
 
   // Stream pages in progressively so the main thread stays responsive and the
   // user watches the book build itself page by page.
   useEffect(() => {
-    if (!isOpen) {
-      setVisibleCount(0);
-      return;
-    }
-    setVisibleCount(0);
+    if (!isOpen) return;
     let count = 0;
     const CHUNK = 2; // pages per frame
 
     const step = () => {
       count = Math.min(pages.length, count + CHUNK);
-      setVisibleCount(count);
+      setStream({ pages, count });
       if (count < pages.length) {
         rafRef.current = requestAnimationFrame(step);
       }
@@ -133,11 +132,20 @@ export function BookPreviewModal({ isOpen, pages, filename, onClose, onDownload 
   }, [isOpen, pages]);
 
   useEffect(() => {
+    if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
-    if (isOpen) document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    // Keep the page still behind the dialog and return focus where it was.
+    const previous = document.activeElement as HTMLElement | null;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = overflow;
+      previous?.focus?.();
+    };
   }, [isOpen, onClose]);
 
   const streaming = visibleCount < pages.length;
@@ -156,8 +164,10 @@ export function BookPreviewModal({ isOpen, pages, filename, onClose, onDownload 
           aria-modal="true"
           aria-label="Vista previa del libro"
         >
+          <FocusTrap focusTrapOptions={{ allowOutsideClick: true, fallbackFocus: () => document.body, escapeDeactivates: false }}>
           <motion.div
             className={styles.modal}
+            tabIndex={-1}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
@@ -168,7 +178,7 @@ export function BookPreviewModal({ isOpen, pages, filename, onClose, onDownload 
                 <span className={styles.label}>Vista previa</span>
                 <h2 className={styles.title}><WaterText text={filename} /></h2>
               </div>
-              <div className={styles.status}>
+              <div className={styles.status} role="status" aria-live="polite">
                 {streaming
                   ? `Componiendo… ${visibleCount}/${pages.length}`
                   : `${pages.length} páginas`}
@@ -195,6 +205,7 @@ export function BookPreviewModal({ isOpen, pages, filename, onClose, onDownload 
               </Button>
             </footer>
           </motion.div>
+          </FocusTrap>
         </motion.div>
       )}
     </AnimatePresence>

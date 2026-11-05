@@ -68,9 +68,11 @@ interface ShaderEditorProps {
   onSave: (code: string) => void;
   onClose: () => void;
   onCodeChange?: (code: string) => void;
+  /** Live compile result from the preview canvas (null = it runs). */
+  compileError?: string | null;
 }
 
-export function ShaderEditor({ initialCode = DEFAULT_SHADER, onSave, onClose, onCodeChange }: ShaderEditorProps) {
+export function ShaderEditor({ initialCode = DEFAULT_SHADER, onSave, onClose, onCodeChange, compileError }: ShaderEditorProps) {
   const [code, setCode] = useState(initialCode);
   const [error, setError] = useState<string | null>(null);
   const [docsOpen, setDocsOpen] = useState(false);
@@ -89,9 +91,13 @@ export function ShaderEditor({ initialCode = DEFAULT_SHADER, onSave, onClose, on
       setError('El shader es demasiado largo (máx 50,000 caracteres).');
       return;
     }
+    if (compileError) {
+      setError('Corrige el error de compilación antes de guardar.');
+      return;
+    }
     setError(null);
     onSave(code);
-  }, [code, onSave]);
+  }, [code, onSave, compileError]);
 
   return (
     <div className={styles.editor}>
@@ -107,7 +113,7 @@ export function ShaderEditor({ initialCode = DEFAULT_SHADER, onSave, onClose, on
             {docsOpen ? 'Ocultar docs' : 'Ver uniforms'}
           </button>
           <Button variant="ghost" size="sm" onClick={onClose}>Cancelar</Button>
-          <Button size="sm" onClick={handleSave}>Guardar</Button>
+          <Button size="sm" onClick={handleSave} disabled={Boolean(compileError)}>Guardar</Button>
         </div>
       </div>
 
@@ -141,6 +147,11 @@ export function ShaderEditor({ initialCode = DEFAULT_SHADER, onSave, onClose, on
           spellCheck={false}
           aria-label="Código GLSL del shader"
         />
+        {compileError !== undefined && (
+          <p className={compileError ? styles.error : styles.ok} role="status" aria-live="polite">
+            {compileError ? compileError : 'Compila. La vista previa ya muestra tu alquimia.'}
+          </p>
+        )}
         {error && <p className={styles.error} role="alert">{error}</p>}
         <p className={styles.chars}>{code.length.toLocaleString()} / 50,000</p>
       </div>

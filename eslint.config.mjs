@@ -1,15 +1,18 @@
-import pkg from './package.json' with { type: 'json' };
+import nextVitals from 'eslint-config-next/core-web-vitals';
+import nextTs from 'eslint-config-next/typescript';
 
 /** @type {import('eslint').Linter.Config[]} */
 export default [
+  ...nextVitals,
+  ...nextTs,
   {
-    ignores: [".next/**", "node_modules/**"],
+    ignores: ['.next/**', 'node_modules/**', 'next-env.d.ts', 'src/scripts/**'],
   },
   {
-    files: ["**/*.ts", "**/*.tsx"],
+    files: ['**/*.ts', '**/*.tsx'],
     rules: {
-      "no-unused-vars": "off",
-      "@typescript-eslint/no-unused-vars": "off",
-    }
+      // Underscore-prefixed names are intentionally unused (destructuring out a field).
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true }],
+    },
   },
 ];

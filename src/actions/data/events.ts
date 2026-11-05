@@ -142,7 +142,8 @@ export async function searchEventsByTag(
     const items = snapshot.docs.map(toData) as Event[];
     const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
     return { items, nextCursor };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    console.error('tag search failed:', error);
     return { items: [], nextCursor: null };
   }
 }
@@ -170,7 +171,8 @@ export async function searchExpiredEventsByTag(
     const items = snapshot.docs.map(toData) as Event[];
     const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
     return { items, nextCursor };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    console.error('tag search failed:', error);
     return { items: [], nextCursor: null };
   }
 }
@@ -212,9 +214,10 @@ export async function createEvent(userId: string, data: unknown) {
     const eventRef = db.collection('events').doc();
     const now = admin.firestore.FieldValue.serverTimestamp();
 
-    const { cronExpression, ...rest } = { ...validated, ...schedule };
+    const { cronExpression, price, ...rest } = { ...validated, ...schedule };
     const eventData = {
       ...rest,
+      ...(typeof price === 'number' ? { price } : {}),
       ...(schedule.isRecurring ? { cronExpression } : {}),
       tagIds,
       id: eventRef.id,
@@ -328,7 +331,8 @@ export async function updateEvent(userId: string, eventId: string, data: unknown
 
     const cleanData: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(validated)) {
-      if (value !== undefined) cleanData[key] = value;
+      if (value === null) cleanData[key] = admin.firestore.FieldValue.delete();
+      else if (value !== undefined) cleanData[key] = value;
     }
 
     // Any schedule change is re-normalized against the stored values.

@@ -1,12 +1,13 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Footer } from '@/components/organisms/Footer/Footer';
 import { useSavedStore } from '@/store/saved';
 import { getSavedItems } from '@/actions/data';
 import i18n from '@/utils/i18n';
 import styles from './guardados.module.scss';
 import { WaterText } from '@/components/organisms/WaterText/WaterText';
+
+type SavedRow = { id: string; userId?: string; slug?: string; title?: string; username?: string; email?: string };
 
 export default function GuardadosPage() {
   const { posts, users, events, unsavePost, unsaveUser, unsaveEvent } = useSavedStore();
@@ -14,9 +15,8 @@ export default function GuardadosPage() {
 
   const totalSaved = posts.length + users.length + events.length;
 
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<SavedRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -30,7 +30,7 @@ export default function GuardadosPage() {
       }
 
       const result = await getSavedItems(ids, activeTab);
-      setItems(result.items);
+      setItems(result.items as SavedRow[]);
 
       // Cleanup missing items from local storage
       if (result.items.length < ids.length) {
@@ -112,7 +112,7 @@ export default function GuardadosPage() {
                              </span>
                              <WaterText
                                className={styles.itemValue}
-                               text={activeTab === 'posts' ? item.title : activeTab === 'users' ? (item.username || item.email?.split('@')[0] || item.id) : item.title}
+                               text={(activeTab === 'users' ? (item.username || item.email?.split('@')[0] || item.id) : item.title) || ''}
                              />
                           </Link>
                           <button

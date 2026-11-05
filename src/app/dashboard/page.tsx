@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 interface Props {
-  searchParams: Promise<{ edit?: string; id?: string }>;
+  searchParams: Promise<{ edit?: string; id?: string; tab?: string }>;
 }
 
 export default async function DashboardPage({ searchParams }: Props) {
@@ -19,7 +19,9 @@ export default async function DashboardPage({ searchParams }: Props) {
   const user = await getUserProfile(session.userId);
   if (!user) redirect('/entrar');
 
-  const { edit, id } = await searchParams;
+  const { edit, id, tab } = await searchParams;
+  // Every event the poet owns: the studio's history, and prev/next while editing.
+  const userEventsPromise = getUserEvents(session.userId);
 
   let editPost: Post | null = null;
   let editShader: Shader | null = null;
@@ -35,7 +37,7 @@ export default async function DashboardPage({ searchParams }: Props) {
     if (post && post.userId === session.userId) {
       editPost = post;
       // Fetch adjacent posts + shader in parallel
-      const shaderId = (post as any).shaderId as string | undefined;
+      const shaderId = post.shaderId;
       const [prev, next, shader] = await Promise.all([
         getPreviousPost(session.userId, post.updatedAt),
         getNextPost(session.userId, post.updatedAt),
@@ -49,8 +51,7 @@ export default async function DashboardPage({ searchParams }: Props) {
     const event = await getEvent(id);
     if (event && event.ownerUserId === session.userId) {
       editEvent = event;
-      // Fetch all user events and find adjacent ones
-      const events = await getUserEvents(session.userId);
+      const events = await userEventsPromise;
       const idx = events.findIndex((e) => e.id === id);
       editPrevEvent = idx > 0 ? events[idx - 1] : null;
       editNextEvent = idx >= 0 && idx < events.length - 1 ? events[idx + 1] : null;
@@ -63,10 +64,11 @@ export default async function DashboardPage({ searchParams }: Props) {
   }
 
   // Fetch all user posts for the profile edit list (includes invisible ones)
-  const [allPosts, allBooks, kindred] = await Promise.all([
+  const [allPosts, allBooks, kindred, userEvents] = await Promise.all([
     getUserAllPosts(session.userId),
     getUserAllBooks(session.userId),
     getKindredVoices(session.userId),
+    userEventsPromise,
   ]);
 
   return (
@@ -75,6 +77,8 @@ export default async function DashboardPage({ searchParams }: Props) {
       user={user}
       userPosts={allPosts}
       userBooks={allBooks}
+      userEvents={userEvents}
+      initialTab={tab}
       editPost={editPost}
       editShader={editShader}
       editEvent={editEvent}

@@ -1,4 +1,5 @@
 @use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
 
 .container {
   border: 1px solid v.$line;
@@ -64,10 +65,11 @@
   }
 
   &.modeBtnActive {
-    background: v.$accent;
-    color: v.$paper;
-    box-shadow: 0 0 12px rgba(109, 93, 252, 0.2);
+    background: v.$puddle;
+    color: v.$ink;
   }
+
+  @include m.focus-ring(1px);
 }
 
 /* ── Days grid (shared weekly + monthly day selector) ── */
@@ -82,10 +84,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 0;
+  min-height: 44px;
+  padding: 0;
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid v.$line;
-  color: v.$fog;
+  border: 1px solid v.$line-strong;
+  border-radius: v.$radius;
+  color: v.$mist;
   cursor: pointer;
   transition: all 0.25s v.$ease-out;
 
@@ -96,11 +100,12 @@
   }
 
   &.dayActive {
-    background: v.$accent;
-    border-color: v.$accent;
-    color: v.$paper;
-    box-shadow: 0 0 16px rgba(109, 93, 252, 0.25);
+    background: v.$puddle;
+    border-color: v.$puddle;
+    color: v.$ink;
   }
+
+  @include m.focus-ring(2px);
 }
 
 .dayShort {
@@ -143,10 +148,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 0;
+  min-height: 44px;
+  padding: 0;
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid v.$line;
-  color: v.$fog;
+  border: 1px solid v.$line-strong;
+  border-radius: v.$radius;
+  color: v.$mist;
   font-family: v.$font-hud;
   font-size: 0.65rem;
   letter-spacing: 0.06em;
@@ -160,11 +167,12 @@
   }
 
   &.ordinalBtnActive {
-    background: v.$accent;
-    border-color: v.$accent;
-    color: v.$paper;
-    box-shadow: 0 0 16px rgba(109, 93, 252, 0.25);
+    background: v.$puddle;
+    border-color: v.$puddle;
+    color: v.$ink;
   }
+
+  @include m.focus-ring(2px);
 }
 
 /* ── Time row ── */
@@ -198,8 +206,9 @@
   flex: 1;
   max-width: 140px;
 
-  &:focus {
-    border-color: v.$accent;
+  &:focus-visible {
+    outline: none;
+    border-color: v.$puddle;
   }
 }
 
@@ -239,4 +248,20 @@
   letter-spacing: 0.04em;
   margin: 0;
   line-height: 1.5;
+}
+
+.preview { margin: 0; }
+
+.monthlyCaption {
+  font-family: v.$font-display;
+  font-style: italic;
+  color: v.$mist;
+}
+
+// Inside a studio stage: no box, the stage is the frame.
+.compact {
+  padding: 0;
+  border: 0;
+  background: none;
+  &:hover { border-color: transparent; }
 }

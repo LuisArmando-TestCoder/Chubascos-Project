@@ -1,6 +1,6 @@
 import { createClient } from 'redis';
 
-let client: any = null;
+let client: ReturnType<typeof createClient> | null = null;
 
 export async function getRedisClient() {
   if (client) return client;
@@ -20,7 +20,7 @@ export async function getRedisClient() {
     });
   }
 
-  client.on('error', (err: any) => console.error('Redis Client Error', err));
+  client.on('error', (err: unknown) => console.error('Redis Client Error', err));
 
   if (!client.isOpen) {
     await client.connect();

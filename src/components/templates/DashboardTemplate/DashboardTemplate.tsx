@@ -1,39 +1,30 @@
 'use client';
-import { useState, useCallback, useEffect } from 'react';
-import dynamic from 'next/dynamic';
+import { useState, useCallback, useEffect, useMemo, useRef, type KeyboardEvent } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/atoms/Button/Button';
-import { ShaderEditor, DEFAULT_SHADER } from '@/components/organisms/ShaderEditor/ShaderEditor';
-import { CronScheduleInput } from '@/components/molecules/CronScheduleInput/CronScheduleInput';
-import { dateToCron } from '@/utils/cronUtils';
+import { useRouter } from 'next/navigation';
 import { Footer } from '@/components/organisms/Footer/Footer';
-import {
-  createPost, updatePost, updateUserProfile, createEvent, updateEvent, createShader, updateShader, deletePost, deleteEvent,
-  createBook, updateBook, deleteBook, getTagCloud
-} from '@/actions/data';
+import { getTagCloud } from '@/actions/data';
 import { logout } from '@/actions/auth';
-import { generateSlug } from '@/utils/generateSlug';
 import type { User, Post, Event, Tag, Shader, Book } from '@/types';
 import { useProfileStore } from '@/store/profile';
 import { useSavedStore } from '@/store/saved';
-import { DashboardPostsList } from './DashboardPostsList';
-import { BookDownloadButton } from '@/components/molecules/BookDownloadButton/BookDownloadButton';
 import { KindredVoices } from '@/components/organisms/KindredVoices/KindredVoices';
 import type { Kindred } from '@/lib/affinity';
-import styles from './DashboardTemplate.module.scss';
 import { DropSigil } from '@/components/atoms/DropSigil/DropSigil';
-import { DropField } from '@/components/atoms/DropField/DropField';
-import { TagExplorer } from '@/components/organisms/TagExplorer/TagExplorer';
-import { sanitizeMarkdown } from '@/utils/sanitizeMarkdown';
 import { WaterText } from '@/components/organisms/WaterText/WaterText';
-
-const ShaderCanvas = dynamic(() => import('@/components/organisms/ShaderCanvas/ShaderCanvas'), { ssr: false });
+import { isEventPast } from '@/utils/eventTime';
+import { ProfilePanel } from './panels/ProfilePanel';
+import { PoemPanel } from './panels/PoemPanel';
+import { EventPanel } from './panels/EventPanel';
+import { BookPanel } from './panels/BookPanel';
+import { poemStats } from './studio/text';
+import styles from './DashboardTemplate.module.scss';
 
 interface DashboardTemplateProps {
   user: User;
   userPosts?: Post[];
   userBooks?: Book[];
+  userEvents?: Event[];
   editPost?: Post | null;
   editBook?: Book | null;
   editShader?: Shader | null;
@@ -43,405 +34,98 @@ interface DashboardTemplateProps {
   editPrevEvent?: Event | null;
   editNextEvent?: Event | null;
   kindred?: Kindred[];
+  /** `?tab=` from the URL: perfil | poema | evento | libro. */
+  initialTab?: string;
 }
 
 type DashTab = 'perfil' | 'nuevo-poema' | 'nuevo-evento' | 'mis-libros';
+const TABS: DashTab[] = ['perfil', 'nuevo-poema', 'nuevo-evento', 'mis-libros'];
+const TAB_PARAM: Record<DashTab, string> = { 'perfil': 'perfil', 'nuevo-poema': 'poema', 'nuevo-evento': 'evento', 'mis-libros': 'libro' };
+const PARAM_TAB = Object.fromEntries(Object.entries(TAB_PARAM).map(([k, v]) => [v, k])) as Record<string, DashTab>;
 
-function timestampToDateString(ts: unknown): string {
-  if (!ts || typeof ts !== 'object') return '';
-  const raw = (ts as { seconds?: unknown }).seconds;
-  const secs = typeof raw === 'number' ? raw : 0;
-  if (!secs) return '';
-  const d = new Date(secs * 1000);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPost, editBook, editShader, editEvent, editPrevPost, editNextPost, editPrevEvent, editNextEvent, kindred = [] }: DashboardTemplateProps) {
+export function DashboardTemplate({
+  user, userPosts = [], userBooks = [], userEvents = [], editPost, editBook, editShader, editEvent,
+  editPrevPost, editNextPost, editPrevEvent, editNextEvent, kindred = [], initialTab,
+}: DashboardTemplateProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<DashTab>(() => {
     if (editPost) return 'nuevo-poema';
     if (editEvent) return 'nuevo-evento';
     if (editBook) return 'mis-libros';
-    return 'perfil';
+    return (initialTab && PARAM_TAB[initialTab]) || 'perfil';
   });
-  const name = user.username || user.email.split('@')[0];
+  const [visited, setVisited] = useState<Set<DashTab>>(() => new Set([activeTab]));
+  const tabRefs = useRef<Record<DashTab, HTMLButtonElement | null>>({ 'perfil': null, 'nuevo-poema': null, 'nuevo-evento': null, 'mis-libros': null });
+  const { username: liveName } = useProfileStore();
+  const name = liveName || user.username || user.email.split('@')[0];
 
-  // Profile state
-  const [bio, setBio] = useState(user.bio || '');
-  const [username, setUsername] = useState(user.username || '');
-  const [contacts, setContacts] = useState(user.contacts || []);
-  const [profileTags, setProfileTags] = useState<string[]>(user.tagIds || []);
-  const { setProfile } = useProfileStore();
-
-  // Sync live username typing to the profile store → updates the header in real time
-  useEffect(() => {
-    setProfile({ username });
-  }, [username, setProfile]);
-  const [profileMsg, setProfileMsg] = useState('');
-  const [profileLoading, setProfileLoading] = useState(false);
-
-  // Tags state
+  // ── Tags: loaded once for every picker ──────────────────────────────────
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
-  const [tagsLoading, setTagsLoading] = useState(false);
-
+  const [tagsLoading, setTagsLoading] = useState(true);
   useEffect(() => {
-    async function loadTags() {
-      setTagsLoading(true);
-      try {
-        const tags = await getTagCloud(); // every tag: the picker walks the whole taxonomy
-        setAvailableTags(tags);
-      } catch (e) {
-        console.error('Failed to load tags', e);
-      } finally {
-        setTagsLoading(false);
-      }
-    }
-    loadTags();
+    let live = true;
+    getTagCloud()
+      .then((tags) => { if (live) setAvailableTags(tags); })
+      .catch((e) => console.error('Failed to load tags', e))
+      .finally(() => { if (live) setTagsLoading(false); });
+    return () => { live = false; };
   }, []);
 
-  // Post state — pre-fill from editPost if provided
-  const [editingPostId, setEditingPostId] = useState<string | null>(editPost?.id || null);
-  const [postTitle, setPostTitle] = useState(editPost?.title || '');
-  const [postContent, setPostContent] = useState(editPost?.content || '');
-  const [postSlug, setPostSlug] = useState(editPost?.slug || '');
-  const [postTags, setPostTags] = useState<string[]>(editPost?.tagIds ?? []);
+  // Keep the open chapter in the URL so reloads and shared links land here.
+  const selectTab = useCallback((tab: DashTab) => {
+    setActiveTab(tab);
+    setVisited((prev) => (prev.has(tab) ? prev : new Set(prev).add(tab)));
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', TAB_PARAM[tab]);
+      window.history.replaceState(window.history.state, '', url);
+    } catch { /* ignore */ }
+  }, []);
 
-  // Sync postTags when editing a different post (safety net)
-  useEffect(() => {
-    setPostTags(editPost?.tagIds ?? []);
-  }, [editPost?.id]);
-  const [postVisible, setPostVisible] = useState(editPost ? editPost.isVisible !== false : true);
-  const [postIndexed, setPostIndexed] = useState(editPost ? editPost.isIndexed !== false : true);
-  // editingShaderId tracks the existing shader to update when editing a post
-  const [editingShaderId, setEditingShaderId] = useState<string | null>(editPost?.shaderId || null);
-  const [postShaderCode, setPostShaderCode] = useState(editShader?.glslCode || '');
-  const [shaderPreviewCode, setShaderPreviewCode] = useState(editShader?.glslCode || DEFAULT_SHADER);
-  const [showShaderEditor, setShowShaderEditor] = useState(false);
-  const [postMsg, setPostMsg] = useState('');
-  const [postLoading, setPostLoading] = useState(false);
-  const [isDeletingPost, setIsDeletingPost] = useState(false);
-  const [deletePostConfirm, setDeletePostConfirm] = useState(false);
-  const [savedPostSlug, setSavedPostSlug] = useState<string | null>(editPost?.slug || null);
-
-  // Event state — pre-fill from editEvent if provided
-  const [editingEventId, setEditingEventId] = useState<string | null>(editEvent?.id || null);
-  const [eventTitle, setEventTitle] = useState(editEvent?.title || '');
-  const [eventDesc, setEventDesc] = useState(editEvent?.description || '');
-  const [eventDay, setEventDay] = useState(editEvent ? timestampToDateString(editEvent.day) : '');
-  const [eventHour, setEventHour] = useState(editEvent?.hour || '');
-  const [eventPlace, setEventPlace] = useState(editEvent?.place || '');
-  const [eventPrice, setEventPrice] = useState(editEvent?.price !== undefined ? String(editEvent.price) : '');
-  const [eventTags, setEventTags] = useState<string[]>(editEvent?.tagIds ?? []);
-  const [eventMsg, setEventMsg] = useState('');
-  const [eventLoading, setEventLoading] = useState(false);
-  const [isDeletingEvent, setIsDeletingEvent] = useState(false);
-  const [deleteEventConfirm, setDeleteEventConfirm] = useState(false);
-  const [eventIsRecurring, setEventIsRecurring] = useState(editEvent?.isRecurring ?? false);
-  const [eventCron, setEventCron] = useState(editEvent?.cronExpression ?? '');
-
-  // Smart toggle: when enabling recurrence, auto-fill cron from existing date+time
-  const handleRecurringToggle = (enabled: boolean) => {
-    setEventIsRecurring(enabled);
-    if (enabled && !eventCron && eventDay && eventHour) {
-      // Infer cron from the selected date + hour
-      const inferred = dateToCron(eventDay, eventHour);
-      setEventCron(inferred);
-    }
-    if (!enabled) {
-      setEventCron('');
-    }
+  // WAI-ARIA tabs: arrows move between chapters, Home/End jump to the ends.
+  const onTabKey = (e: KeyboardEvent<HTMLButtonElement>, tab: DashTab) => {
+    const i = TABS.indexOf(tab);
+    const next =
+      e.key === 'ArrowDown' || e.key === 'ArrowRight' ? TABS[(i + 1) % TABS.length]
+      : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? TABS[(i - 1 + TABS.length) % TABS.length]
+      : e.key === 'Home' ? TABS[0]
+      : e.key === 'End' ? TABS[TABS.length - 1]
+      : null;
+    if (!next) return;
+    e.preventDefault();
+    selectTab(next);
+    tabRefs.current[next]?.focus();
   };
 
-  // Sync eventTags when editing a different event (safety net)
-  useEffect(() => {
-    setEventTags(editEvent?.tagIds ?? []);
-  }, [editEvent?.id]);
-
-  // Book state
-  const [editingBookId, setEditingBookId] = useState<string | null>(editBook?.id || null);
-  const [bookTitle, setBookTitle] = useState(editBook?.title || '');
-  const [bookContent, setBookContent] = useState(editBook?.content || '');
-  const [bookTags, setBookTags] = useState<string[]>(editBook?.tagIds ?? []);
-  const [bookVisible, setBookVisible] = useState(editBook ? editBook.isVisible !== false : true);
-
-  useEffect(() => {
-    setBookTags(editBook?.tagIds ?? []);
-  }, [editBook?.id]);
-  const [bookMsg, setBookMsg] = useState('');
-  const [bookLoading, setBookLoading] = useState(false);
-  const [isDeletingBook, setIsDeletingBook] = useState(false);
-  const [deleteBookConfirm, setDeleteBookConfirm] = useState(false);
-
-  const handleProfileSave = useCallback(async () => {
-    setProfileLoading(true);
-    const result = await updateUserProfile(user.id, { bio, username, contacts, tagIds: profileTags });
-    setProfileMsg(result.success ? 'Perfil actualizado.' : (result.error || 'Error.'));
-    setProfileLoading(false);
-  }, [user.id, bio, username, contacts, profileTags]);
-
-  const handleDeletePost = async () => {
-    if (!editingPostId) return;
-    setIsDeletingPost(true);
-    const result = await deletePost(user.id, editingPostId);
-    if (result.success) {
-      window.location.href = `/u/${encodeURIComponent(user.id)}`;
-    } else {
-      setPostMsg(result.error || 'Error al eliminar poema.');
-      setIsDeletingPost(false);
-      setDeletePostConfirm(false);
-    }
-  };
-
-  const handlePostSave = useCallback(async () => {
-    if (!postTitle || !postContent) {
-      setPostMsg('Título y contenido son obligatorios.');
-      return;
-    }
-    setPostLoading(true);
-
-    if (editingPostId) {
-      // Update existing post — also handle shader save/update
-      const slug = postSlug || generateSlug(postTitle);
-
-      let shaderId: string | undefined = editingShaderId || undefined;
-
-      if (postShaderCode) {
-        if (editingShaderId) {
-          // Update existing shader
-          await updateShader(user.id, editingShaderId, { glslCode: postShaderCode, name: postTitle });
-        } else {
-          // Create a new shader for this post
-          const shaderResult = await createShader(user.id, {
-            name: postTitle,
-            glslCode: postShaderCode,
-            isPublic: false,
-          });
-          if (shaderResult.success) {
-            shaderId = shaderResult.id;
-            setEditingShaderId(shaderResult.id || null);
-          }
-        }
-      }
-
-      const result = await updatePost(user.id, editingPostId, {
-        title: postTitle,
-        content: postContent,
-        slug,
-        tagIds: postTags,
-        shaderId,
-        isVisible: postVisible,
-        isIndexed: postIndexed,
-      });
-      if (result.success) {
-        setSavedPostSlug(editPost?.slug || slug);
-        setPostMsg('Poema actualizado.');
-      } else {
-        setPostMsg(result.error || 'Error.');
-      }
-    } else {
-      // Create new post
-      const slug = postSlug || generateSlug(postTitle);
-
-      let shaderId: string | undefined;
-      if (postShaderCode) {
-        const shaderResult = await createShader(user.id, {
-          name: postTitle,
-          glslCode: postShaderCode,
-          isPublic: false,
-        });
-        if (shaderResult.success) shaderId = shaderResult.id;
-      }
-
-      const result = await createPost(user.id, {
-        title: postTitle,
-        content: postContent,
-        slug,
-        tagIds: postTags,
-        shaderId,
-        isVisible: postVisible,
-        isIndexed: postIndexed,
-      });
-
-      if (result.success) {
-        setSavedPostSlug(result.slug ?? null);
-        setPostMsg('Poema publicado.');
-        setPostTitle('');
-        setPostContent('');
-        setPostSlug('');
-        setPostTags([]);
-        setPostShaderCode('');
-        setEditingPostId(null);
-      } else {
-        setPostMsg(result.error || 'Error.');
-      }
-    }
-    setPostLoading(false);
-  }, [user.id, editingPostId, editingShaderId, postTitle, postContent, postSlug, postTags, postVisible, postIndexed, postShaderCode]);
-
-  const handleDeleteEvent = async () => {
-    if (!editingEventId) return;
-    setIsDeletingEvent(true);
-    const result = await deleteEvent(user.id, editingEventId);
-    if (result.success) {
-      window.location.href = `/u/${encodeURIComponent(user.id)}`;
-    } else {
-      setEventMsg(result.error || 'Error al eliminar evento.');
-      setIsDeletingEvent(false);
-      setDeleteEventConfirm(false);
-    }
-  };
-
-  const handleEventSave = useCallback(async () => {
-    if (!eventTitle || !eventDay || !eventHour || !eventPlace) {
-      setEventMsg('Título, día, hora y lugar son obligatorios.');
-      return;
-    }
-    if (eventIsRecurring && !eventCron) {
-      setEventMsg('Selecciona al menos un día y hora para la recurrencia.');
-      return;
-    }
-    setEventLoading(true);
-
-    const recurringFields = {
-      isRecurring: eventIsRecurring,
-      cronExpression: eventIsRecurring ? eventCron : undefined,
-    };
-
-    if (editingEventId) {
-      // Update existing event
-      const result = await updateEvent(user.id, editingEventId, {
-        title: eventTitle,
-        description: eventDesc,
-        day: new Date(eventDay),
-        hour: eventHour,
-        place: eventPlace,
-        price: eventPrice !== '' ? parseFloat(eventPrice) : undefined,
-        tagIds: eventTags,
-        ...recurringFields,
-      });
-      setEventMsg(result.success ? 'Evento actualizado.' : (result.error || 'Error.'));
-    } else {
-      // Create new event
-      const result = await createEvent(user.id, {
-        title: eventTitle,
-        description: eventDesc,
-        day: new Date(eventDay),
-        hour: eventHour,
-        place: eventPlace,
-        price: eventPrice !== '' ? parseFloat(eventPrice) : undefined,
-        urls: [],
-        contacts: [],
-        tagIds: eventTags,
-        ...recurringFields,
-      });
-      setEventMsg(result.success ? 'Evento creado.' : (result.error || 'Error.'));
-      if (result.success) {
-        setEventTitle('');
-        setEventDesc('');
-        setEventDay('');
-        setEventHour('');
-        setEventPlace('');
-        setEventPrice('');
-        setEventTags([]);
-        setEventIsRecurring(false);
-        setEventCron('');
-        setEditingEventId(null);
-      }
-    }
-    setEventLoading(false);
-  }, [user.id, editingEventId, eventTitle, eventDesc, eventDay, eventHour, eventPlace, eventPrice, eventTags, eventIsRecurring, eventCron]);
-
-  const handleBookSave = useCallback(async () => {
-    if (!bookTitle || !bookContent) {
-      setBookMsg('Título y contenido son obligatorios.');
-      return;
-    }
-    setBookLoading(true);
-
-    if (editingBookId) {
-      const result = await updateBook(user.id, editingBookId, {
-        title: bookTitle,
-        content: bookContent,
-        tagIds: bookTags,
-        isVisible: bookVisible,
-      });
-      setBookMsg(result.success ? 'Libro actualizado.' : (result.error || 'Error.'));
-    } else {
-      const result = await createBook(user.id, {
-        title: bookTitle,
-        content: bookContent,
-        tagIds: bookTags,
-        isVisible: bookVisible,
-      });
-      if (result.success) {
-        setBookMsg('Libro publicado.');
-        setBookTitle('');
-        setBookContent('');
-        setEditingBookId(null);
-      } else {
-        setBookMsg(result.error || 'Error.');
-      }
-    }
-    setBookLoading(false);
-  }, [user.id, editingBookId, bookTitle, bookContent, bookTags, bookVisible]);
-
-  const handleDeleteBook = async () => {
-    if (!editingBookId) return;
-    setIsDeletingBook(true);
-    const result = await deleteBook(user.id, editingBookId);
-    if (result.success) {
-      window.location.href = `/u/${encodeURIComponent(user.id)}`;
-    } else {
-      setBookMsg(result.error || 'Error al eliminar libro.');
-      setIsDeletingBook(false);
-      setDeleteBookConfirm(false);
-    }
-  };
+  // Saved work shows up in the lists without a reload.
+  const refresh = useCallback(() => router.refresh(), [router]);
 
   const handleLogout = async () => {
     await logout();
-    setProfile({ isLoggedIn: false, userId: '', email: '', username: '' });
+    useProfileStore.getState().setProfile({ isLoggedIn: false, userId: '', email: '', username: '' });
     useSavedStore.getState().clearAll();
     window.location.href = '/';
   };
 
-  // ── Studio read-outs (pure derivations, no new state) ──────────────────
-  const verseCount = (text: string) => text.split('\n').filter((l) => l.trim()).length;
-  const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length;
-  const stats = [
+  const stats = useMemo(() => [
     { label: 'Poemas', value: userPosts.length },
-    { label: 'Visibles', value: userPosts.filter((p) => p.isVisible).length },
-    { label: 'Versos', value: userPosts.reduce((n, p) => n + verseCount(p.content), 0) },
+    { label: 'Versos', value: userPosts.reduce((n, p) => n + poemStats(p.content || '').verses, 0) },
+    { label: 'Eventos', value: userEvents.filter((e) => !isEventPast(e)).length, hint: 'próximos' },
     { label: 'Libros', value: userBooks.length },
-  ];
-  const TAB_TITLES: Record<DashTab, string> = {
-    'perfil': 'Tu perfil',
-    'nuevo-poema': editingPostId ? 'Editar poema' : 'Nuevo poema',
-    'nuevo-evento': editingEventId ? 'Editar evento' : 'Nuevo evento',
-    'mis-libros': editingBookId ? 'Editar libro' : 'Nuevo libro',
+  ], [userPosts, userBooks, userEvents]);
+
+  const labels: Record<DashTab, { tab: string; title: string; fresh: string }> = {
+    'perfil': { tab: 'Perfil', title: 'Tu perfil', fresh: '' },
+    'nuevo-poema': { tab: editPost ? 'Editar poema' : 'Nuevo poema', title: editPost ? 'Editar poema' : 'Nuevo poema', fresh: '+ Nuevo poema' },
+    'nuevo-evento': { tab: editEvent ? 'Editar evento' : 'Eventos', title: editEvent ? 'Editar evento' : 'Nuevo evento', fresh: '+ Nuevo evento' },
+    'mis-libros': { tab: editBook ? 'Editar libro' : 'Libros', title: editBook ? 'Editar libro' : 'Libros y poemario', fresh: '+ Nuevo libro' },
   };
-  const previewHtml = activeTab === 'nuevo-poema' && postContent ? sanitizeMarkdown(postContent) : '';
+  const isEditing = (tab: DashTab) =>
+    (tab === 'nuevo-poema' && editPost) || (tab === 'nuevo-evento' && editEvent) || (tab === 'mis-libros' && editBook);
 
   return (
     <>
-      {/* Live shader preview as full-page background when editor is open */}
-      {showShaderEditor && (
-        <>
-          <div style={{ position: 'fixed', inset: 0, zIndex: 0, opacity: 0.35, pointerEvents: 'none' }}>
-            <ShaderCanvas glslCode={shaderPreviewCode} />
-          </div>
-          {/* Backdrop blur overlay between shader and content */}
-          <div style={{
-            position: 'fixed', inset: 0, zIndex: 1,
-            backdropFilter: 'blur(48px) brightness(0.6)',
-            WebkitBackdropFilter: 'blur(48px) brightness(0.6)',
-            pointerEvents: 'none',
-          }} />
-        </>
-      )}
-      <div className={styles.page} style={{ position: 'relative', zIndex: 2, background: 'transparent' }}>
+      <div className={styles.page}>
         <div className={styles.inner}>
           <aside className={styles.rail}>
             <div className={styles.identity}>
@@ -454,68 +138,44 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
 
             <dl className={styles.stats}>
               {stats.map((s) => (
-                <div key={s.label} className={styles.stat}>
+                <div key={s.label} className={styles.stat} title={s.hint}>
                   <dt>{s.label}</dt>
                   <dd>{s.value}</dd>
                 </div>
               ))}
             </dl>
 
-            <nav className={styles.tabs} role="tablist" aria-orientation="vertical" aria-label="Secciones del taller">
-              {(['perfil', 'nuevo-poema', 'nuevo-evento', 'mis-libros'] as DashTab[]).map((tab) => {
-                const isEditing =
-                  (tab === 'nuevo-poema' && editingPostId) ||
-                  (tab === 'nuevo-evento' && editingEventId) ||
-                  (tab === 'mis-libros' && editingBookId);
-
-                const tabLabel = tab === 'perfil'
-                  ? 'Perfil'
-                  : tab === 'nuevo-poema'
-                    ? (editingPostId ? 'Editar poema' : 'Nuevo poema')
-                    : tab === 'nuevo-evento'
-                      ? (editingEventId ? 'Editar evento' : 'Nuevo evento')
-                      : (editingBookId ? 'Editar libro' : 'Nuevo libro');
-
-                const newLabel = tab === 'nuevo-poema'
-                  ? '+ Nuevo poema'
-                  : tab === 'nuevo-evento'
-                    ? '+ Nuevo evento'
-                    : tab === 'mis-libros'
-                      ? '+ Nuevo libro'
-                      : '';
-
-                return (
-                  <div key={tab} className={styles.tabGroup}>
-                    <button
-                      role="tab"
-                      aria-selected={activeTab === tab}
-                      className={`${styles.tab} ${activeTab === tab ? styles.activeTab : ''}`}
-                      onClick={() => setActiveTab(tab)}
-                    >
-                      {tabLabel}
-                    </button>
-                    {isEditing && (
-                      <Link
-                        href="/dashboard"
-                        className={styles.newItemBtn}
-                        onClick={(e) => {
-                          // Also switch to this tab immediately for visual feedback
-                          setActiveTab(tab);
-                        }}
-                      >
-                        {newLabel}
-                      </Link>
-                    )}
-                  </div>
-                );
-              })}
-            </nav>
+            <div className={styles.tabs} role="tablist" aria-orientation="vertical" aria-label="Secciones del taller">
+              {TABS.map((tab) => (
+                <div key={tab} className={styles.tabGroup}>
+                  <button
+                    ref={(el) => { tabRefs.current[tab] = el; }}
+                    id={`tab-${tab}`}
+                    role="tab"
+                    type="button"
+                    aria-selected={activeTab === tab}
+                    aria-controls={`panel-${tab}`}
+                    tabIndex={activeTab === tab ? 0 : -1}
+                    className={`${styles.tab} ${activeTab === tab ? styles.activeTab : ''}`}
+                    onClick={() => selectTab(tab)}
+                    onKeyDown={(e) => onTabKey(e, tab)}
+                  >
+                    {labels[tab].tab}
+                  </button>
+                  {isEditing(tab) && (
+                    <Link href={`/dashboard?tab=${TAB_PARAM[tab]}`} className={styles.newItemBtn}>
+                      {labels[tab].fresh}
+                    </Link>
+                  )}
+                </div>
+              ))}
+            </div>
 
             <div className={styles.headerActions}>
               <Link href={`/u/${encodeURIComponent(user.id)}`} className={styles.profileLink}>
                 Ver perfil público
               </Link>
-              <button className={styles.logoutBtn} onClick={handleLogout} aria-label="Cerrar sesión">
+              <button className={styles.logoutBtn} type="button" onClick={handleLogout}>
                 Salir
               </button>
             </div>
@@ -527,428 +187,44 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
 
           <section className={styles.workspace} aria-labelledby="taller-titulo">
             <header className={styles.workspaceHeader}>
-              <h2 id="taller-titulo" className={styles.workspaceTitle}><WaterText text={TAB_TITLES[activeTab]} /></h2>
+              <h2 id="taller-titulo" className={styles.workspaceTitle}><WaterText text={labels[activeTab].title} /></h2>
             </header>
 
-          <AnimatePresence mode="wait">
-            {activeTab === 'perfil' && (
-              <motion.div key="perfil" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className={styles.panel}>
-                <div className={styles.field}>
-                  <label className={styles.label} htmlFor="username">Nombre de usuario</label>
-                  <input id="username" className={styles.input} value={username} onChange={(e) => setUsername(e.target.value)} placeholder="tu_nombre" />
-                </div>
-                <div className={styles.field}>
-                  <label className={styles.label} htmlFor="bio">Biografía</label>
-                  <textarea id="bio" className={styles.textarea} value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Escribe algo sobre ti..." rows={4} />
-                  <span className={styles.charCount}>{bio.length}/500</span>
-                </div>
-                <div className={styles.field}>
-                  <label className={styles.label}>Mis etiquetas (máx 10) — aparecen en “Poetas” del buscador</label>
-                  <div className={styles.tagsContainer}>
-                    {tagsLoading ? (
-                      <p className={styles.msg}>Cargando etiquetas…</p>
-                    ) : (
-                      <TagExplorer
-                        mode="pick"
-                        label="Etiquetas de tu perfil"
-                        tags={availableTags}
-                        selectedIds={profileTags}
-                        max={10}
-                        onToggle={(id) => setProfileTags((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.length < 10 ? [...prev, id] : prev))}
-                      />
-                    )}
-                  </div>
-                </div>
-                {profileMsg && <p className={styles.msg}>{profileMsg}</p>}
-                <Button onClick={handleProfileSave} loading={profileLoading}>Guardar perfil</Button>
-
-                <BookDownloadButton user={user} posts={userPosts} />
-
-                <DashboardPostsList items={userPosts} type="post" />
-                <DashboardPostsList items={userBooks} type="book" />
-              </motion.div>
-            )}
-
-            {activeTab === 'nuevo-poema' && (
-              <motion.div key="nuevo-poema" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className={`${styles.panel} ${styles.panelSplit}`}>
-                <div className={styles.formCol}>
-                <div className={styles.field}>
-                  <label className={styles.label} htmlFor="postTitle">Título</label>
-                  <input id="postTitle" className={styles.input} value={postTitle} onChange={(e) => setPostTitle(e.target.value)} placeholder="El nombre de tu poema" />
-                </div>
-                <div className={styles.field}>
-                  <label className={styles.label} htmlFor="postContent">Contenido (Markdown)</label>
-                  <textarea id="postContent" className={styles.textarea} value={postContent} onChange={(e) => setPostContent(e.target.value)} placeholder="Escribe tu poema aquí..." rows={12} />
-                </div>
-                <div className={styles.field}>
-                  <label className={styles.label} htmlFor="postSlug">Slug (opcional)</label>
-                  <input id="postSlug" className={styles.input} value={postSlug} onChange={(e) => setPostSlug(e.target.value)} placeholder={postTitle ? generateSlug(postTitle) : 'generado-automaticamente'} />
-                </div>
-                <div className={styles.field}>
-                  <label className={styles.label}>Etiquetas (máx 4)</label>
-                  <div className={styles.tagsContainer}>
-                    {tagsLoading ? (
-                      <p className={styles.msg}>Cargando etiquetas…</p>
-                    ) : (
-                      <TagExplorer
-                        mode="pick"
-                        label="Etiquetas del poema"
-                        tags={availableTags}
-                        selectedIds={postTags}
-                        max={4}
-                        onToggle={(id) => setPostTags((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.length < 4 ? [...prev, id] : prev))}
-                      />
-                    )}
-                  </div>
-                </div>
-                <div className={styles.toggleRow}>
-                  <label className={styles.toggle}>
-                    <input type="checkbox" checked={postVisible} onChange={(e) => setPostVisible(e.target.checked)} />
-                    <span>Visible</span>
-                  </label>
-                  <label className={styles.toggle}>
-                    <input type="checkbox" checked={postIndexed} onChange={(e) => setPostIndexed(e.target.checked)} />
-                    <span>En portada y notificar</span>
-                  </label>
-                </div>
-
-                <div className={styles.shaderSection}>
-                  <button
-                    className={styles.shaderToggle}
-                    onClick={() => setShowShaderEditor(!showShaderEditor)}
-                    aria-expanded={showShaderEditor}
-                    aria-label="Togglear editor de shader"
-                  >
-                    {showShaderEditor
-                      ? '— Cerrar editor'
-                      : postShaderCode
-                        ? '✦ Editar shader (alquimia)'
-                        : '+ Añadir shader (alquimia)'}
-                  </button>
-                  <AnimatePresence>
-                    {showShaderEditor && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                      >
-                        <ShaderEditor
-                          initialCode={postShaderCode || DEFAULT_SHADER}
-                          onSave={(code) => { setPostShaderCode(code); setShowShaderEditor(false); }}
-                          onClose={() => setShowShaderEditor(false)}
-                          onCodeChange={setShaderPreviewCode}
-                        />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                  {postShaderCode && !showShaderEditor && (
-                    <p className={styles.shaderActive}>✦ Shader activo</p>
-                  )}
-                </div>
-
-                {postMsg && <p className={styles.msg}>{postMsg}</p>}
-                {savedPostSlug && (
-                  <Link
-                    href={`/u/${encodeURIComponent(user.id)}/p/${savedPostSlug}`}
-                    className={styles.viewPostLink}
-                  >
-                    Ver el poema →
-                  </Link>
+            {/* Panels stay mounted once opened, so switching chapters never loses a draft. */}
+            {TABS.filter((tab) => visited.has(tab)).map((tab) => (
+              <div
+                key={tab}
+                id={`panel-${tab}`}
+                role="tabpanel"
+                aria-labelledby={`tab-${tab}`}
+                hidden={activeTab !== tab}
+                className={styles.tabPanel}
+              >
+                {tab === 'perfil' && (
+                  <ProfilePanel user={user} tags={availableTags} tagsLoading={tagsLoading} onSaved={refresh} />
                 )}
-                
-                <div className={styles.actionRow}>
-                  <Button onClick={handlePostSave} loading={postLoading}>
-                    {editingPostId ? 'Actualizar poema' : 'Publicar poema'}
-                  </Button>
-                </div>
-
-                {editingPostId && (editNextPost || editPrevPost) && (
-                  <nav className={styles.editNav}>
-                    {editNextPost && (
-                      <Link href={`/dashboard?edit=post&id=${editNextPost.id}`} className={styles.editNavLink}>
-                        ← {editNextPost.title}
-                      </Link>
-                    )}
-                    <div className={styles.editNavSpacer} />
-                    {editPrevPost && (
-                      <Link href={`/dashboard?edit=post&id=${editPrevPost.id}`} className={`${styles.editNavLink} ${styles.editNavRight}`}>
-                        {editPrevPost.title} →
-                      </Link>
-                    )}
-                  </nav>
+                {tab === 'nuevo-poema' && (
+                  <PoemPanel
+                    user={user} posts={userPosts} books={userBooks}
+                    editPost={editPost} editShader={editShader} prevPost={editPrevPost} nextPost={editNextPost}
+                    tags={availableTags} tagsLoading={tagsLoading} onSaved={refresh}
+                  />
                 )}
-
-                {editingPostId && (
-                  <div className={styles.dangerZone}>
-                    {!deletePostConfirm ? (
-                      <button
-                        className={styles.dangerTrigger}
-                        type="button"
-                        onClick={() => setDeletePostConfirm(true)}
-                      >
-                        Eliminar poema
-                      </button>
-                    ) : (
-                      <div className={styles.dangerConfirm}>
-                        <span className={styles.dangerWarning}>¿Eliminar permanentemente?</span>
-                        <button
-                          className={styles.dangerConfirmBtn}
-                          type="button"
-                          onClick={handleDeletePost}
-                          disabled={isDeletingPost}
-                        >
-                          {isDeletingPost ? 'Eliminando...' : 'Sí, eliminar'}
-                        </button>
-                        <button
-                          className={styles.dangerCancelBtn}
-                          type="button"
-                          onClick={() => setDeletePostConfirm(false)}
-                          disabled={isDeletingPost}
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                {tab === 'nuevo-evento' && (
+                  <EventPanel
+                    user={user} events={userEvents}
+                    editEvent={editEvent} prevEvent={editPrevEvent} nextEvent={editNextEvent}
+                    tags={availableTags} tagsLoading={tagsLoading} onSaved={refresh}
+                  />
                 )}
-
-                <DashboardPostsList items={userPosts} activeId={editingPostId} type="post" />
-                <DashboardPostsList items={userBooks} type="book" />
-                </div>
-
-                <aside className={styles.preview} aria-label="Vista previa del poema">
-                  <div className={styles.previewSurface}>
-                    <DropField seed={editingPostId || 'nuevo-poema'} tint="rain" density={0.18} />
-                    <span className={styles.previewLabel}>Así caerá</span>
-                    <h3 className={styles.previewTitle}><WaterText text={postTitle || 'Sin título todavía'} /></h3>
-                    {previewHtml ? (
-                      <div className={styles.previewBody} dangerouslySetInnerHTML={{ __html: previewHtml }} />
-                    ) : (
-                      <p className={styles.previewEmpty}>Escribe y aquí verás tu poema como lo leerán.</p>
-                    )}
-                    <p className={styles.previewMeta}>
-                      {verseCount(postContent)} versos · {wordCount(postContent)} palabras
-                    </p>
-                  </div>
-                </aside>
-              </motion.div>
-            )}
-
-            {activeTab === 'nuevo-evento' && (
-              <motion.div key="nuevo-evento" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className={styles.panel}>
-                <div className={styles.field}>
-                  <label className={styles.label} htmlFor="eventTitle">Título del evento</label>
-                  <input id="eventTitle" className={styles.input} value={eventTitle} onChange={(e) => setEventTitle(e.target.value)} placeholder="Noche de poemas" />
-                </div>
-                <div className={styles.field}>
-                  <label className={styles.label} htmlFor="eventDesc">Descripción</label>
-                  <textarea id="eventDesc" className={styles.textarea} value={eventDesc} onChange={(e) => setEventDesc(e.target.value)} placeholder="Describe el evento..." rows={4} />
-                </div>
-                <div className={styles.row}>
-                  <div className={styles.field}>
-                    <label className={styles.label} htmlFor="eventDay">Día</label>
-                    <input id="eventDay" type="date" className={styles.input} value={eventDay} onChange={(e) => setEventDay(e.target.value)} />
-                  </div>
-                  <div className={styles.field}>
-                    <label className={styles.label} htmlFor="eventHour">Hora</label>
-                    <input id="eventHour" type="time" className={styles.input} value={eventHour} onChange={(e) => setEventHour(e.target.value)} />
-                  </div>
-                </div>
-                <div className={styles.field}>
-                  <label className={styles.label} htmlFor="eventPlace">Lugar</label>
-                  <input id="eventPlace" className={styles.input} value={eventPlace} onChange={(e) => setEventPlace(e.target.value)} placeholder="Café Lluvia, San José" />
-                </div>
-                <div className={styles.field}>
-                  <label className={styles.label} htmlFor="eventPrice">Precio (0 para entrada libre)</label>
-                  <input id="eventPrice" type="number" className={styles.input} value={eventPrice} onChange={(e) => setEventPrice(e.target.value)} placeholder="0" min="0" />
-                </div>
-                <div className={styles.field}>
-                  <label className={styles.label}>Etiquetas (máx 4)</label>
-                  <div className={styles.tagsContainer}>
-                    {tagsLoading ? (
-                      <p className={styles.msg}>Cargando etiquetas…</p>
-                    ) : (
-                      <TagExplorer
-                        mode="pick"
-                        label="Etiquetas del evento"
-                        tags={availableTags}
-                        selectedIds={eventTags}
-                        max={4}
-                        onToggle={(id) => setEventTags((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.length < 4 ? [...prev, id] : prev))}
-                      />
-                    )}
-                  </div>
-                </div>
-
-                <div className={styles.toggleRow}>
-                  <label className={styles.toggle}>
-                    <input
-                      type="checkbox"
-                      checked={eventIsRecurring}
-                      onChange={(e) => handleRecurringToggle(e.target.checked)}
-                    />
-                    <span>Evento recurrente</span>
-                  </label>
-                </div>
-
-                <AnimatePresence>
-                  {eventIsRecurring && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                    >
-                      <CronScheduleInput
-                        value={eventCron}
-                        onChange={setEventCron}
-                        time={eventHour}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {eventMsg && <p className={styles.msg}>{eventMsg}</p>}
-                
-                <div className={styles.actionRow}>
-                  <Button onClick={handleEventSave} loading={eventLoading}>
-                    {editingEventId ? 'Actualizar evento' : 'Crear evento'}
-                  </Button>
-                </div>
-
-                {editingEventId && (editNextEvent || editPrevEvent) && (
-                  <nav className={styles.editNav}>
-                    {editNextEvent && (
-                      <Link href={`/dashboard?edit=event&id=${editNextEvent.id}`} className={styles.editNavLink}>
-                        ← {editNextEvent.title}
-                      </Link>
-                    )}
-                    <div className={styles.editNavSpacer} />
-                    {editPrevEvent && (
-                      <Link href={`/dashboard?edit=event&id=${editPrevEvent.id}`} className={`${styles.editNavLink} ${styles.editNavRight}`}>
-                        {editPrevEvent.title} →
-                      </Link>
-                    )}
-                  </nav>
+                {tab === 'mis-libros' && (
+                  <BookPanel
+                    user={user} books={userBooks} posts={userPosts} editBook={editBook}
+                    tags={availableTags} tagsLoading={tagsLoading} onSaved={refresh}
+                  />
                 )}
-
-                {editingEventId && (
-                  <div className={styles.dangerZone}>
-                    {!deleteEventConfirm ? (
-                      <button
-                        className={styles.dangerTrigger}
-                        type="button"
-                        onClick={() => setDeleteEventConfirm(true)}
-                      >
-                        Cancelar y eliminar evento
-                      </button>
-                    ) : (
-                      <div className={styles.dangerConfirm}>
-                        <span className={styles.dangerWarning}>¿Eliminar permanentemente?</span>
-                        <button
-                          className={styles.dangerConfirmBtn}
-                          type="button"
-                          onClick={handleDeleteEvent}
-                          disabled={isDeletingEvent}
-                        >
-                          {isDeletingEvent ? 'Eliminando...' : 'Sí, eliminar'}
-                        </button>
-                        <button
-                          className={styles.dangerCancelBtn}
-                          type="button"
-                          onClick={() => setDeleteEventConfirm(false)}
-                          disabled={isDeletingEvent}
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </motion.div>
-            )}
-
-            {activeTab === 'mis-libros' && (
-              <motion.div key="mis-libros" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className={styles.panel}>
-                <div className={styles.field}>
-                  <label className={styles.label} htmlFor="bookTitle">Título del libro</label>
-                  <input id="bookTitle" className={styles.input} value={bookTitle} onChange={(e) => setBookTitle(e.target.value)} placeholder="Título o nombre del libro" />
-                </div>
-                <div className={styles.field}>
-                  <label className={styles.label} htmlFor="bookContent">Contenido / Descripción (Markdown)</label>
-                  <textarea id="bookContent" className={styles.textarea} value={bookContent} onChange={(e) => setBookContent(e.target.value)} placeholder="Escribe aquí el contenido, enlaces, teléfonos, etc..." rows={12} />
-                </div>
-
-                <div className={styles.field}>
-                  <label className={styles.label}>Etiquetas (máx 4)</label>
-                  <div className={styles.tagsContainer}>
-                    {tagsLoading ? (
-                      <p className={styles.msg}>Cargando etiquetas…</p>
-                    ) : (
-                      <TagExplorer
-                        mode="pick"
-                        label="Etiquetas del libro"
-                        tags={availableTags}
-                        selectedIds={bookTags}
-                        max={4}
-                        onToggle={(id) => setBookTags((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.length < 4 ? [...prev, id] : prev))}
-                      />
-                    )}
-                  </div>
-                </div>
-                
-                <div className={styles.toggleRow}>
-                  <label className={styles.toggle}>
-                    <input type="checkbox" checked={bookVisible} onChange={(e) => setBookVisible(e.target.checked)} />
-                    <span>Visible en el perfil</span>
-                  </label>
-                </div>
-
-                {bookMsg && <p className={styles.msg}>{bookMsg}</p>}
-                
-                <div className={styles.actionRow}>
-                  <Button onClick={handleBookSave} loading={bookLoading}>
-                    {editingBookId ? 'Actualizar libro' : 'Publicar libro'}
-                  </Button>
-                </div>
-
-                {editingBookId && (
-                  <div className={styles.dangerZone}>
-                    {!deleteBookConfirm ? (
-                      <button
-                        className={styles.dangerTrigger}
-                        type="button"
-                        onClick={() => setDeleteBookConfirm(true)}
-                      >
-                        Eliminar libro
-                      </button>
-                    ) : (
-                      <div className={styles.dangerConfirm}>
-                        <span className={styles.dangerWarning}>¿Eliminar permanentemente?</span>
-                        <button
-                          className={styles.dangerConfirmBtn}
-                          type="button"
-                          onClick={handleDeleteBook}
-                          disabled={isDeletingBook}
-                        >
-                          {isDeletingBook ? 'Eliminando...' : 'Sí, eliminar'}
-                        </button>
-                        <button
-                          className={styles.dangerCancelBtn}
-                          type="button"
-                          onClick={() => setDeleteBookConfirm(false)}
-                          disabled={isDeletingBook}
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <DashboardPostsList items={userBooks} activeId={editingBookId} type="book" />
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
+            ))}
           </section>
         </div>
       </div>

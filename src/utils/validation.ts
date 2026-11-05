@@ -64,7 +64,8 @@ export const EventBaseSchema = z.object({
   day: z.coerce.date().refine((d) => !Number.isNaN(d.getTime()), 'Fecha no válida.'),
   hour: z.string().min(1).max(50).refine(isTimeString, 'Hora no válida (HH:MM).'),
   place: z.string().trim().min(1).max(200),
-  price: z.number().finite().nonnegative().max(100_000_000).optional(),
+  // `null` clears a price on update.
+  price: z.number().finite().nonnegative().max(100_000_000).nullable().optional(),
   urls: z.array(safeUrl).max(5),
   contacts: z.array(z.string().trim().min(1).max(100)).max(5),
   tagIds: tagIds(4),

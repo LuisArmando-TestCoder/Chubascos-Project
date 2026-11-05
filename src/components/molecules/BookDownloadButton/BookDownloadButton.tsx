@@ -10,6 +10,16 @@ import { WaterText } from '@/components/organisms/WaterText/WaterText';
 interface BookDownloadButtonProps {
   user: User;
   posts: Post[];
+  /** Cover title; defaults to the author's name. */
+  bookTitle?: string;
+  /** Print the "Sobre el autor" pages (default true). */
+  includeBio?: boolean;
+  /** `given` keeps the caller's order; `chronological` (default) sorts by publication. */
+  order?: 'chronological' | 'given';
+  /** Include hidden poems the caller passes (the composer lets poets choose). */
+  includeHidden?: boolean;
+  /** Hide the built-in heading when a surrounding panel already explains it. */
+  bare?: boolean;
 }
 
 function tsSeconds(ts: unknown): number {
@@ -17,7 +27,7 @@ function tsSeconds(ts: unknown): number {
   return typeof s === 'number' ? s : 0;
 }
 
-export function BookDownloadButton({ user, posts }: BookDownloadButtonProps) {
+export function BookDownloadButton({ user, posts, bookTitle, includeBio = true, order = 'chronological', includeHidden = false, bare = false }: BookDownloadButtonProps) {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -26,16 +36,16 @@ export function BookDownloadButton({ user, posts }: BookDownloadButtonProps) {
 
   // Only visible poems, in chronological (publication) order — the order a
   // reader would encounter them, and what the índice will reflect.
-  const visiblePoems = posts
-    .filter((p) => p.isVisible !== false)
-    .slice()
-    .sort((a, b) => tsSeconds(a.createdAt) - tsSeconds(b.createdAt));
+  const chosen = posts.filter((p) => includeHidden || p.isVisible !== false);
+  const visiblePoems = order === 'given'
+    ? chosen
+    : chosen.slice().sort((a, b) => tsSeconds(a.createdAt) - tsSeconds(b.createdAt));
 
   const authorName = user.username || user.email.split('@')[0];
 
   const handlePreview = useCallback(async () => {
     if (visiblePoems.length === 0) {
-      setMsg('No tienes poemas visibles para generar un libro.');
+      setMsg(includeHidden ? 'Elige al menos un poema.' : 'No tienes poemas visibles para generar un libro.');
       return;
     }
     setLoading(true);
@@ -51,8 +61,9 @@ export function BookDownloadButton({ user, posts }: BookDownloadButtonProps) {
 
       const { pages: composed, filename: name } = await composePoemBook({
         authorName,
-        bio: user.bio,
-        contacts: user.contacts,
+        bookTitle: bookTitle?.trim() || undefined,
+        bio: includeBio ? user.bio : undefined,
+        contacts: includeBio ? user.contacts : undefined,
         profileUrl,
         poems: visiblePoems.map((p) => ({ title: p.title, content: p.content })),
       });
@@ -63,11 +74,11 @@ export function BookDownloadButton({ user, posts }: BookDownloadButtonProps) {
       setMsg('');
     } catch (err) {
       console.error('composePoemBook error:', err);
-      setMsg('No se pudo generar el libro. Inténtalo de nuevo.');
+      setMsg(err instanceof Error && err.message ? err.message : 'No se pudo generar el libro. Inténtalo de nuevo.');
     } finally {
       setLoading(false);
     }
-  }, [visiblePoems, user.id, user.bio, user.contacts, authorName]);
+  }, [visiblePoems, user.id, user.bio, user.contacts, authorName, bookTitle, includeBio, includeHidden]);
 
   const handleDownload = useCallback(async () => {
     try {
@@ -80,8 +91,8 @@ export function BookDownloadButton({ user, posts }: BookDownloadButtonProps) {
   }, [pages, filename]);
 
   return (
-    <div className={styles.wrapper}>
-      <div className={styles.header}>
+    <div className={bare ? styles.bare : styles.wrapper}>
+      {!bare && <div className={styles.header}>
         <span className={styles.label}>Publicación</span>
         <h3 className={styles.title}><WaterText text="Descargar libro" /></h3>
         <p className={styles.hint}>
@@ -89,11 +100,11 @@ export function BookDownloadButton({ user, posts }: BookDownloadButtonProps) {
           ({visiblePoems.length}), listo para enviar a una editorial. Verás una vista
           previa antes de descargar.
         </p>
-      </div>
+      </div>}
       <Button onClick={handlePreview} loading={loading} disabled={visiblePoems.length === 0}>
-        Vista previa del libro
+        {bare ? `Componer y previsualizar (${visiblePoems.length})` : 'Vista previa del libro'}
       </Button>
-      {msg && <p className={styles.msg}>{msg}</p>}
+      {msg && <p className={styles.msg} role="status" aria-live="polite">{msg}</p>}
 
       <BookPreviewModal
         isOpen={previewOpen}

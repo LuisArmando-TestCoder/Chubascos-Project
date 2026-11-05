@@ -49,9 +49,10 @@ export async function requestOtp(email: string) {
     console.log(`✅ [Auth] Email enviado exitosamente a: ${normalized}`);
     
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`❌ [Auth] Error en requestOtp:`, error);
-    return { success: false, error: `Error interno: ${error.message || 'Error desconocido'}` };
+    // Internal details stay in the server log.
+    return { success: false, error: 'No pudimos enviar el código. Inténtalo de nuevo en un momento.' };
   }
 }
 
@@ -107,9 +108,9 @@ export async function verifyOtp(email: string, otp: string) {
     session.sessionVersion = sessionVersion;
     await session.save();
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`❌ [Auth] Error en verifyOtp:`, error);
-    return { success: false, error: `Error interno al verificar: ${error.message || 'Error desconocido'}` };
+    return { success: false, error: 'No pudimos verificar el código. Inténtalo de nuevo.' };
   }
 }
 

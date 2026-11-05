@@ -1,0 +1,73 @@
+@use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
+
+.contactRow {
+  display: grid;
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr) auto;
+  gap: 1rem;
+  align-items: end;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid v.$line;
+  }
+}
+
+// The public card, as the sidebar of the profile page shows it.
+.card {
+  @include m.surface;
+  display: grid;
+  gap: 1rem;
+  justify-items: start;
+  padding: clamp(1.5rem, 3vw, 2.25rem);
+}
+
+.sigil { color: v.$rain-soft; }
+
+.name {
+  @include m.display(v.$step-2);
+  color: v.$paper;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.bio {
+  margin: 0;
+  font-family: v.$font-display;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: v.$mist;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.links {
+  display: grid;
+  gap: 0.4rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.75rem 0 0;
+  list-style: none;
+  border-top: 1px solid v.$line;
+
+  li { display: flex; justify-content: space-between; gap: 1rem; min-width: 0; }
+}
+
+.linkLabel { @include m.hud(v.$mist); flex-shrink: 0; }
+
+.linkUrl {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  color: v.$rain-soft;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}

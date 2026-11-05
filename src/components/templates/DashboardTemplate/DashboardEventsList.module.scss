@@ -1,0 +1,190 @@
+@use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
+
+// The record of a poet's evenings: a rail of dates, month by month.
+
+.container {
+  display: grid;
+  gap: 1.5rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid v.$line;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+
+  legend {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+}
+
+.heading {
+  @include m.display(v.$step-2);
+  color: v.$paper;
+  margin: 0;
+}
+
+.empty {
+  margin: 0;
+  font-family: v.$font-display;
+  font-style: italic;
+  color: v.$mist;
+}
+
+.group {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.month {
+  @include m.hud(v.$fog);
+  margin: 0;
+
+  &::first-letter { text-transform: uppercase; }
+}
+
+.list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-left: 1px solid v.$line;
+}
+
+.item {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.9rem 0 0.9rem 1.25rem;
+  border-bottom: 1px solid v.$line;
+  transition: background v.$duration-fast;
+
+  // Where this evening sits on the rail.
+  &::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: v.$puddle;
+    transform: translateY(-50%);
+  }
+
+  &[data-past]::before { background: v.$ink; border: 1px solid v.$fog; }
+  &[data-active] { background: linear-gradient(90deg, rgba(143, 211, 232, 0.07), transparent); }
+  &:hover { background: rgba(236, 235, 228, 0.025); }
+
+  @media (max-width: 640px) {
+    grid-template-columns: auto minmax(0, 1fr);
+    .actions { grid-column: 2; justify-content: flex-start; }
+  }
+}
+
+.tile {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 56px;
+  border: 1px solid v.$line-strong;
+  border-radius: v.$radius;
+  background: v.$ink-2;
+
+  [data-past] & { opacity: 0.6; }
+}
+
+.tileDay {
+  font-family: v.$font-display;
+  font-size: 1.5rem;
+  font-weight: 300;
+  line-height: 1;
+  color: v.$paper;
+  font-variant-numeric: tabular-nums;
+}
+
+.tileMonth {
+  @include m.hud(v.$mist);
+  font-size: 0.56rem;
+}
+
+.body {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-family: v.$font-display;
+  font-size: 1.15rem;
+  color: v.$paper;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  [data-past] & { color: v.$mist; }
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.9rem;
+  margin: 0;
+  @include m.hud(v.$fog);
+  font-size: 0.6rem;
+
+  span:first-child::first-letter { text-transform: uppercase; }
+}
+
+.place {
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-family: v.$font-ui;
+  font-size: 0.78rem;
+  max-width: 28ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recurring {
+  margin: 0;
+  font-size: 0.82rem;
+  color: v.$rain-soft;
+}
+
+.actions {
+  display: flex;
+  gap: 0.25rem;
+  justify-content: flex-end;
+}
+
+.action {
+  @include m.hud(v.$mist);
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color v.$duration-fast, color v.$duration-fast;
+
+  &:hover { color: v.$paper; border-color: v.$line-strong; opacity: 1; }
+  &[aria-current='page'] { color: v.$puddle; border-color: rgba(143, 211, 232, 0.4); }
+  @include m.focus-ring(1px);
+}

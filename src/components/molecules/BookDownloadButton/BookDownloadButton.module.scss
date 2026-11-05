@@ -48,3 +48,10 @@
   color: v.$mist;
   margin: 0;
 }
+
+.bare {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}

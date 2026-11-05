@@ -12,6 +12,27 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Titles, names and excerpts are written by users: never let them become markup.
+function escapeHtml(text: string): string {
+  return String(text ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+export interface NotificationData {
+  type?: 'post' | 'book' | 'event' | 'event_subscription' | string;
+  title?: string;
+  slug?: string;
+  content?: string;
+  description?: string;
+  id?: string;
+  eventId?: string;
+  [key: string]: unknown;
+}
+
 function stripHtmlAndMarkdown(text: string): string {
   if (!text) return '';
   return text
@@ -28,7 +49,7 @@ function getExcerpt(content: string, length = 120): string {
   return cleanText.substring(0, length) + '...';
 }
 
-export async function sendNotificationEmail(email: string, authorId: string, authorName: string, data: any) {
+export async function sendNotificationEmail(email: string, authorId: string, authorName: string, data: NotificationData) {
   let subject = '';
   let title = '';
   let description = '';
@@ -40,36 +61,36 @@ export async function sendNotificationEmail(email: string, authorId: string, aut
 
   if (data.type === 'post') {
     subject = `Nuevo poema de ${authorName}: ${data.title}`;
-    title = data.title;
+    title = data.title ?? '';
     description = `El poeta ${authorName} ha dejado un nuevo charco.`;
     linkLabel = 'Leer poema completo';
-    linkUrl = `${baseUrl}/u/${authorId}/p/${data.slug}`;
+    linkUrl = `${baseUrl}/u/${encodeURIComponent(authorId)}/p/${encodeURIComponent(data.slug ?? '')}`;
     snippet = getExcerpt(data.content || '');
   } else if (data.type === 'book') {
     subject = `Nuevo libro de ${authorName}: ${data.title}`;
-    title = data.title;
+    title = data.title ?? '';
     description = `El poeta ${authorName} ha publicado un nuevo libro.`;
     linkLabel = 'Ver libro';
-    linkUrl = `${baseUrl}/u/${authorId}/b/${data.slug}`;
-    snippet = getExcerpt(data.description || '');
+    linkUrl = `${baseUrl}/u/${encodeURIComponent(authorId)}/b/${encodeURIComponent(data.slug ?? '')}`;
+    snippet = getExcerpt(data.description || data.content || '');
   } else if (data.type === 'event') {
     subject = `Nuevo evento de ${authorName}: ${data.title}`;
-    title = data.title;
+    title = data.title ?? '';
     description = `${authorName} ha creado un nuevo evento.`;
     linkLabel = 'Ver evento y agendar';
-    linkUrl = `${baseUrl}/e/${data.id}`;
+    linkUrl = `${baseUrl}/e/${encodeURIComponent(data.id ?? '')}`;
     snippet = getExcerpt(data.description || '');
   } else if (data.type === 'event_subscription') {
     subject = `Nueva solicitud para tu evento: ${data.title}`;
-    title = data.title;
+    title = data.title ?? '';
     description = `${authorName} quiere asistir a tu evento.`;
     linkLabel = 'Gestionar participantes';
-    linkUrl = `${baseUrl}/e/${data.eventId}`;
+    linkUrl = `${baseUrl}/e/${encodeURIComponent(data.eventId ?? '')}`;
   }
 
   const snippetHtml = snippet ? `
     <div style="background-color: #1a1a1a; padding: 20px; border-left: 4px solid #6d5dfc; margin: 20px 0; border-radius: 4px; font-style: italic; color: #d0d0d0;">
-      "${snippet}"
+      "${escapeHtml(snippet)}"
     </div>
   ` : '';
 
@@ -85,9 +106,9 @@ export async function sendNotificationEmail(email: string, authorId: string, aut
         </div>
         
         <div style="background-color: #121212; border: 1px solid #222; border-radius: 8px; padding: 30px;">
-          <p style="font-size: 16px; margin-top: 0; color: #eee;">${description}</p>
+          <p style="font-size: 16px; margin-top: 0; color: #eee;">${escapeHtml(description)}</p>
           
-          <h2 style="color: #fff; margin-bottom: 10px; font-size: 22px;">${title}</h2>
+          <h2 style="color: #fff; margin-bottom: 10px; font-size: 22px;">${escapeHtml(title)}</h2>
           
           ${snippetHtml}
           
@@ -138,8 +159,8 @@ export async function sendOtpEmail(email: string, otp: string) {
     const result = await transporter.sendMail(mailOptions);
     console.log(`✅ [SMTP] Correo enviado exitosamente a: ${email}. ID: ${result.messageId}`);
     return result;
-  } catch (error: any) {
-    console.error(`❌ [SMTP] Fallo al enviar el correo a: ${email}. Detalle del error:`, error.message || error);
+  } catch (error: unknown) {
+    console.error(`❌ [SMTP] Fallo al enviar el correo a: ${email}. Detalle del error:`, error instanceof Error ? error.message : error);
     throw error;
   }
 }

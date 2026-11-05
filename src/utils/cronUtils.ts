@@ -242,7 +242,7 @@ export function getNthWeekdayOfMonth(
   const firstDow = firstOfMonth.getDay();
 
   // Calculate the day-of-month for the first occurrence of the target weekday
-  let firstOccurrenceDay = 1 + ((dayOfWeek - firstDow + 7) % 7);
+  const firstOccurrenceDay = 1 + ((dayOfWeek - firstDow + 7) % 7);
   // Add (nth - 1) weeks
   const targetDay = firstOccurrenceDay + (nth - 1) * 7;
 

@@ -4,7 +4,21 @@ import styles from './ShaderCanvas.module.scss';
 
 interface ShaderCanvasProps {
   glslCode: string;
+  /** Compile/link result: the GL error log, or null when the shader runs. */
+  onError?: (message: string | null) => void;
 }
+
+/** "ERROR: 0:12: 'foo' : undeclared identifier" → line numbers of the poet's code. */
+function readableLog(log: string, headerLines: number): string {
+  return log
+    .split('\n')
+    .map((l) => l.replace(/ERROR:\s*\d+:(\d+):/, (_, n) => `Línea ${Math.max(1, Number(n) - headerLines)}:`))
+    .filter((l) => l.trim())
+    .slice(0, 4)
+    .join('\n');
+}
+
+const FRAG_HEADER_LINES = 5;
 
 const VERTEX_SHADER = `
   attribute vec2 position;
@@ -26,15 +40,20 @@ function buildFragSource(userCode: string): string {
   `;
 }
 
-export default function ShaderCanvas({ glslCode }: ShaderCanvasProps) {
+export default function ShaderCanvas({ glslCode, onError }: ShaderCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const gl = canvas.getContext('webgl');
-    if (!gl) return;
+    if (!gl) {
+      onErrorRef.current?.(null); // no WebGL here: nothing to report about the code
+      return;
+    }
 
     const vs = gl.createShader(gl.VERTEX_SHADER)!;
     gl.shaderSource(vs, VERTEX_SHADER);
@@ -45,7 +64,10 @@ export default function ShaderCanvas({ glslCode }: ShaderCanvasProps) {
     gl.compileShader(fs);
 
     if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
-      console.error('Shader compile error:', gl.getShaderInfoLog(fs));
+      const log = gl.getShaderInfoLog(fs) || 'Error de compilación.';
+      onErrorRef.current?.(readableLog(log, FRAG_HEADER_LINES));
+      gl.deleteShader(fs);
+      gl.deleteShader(vs);
       return;
     }
 
@@ -54,10 +76,12 @@ export default function ShaderCanvas({ glslCode }: ShaderCanvasProps) {
     gl.attachShader(program, fs);
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      console.error('Program link error:', gl.getProgramInfoLog(program));
+      onErrorRef.current?.(gl.getProgramInfoLog(program) || 'Error al enlazar el shader.');
+      gl.deleteProgram(program);
       return;
     }
     gl.useProgram(program);
+    onErrorRef.current?.(null);
 
     const buf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);

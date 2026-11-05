@@ -34,12 +34,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const ip = (request as any).ip || request.headers.get('x-forwarded-for') || 'anonymous';
+  const ip = (request as NextRequest & { ip?: string }).ip || request.headers.get('x-forwarded-for') || 'anonymous';
 
   // If we have a native edge-compatible ratelimiter (Upstash)
   if (ratelimit) {
     try {
-      const { success, limit, remaining, reset } = await ratelimit.limit(ip);
+      const { success, reset } = await ratelimit.limit(ip);
       if (!success) {
         return new NextResponse(
           JSON.stringify({ error: 'Demasiadas solicitudes.' }),

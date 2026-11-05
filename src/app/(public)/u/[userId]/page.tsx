@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { getUserProfile, getUserPosts, getUserEvents, getUserBooks, getUserProfileByEmail, getTagsByIds, getKindredVoices } from '@/actions/data';
 import { UserProfileTemplate } from '@/components/templates/UserProfileTemplate/UserProfileTemplate';

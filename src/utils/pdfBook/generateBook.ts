@@ -35,6 +35,25 @@ function stripMarkdown(md: string): string {
     .trim();
 }
 
+// jsPDF's built-in Times font only has the Windows-1252 glyph set. Anything
+// outside it (emoji, CJK, symbols) would print as mojibake like "Ø<ß'þ".
+const WIN_ANSI_EXTRA = new Set('€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ');
+export function toPrintable(text: string): string {
+  return text
+    .normalize('NFC')
+    .replace(/\u2028|\u2029/g, '\n')
+    .replace(/[\u2010\u2011\u2012]/g, '-')
+    .replace(/\u2032/g, "'")
+    .replace(/\u2033/g, '"')
+    .split('')
+    .filter((ch) => {
+      const c = ch.charCodeAt(0);
+      return ch === '\n' || ch === '\t' || (c >= 0x20 && c <= 0x7e) || (c >= 0xa0 && c <= 0xff) || WIN_ANSI_EXTRA.has(ch);
+    })
+    .join('')
+    .replace(/[ \t]{2,}/g, (m) => (m.includes('\t') ? m : ' '));
+}
+
 function slugifyFilename(name: string): string {
   return (
     name
@@ -81,17 +100,25 @@ export async function composePoemBook(options: GeneratePoemBookOptions): Promise
   measureDoc.setFont(FONT_FAMILY, 'normal');
   const makeMeasurer = makeMeasurerFactory(measureDoc);
 
+  const poems = options.poems
+    .map((p) => ({
+      title: toPrintable(p.title || '').trim() || 'Sin título',
+      content: toPrintable(stripMarkdown(p.content || '')).trim(),
+    }))
+    // A poem with nothing printable left would leave a blank page in the book.
+    .filter((p) => p.content.length > 0);
+  if (poems.length === 0) {
+    throw new Error('Los poemas elegidos no tienen texto imprimible.');
+  }
+
   const input: BookInput = {
-    authorName: options.authorName,
-    bio: options.bio,
-    contacts: options.contacts,
+    authorName: toPrintable(options.authorName).trim() || 'Autor',
+    bio: options.bio ? toPrintable(options.bio) : undefined,
+    contacts: options.contacts?.map((c) => ({ label: toPrintable(c.label), url: c.url })),
     profileUrl: options.profileUrl,
-    bookTitle: options.bookTitle,
-    copyrightHolder: options.copyrightHolder,
-    poems: options.poems.map((p) => ({
-      title: p.title.trim(),
-      content: stripMarkdown(p.content || ''),
-    })),
+    bookTitle: options.bookTitle ? toPrintable(options.bookTitle).trim() || undefined : undefined,
+    copyrightHolder: options.copyrightHolder ? toPrintable(options.copyrightHolder) : undefined,
+    poems,
   };
 
   const layout = computeBookLayout(input, makeMeasurer);

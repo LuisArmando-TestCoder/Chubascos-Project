@@ -149,7 +149,8 @@ export async function searchPostsByTag(
       : null;
 
     return { items, nextCursor };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    console.error('tag search failed:', error);
     return { items: [], nextCursor: null };
   }
 }

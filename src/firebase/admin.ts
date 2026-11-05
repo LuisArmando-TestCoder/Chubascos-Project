@@ -35,9 +35,10 @@ export function initAdmin() {
       });
       console.log('🔥 Firebase Admin initialized ✅');
       return;
-    } catch (error: any) {
-      console.error('⚠️  Firebase Admin initialization failed:', error.message);
-      initError = error.message;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('⚠️  Firebase Admin initialization failed:', message);
+      initError = message;
     }
   } else {
     const msg = '❌ Firebase Admin could not be initialized.\n' +
