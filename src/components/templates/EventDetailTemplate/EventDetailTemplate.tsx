@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { QrModal } from '@/components/organisms/QrModal/QrModal';
 import { RecurringEventModal } from '@/components/organisms/RecurringEventModal/RecurringEventModal';
 import { TagPill } from '@/components/atoms/TagPill/TagPill';
-import { formatDate } from '@/utils/formatDate';
+import { formatEventDate } from '@/utils/eventTime';
 import { cronToHuman } from '@/utils/cronUtils';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useSession } from '@/hooks/useSession';
@@ -54,7 +54,7 @@ export function EventDetailTemplate({ event, tags = [] }: EventDetailTemplatePro
             <div className={styles.meta}>
               <div className={styles.dateBlock}>
                 <span className={styles.label}>Fecha</span>
-                <span className={styles.day}>{event.day ? formatDate(event.day) : '—'}</span>
+                <span className={styles.day}>{formatEventDate(event) || '—'}</span>
               </div>
               <div className={styles.hourBlock}>
                 <span className={styles.label}>Hora</span>

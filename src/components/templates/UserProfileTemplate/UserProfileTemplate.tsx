@@ -9,6 +9,7 @@ import { getUserPosts, getTagsByIds } from '@/actions/data';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useSession } from '@/hooks/useSession';
 import i18n from '@/utils/i18n';
+import { isEventPast } from '@/utils/eventTime';
 import type { User, Post, Event, Tag, Book } from '@/types';
 import styles from './UserProfileTemplate.module.scss';
 import { WaterText } from '@/components/organisms/WaterText/WaterText';
@@ -26,9 +27,7 @@ interface UserProfileTemplateProps {
 }
 
 function isEventExpired(event: Event): boolean {
-  const day = event.day as any;
-  const secs = typeof day?.seconds === 'number' ? day.seconds : 0;
-  return secs * 1000 < Date.now();
+  return isEventPast(event);
 }
 
 export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCursor, initialEvents, initialBooks = [], initialTagMap = {}, kindred = [] }: UserProfileTemplateProps) {
