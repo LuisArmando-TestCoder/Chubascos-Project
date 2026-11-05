@@ -4,6 +4,7 @@ import { formatDate } from '@/utils/formatDate';
 import type { Post, Tag, Book } from '@/types';
 import styles from './PostCard.module.scss';
 import { WaterText } from '@/components/organisms/WaterText/WaterText';
+import { profilePath } from '@/lib/handles';
 
 interface PostCardProps {
   post: Post | Book;
@@ -34,7 +35,7 @@ function isoDate(ts: unknown): string | undefined {
 
 export function PostCard({ post, authorName, tags = [], showAuthor = false, badge, type = 'post' }: PostCardProps) {
   const char = type === 'post' ? 'p' : 'b';
-  const href = `/u/${post.userId}/${char}/${post.slug}`;
+  const href = `${profilePath(post)}/${char}/${encodeURIComponent(post.slug)}`;
   const name = authorName || (post as Post & { authorName?: string }).authorName;
   const lines = firstLines(post.content);
   const lineCount = post.content.split('\n').filter((l) => l.trim()).length;
@@ -54,7 +55,7 @@ export function PostCard({ post, authorName, tags = [], showAuthor = false, badg
         </p>
         <footer className={styles.footer}>
           {showAuthor && name && (
-            <Link href={`/u/${post.userId}`} className={styles.author}>
+            <Link href={profilePath(post)} className={styles.author}>
               <WaterText text={name} inline />
             </Link>
           )}

@@ -29,7 +29,7 @@ export type AuthorInput = {
 };
 
 export type SharedTag = { slug: string; label: string; tagId?: string };
-export type Kindred = { id: string; name: string; score: number; shared: SharedTag[] };
+export type Kindred = { id: string; name: string; score: number; shared: SharedTag[]; handle?: string };
 
 const ANCESTOR_DECAY = 0.5;
 const SELF_TAG_WEIGHT = 0.5;

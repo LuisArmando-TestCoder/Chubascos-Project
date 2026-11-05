@@ -1,6 +1,7 @@
-import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getUserProfile, getUserPosts, getUserEvents, getUserBooks, getUserProfileByEmail, getTagsByIds, getKindredVoices } from '@/actions/data';
+import { getUserPosts, getUserEvents, getUserBooks, getTagsByIds, getKindredVoices } from '@/actions/data';
+import { publicName } from '@/lib/handles';
+import { findOwner, loadOwner } from './owner';
 import { UserProfileTemplate } from '@/components/templates/UserProfileTemplate/UserProfileTemplate';
 import { Footer } from '@/components/organisms/Footer/Footer';
 import type { Tag } from '@/types';
@@ -10,11 +11,10 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { userId: rawId } = await params;
-  const userId = decodeURIComponent(rawId);
-  const user = await getUserProfile(userId);
+  const { userId: segment } = await params;
+  const user = await findOwner(segment);
   if (!user) return { title: 'Usuario no encontrado' };
-  const name = user.username || user.email.split('@')[0];
+  const name = publicName(user);
   return {
     title: `${name}`,
     description: user.bio || `Perfil de ${name} en Chubascos.`,
@@ -23,14 +23,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function UserProfilePage({ params }: Props) {
-  const { userId: rawUserId } = await params;
-  // Next.js may or may not decode %40 depending on version — decode explicitly
-  const userId = decodeURIComponent(rawUserId);
-
-  // Try direct doc-ID lookup first; fall back to email-field query
-  let user = await getUserProfile(userId);
-  if (!user) user = await getUserProfileByEmail(userId);
-  if (!user) notFound();
+  const { userId: segment } = await params;
+  const user = await loadOwner(segment);
 
   const [postsResult, events, books, kindred] = await Promise.all([
     getUserPosts(user.id, 10),

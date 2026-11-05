@@ -6,6 +6,7 @@ import { BookSchema, firstIssue } from '@/utils/validation';
 import type { Book } from '@/types';
 import { toData, serialize, PAGE_SIZE, notifyFollowers, generateContentHash, tagFilter, existingTagIds, applyTagDelta, uniqueSlug } from './common';
 import { isActor, FORBIDDEN } from './guard';
+import { attachHandle, attachHandles } from './handleStore';
 import { getUserProfileByEmail } from './users';
 
 export async function getUserBooks(userId: string): Promise<Book[]> {
@@ -16,7 +17,7 @@ export async function getUserBooks(userId: string): Promise<Book[]> {
     .orderBy('updatedAt', 'desc')
     .limit(50)
     .get();
-  return snapshot.docs.map(toData) as Book[];
+  return attachHandles(snapshot.docs.map(toData) as Book[]);
 }
 
 export async function getUserAllBooks(userId: string): Promise<Book[]> {
@@ -26,7 +27,7 @@ export async function getUserAllBooks(userId: string): Promise<Book[]> {
     .orderBy('updatedAt', 'desc')
     .limit(100)
     .get();
-  return snapshot.docs.map(toData) as Book[];
+  return attachHandles(snapshot.docs.map(toData) as Book[]);
 }
 
 export async function getBook(userId: string, slugOrId: string): Promise<Book | null> {
@@ -46,11 +47,11 @@ export async function getBook(userId: string, slugOrId: string): Promise<Book | 
 
   if (!bySlug.empty) {
     const doc = bySlug.docs[0];
-    return { id: doc.id, ...serialize(doc.data()) } as Book;
+    return attachHandle({ id: doc.id, ...serialize(doc.data()) } as Book);
   }
 
   const byId = await db.collection('users').doc(resolvedUserId).collection('books').doc(slugOrId).get();
-  if (byId.exists) return { id: byId.id, ...serialize(byId.data()) } as Book;
+  if (byId.exists) return attachHandle({ id: byId.id, ...serialize(byId.data()) } as Book);
 
   return null;
 }
@@ -77,7 +78,7 @@ export async function searchBooksByTag(
     }
 
     const snapshot = await q.get();
-    const items = snapshot.docs.map(toData) as Book[];
+    const items = await attachHandles(snapshot.docs.map(toData) as Book[]);
     const lastUpdatedAt = items[items.length - 1]?.updatedAt as { seconds: number } | undefined;
     const nextCursor = items.length === limitNum && lastUpdatedAt
       ? String(lastUpdatedAt.seconds)

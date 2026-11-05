@@ -50,3 +50,11 @@
 - **Content below an infinite list is unreachable.** Profile events sat under infinitely loading poems. They now live in the sticky left column, as a rail that scrolls on its own (`PoetEvents`), on profile, poem and book pages and in the studio.
 - **Sticky column + growing child:** `flex: 1 1 0` on the rail and the list, with a real `min-height` on the list and no `min-height: 0` on the rail, so it fills the free space and the column scrolls when there isn't any. `min-height: 0` made the list overflow onto the buttons below.
 - **Procedural rain looked mechanical** because `hash(cell)` fixed both which cells rain and where. Re-seeding by `floor(time / period)` keeps the rhythm and varies the landing spot. Keep the per-cycle key small (golden-ratio fraction × 13) so `hash()` stays precise in `mediump` on phones.
+
+## 2026-11-05 · Handles instead of emails in URLs
+
+- **Separate the URL identity from the account identity.** User ids are emails, and they were in every link. Now each poet has a stable `handle` (seeded once from their name, never from the email). Renaming yourself doesn't move your links; changing the handle is a deliberate act behind a confirmation, and the old handle is released.
+- **Uniqueness needs a lock document, not a query.** `handles/{handle} → { userId }` is claimed in a transaction, so two poets can't race into the same handle.
+- **Backward compatible by redirect, not by duplication.** `/u/<email>/…` still resolves and answers 308 to `/u/<handle>/…`, so old shared links keep working and anything re-shared shows the handle. Old *handles* are not redirected (on purpose).
+- **Attach, don't denormalize.** Links need the owner's handle; instead of copying it into every post/event/book (and fixing copies on every change), fetchers attach `authorHandle` from a cached userId→handle map (`attachHandles`). Poets without a handle get one lazily the first time they're seen, so no backfill script is needed.
+- Still open (phase 2): the JSON sent to the browser still contains `userId` / `ownerUserId` / `email`, because user documents are keyed by email. Fully hiding it means opaque user ids (or stripping ids from public payloads and keying follows by handle).

@@ -10,6 +10,7 @@ import type { Event, User } from '@/types';
 import { PoetEvents } from '@/components/organisms/PoetEvents/PoetEvents';
 import styles from './UserSidebar.module.scss';
 import { WaterText } from '@/components/organisms/WaterText/WaterText';
+import { profilePath, publicName } from '@/lib/handles';
 
 interface UserSidebarProps {
   user: User;
@@ -24,8 +25,8 @@ export function UserSidebar({ user, events }: UserSidebarProps) {
 
   const isSaved = isUserSaved(user.id);
   const isOwner = session.isLoggedIn && session.userId === user.id;
-  const name = user.username || user.email.split('@')[0];
-  const profileUrl = typeof window !== 'undefined' ? `${window.location.origin}/u/${user.id}` : `/u/${user.id}`;
+  const name = publicName(user);
+  const profileUrl = typeof window !== 'undefined' ? `${window.location.origin}${profilePath(user)}` : profilePath(user);
 
   return (
     <aside className={styles.sidebar} data-lenis-prevent>

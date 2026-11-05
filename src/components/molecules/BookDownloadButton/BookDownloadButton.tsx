@@ -6,6 +6,7 @@ import type { User, Post } from '@/types';
 import type { PageDescriptor } from '@/utils/pdfBook/pageModel';
 import styles from './BookDownloadButton.module.scss';
 import { WaterText } from '@/components/organisms/WaterText/WaterText';
+import { profilePath, publicName } from '@/lib/handles';
 
 interface BookDownloadButtonProps {
   user: User;
@@ -41,7 +42,7 @@ export function BookDownloadButton({ user, posts, bookTitle, includeBio = true, 
     ? chosen
     : chosen.slice().sort((a, b) => tsSeconds(a.createdAt) - tsSeconds(b.createdAt));
 
-  const authorName = user.username || user.email.split('@')[0];
+  const authorName = publicName(user);
 
   const handlePreview = useCallback(async () => {
     if (visiblePoems.length === 0) {
@@ -53,8 +54,8 @@ export function BookDownloadButton({ user, posts, bookTitle, includeBio = true, 
     try {
       const profileUrl =
         typeof window !== 'undefined'
-          ? `${window.location.origin}/u/${encodeURIComponent(user.id)}`
-          : `/u/${user.id}`;
+          ? `${window.location.origin}${profilePath(user)}`
+          : profilePath(user);
 
       // Code-split: the PDF engine (jsPDF + qrcode) is only loaded on demand.
       const { composePoemBook } = await import('@/utils/pdfBook/generateBook');
@@ -78,7 +79,7 @@ export function BookDownloadButton({ user, posts, bookTitle, includeBio = true, 
     } finally {
       setLoading(false);
     }
-  }, [visiblePoems, user.id, user.bio, user.contacts, authorName, bookTitle, includeBio, includeHidden]);
+  }, [visiblePoems, user,  authorName, bookTitle, includeBio, includeHidden]);
 
   const handleDownload = useCallback(async () => {
     try {

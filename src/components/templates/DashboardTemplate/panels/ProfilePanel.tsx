@@ -5,7 +5,8 @@ import { TagExplorer } from '@/components/organisms/TagExplorer/TagExplorer';
 import { WaterText } from '@/components/organisms/WaterText/WaterText';
 import { DropSigil } from '@/components/atoms/DropSigil/DropSigil';
 import { TagPill } from '@/components/atoms/TagPill/TagPill';
-import { updateUserProfile, checkUsernameAvailable } from '@/actions/data';
+import { updateUserProfile, checkUsernameAvailable, checkHandleAvailable, changeHandle } from '@/actions/data';
+import { handleProblem, normalizeHandle } from '@/lib/handles';
 import { USERNAME_RE, isSafeUrl } from '@/utils/validation';
 import { useProfileStore } from '@/store/profile';
 import { plume } from '@/lib/fluid/bus';
@@ -17,6 +18,7 @@ import { useDebounced, useSaveShortcut, useUnsavedGuard } from '../studio/hooks'
 import { normalizeLink } from '../studio/text';
 import s from '../studio/Studio.module.scss';
 import p from './ProfilePanel.module.scss';
+import { profilePath } from '@/lib/handles';
 
 const MAX_TAGS = 10;
 const MAX_LINKS = 5;
@@ -43,7 +45,8 @@ function localNameProblem(name: string): string | null {
 export function ProfilePanel({ user, tags, tagsLoading, onSaved }: ProfilePanelProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const { setProfile } = useProfileStore();
-  const fallbackName = user.email.split('@')[0];
+  // Unnamed poets sign with their handle (never with their email).
+  const fallbackName = user.handle || 'poeta';
 
   const initial = useMemo(() => ({
     username: user.username ?? '',
@@ -92,17 +95,44 @@ export function ProfilePanel({ user, tags, tagsLoading, onSaved }: ProfilePanelP
     return null;
   });
 
-  const dirty = username !== baseline.username || bio !== baseline.bio
+  // ── Handle: the public address. Stable; changing it is deliberate. ──────
+  const [savedHandle, setSavedHandle] = useState(user.handle ?? '');
+  const [handle, setHandle] = useState(user.handle ?? '');
+  const [handleConfirmed, setHandleConfirmed] = useState(false);
+  const handleChanged = handle !== savedHandle;
+  const settledHandle = useDebounced(handle, 450);
+  const [handleCheck, setHandleCheck] = useState<NameCheck>({ state: 'idle' });
+  useEffect(() => {
+    if (!settledHandle || settledHandle === savedHandle || handleProblem(settledHandle)) {
+      setHandleCheck({ state: 'idle' });
+      return;
+    }
+    let live = true;
+    setHandleCheck({ state: 'checking' });
+    checkHandleAvailable(user.id, settledHandle)
+      .then((r) => { if (live) setHandleCheck(r.available ? { state: 'ok' } : { state: 'taken', reason: r.reason }); })
+      .catch(() => { if (live) setHandleCheck({ state: 'idle' }); });
+    return () => { live = false; };
+  }, [settledHandle, savedHandle, user.id]);
+  const handleError = handleChanged
+    ? handleProblem(handle) || (handleCheck.state === 'taken' ? handleCheck.reason || 'Esa dirección ya tiene dueño.' : null)
+    : null;
+  const needsHandleConfirm = handleChanged && Boolean(savedHandle) && !handleError;
+
+  const dirty = handleChanged || username !== baseline.username || bio !== baseline.bio
     || JSON.stringify(contacts) !== JSON.stringify(baseline.contacts) || tagIds.join() !== baseline.tagIds.join();
   useUnsavedGuard(dirty && !saving);
 
   const stages: StageMeta[] = [
     { id: 'perfil-nombre', title: 'Nombre', done: Boolean(username.trim()) && !nameError },
+    { id: 'perfil-direccion', title: 'Dirección', done: Boolean(handle) && !handleError && (!needsHandleConfirm || handleConfirmed) },
     { id: 'perfil-bio', title: 'Biografía', done: Boolean(bio.trim()) },
     { id: 'perfil-enlaces', title: 'Enlaces', done: contacts.some((c) => c.url.trim()) && !contactErrors.some(Boolean), optional: true },
     { id: 'perfil-etiquetas', title: 'Etiquetas', done: tagIds.length > 0, optional: true },
   ];
-  const blocking = Boolean(nameError) || contactErrors.some(Boolean) || bio.length > MAX_BIO || nameCheck.state === 'checking';
+  const blocking = Boolean(nameError) || Boolean(handleError) || contactErrors.some(Boolean) || bio.length > MAX_BIO
+    || nameCheck.state === 'checking' || (handleChanged && handleCheck.state === 'checking')
+    || (needsHandleConfirm && !handleConfirmed);
 
   const fail = (text: string) => { setMessage(text); setTone('error'); };
 
@@ -110,7 +140,11 @@ export function ProfilePanel({ user, tags, tagsLoading, onSaved }: ProfilePanelP
     if (saving) return;
     setTouched(true);
     if (blocking) {
-      fail(nameCheck.state === 'checking' ? 'Esperando la comprobación del nombre…' : 'Revisa los campos marcados.');
+      fail(
+        nameCheck.state === 'checking' || handleCheck.state === 'checking' ? 'Esperando la comprobación…'
+        : needsHandleConfirm && !handleConfirmed ? 'Confirma que quieres cambiar tu dirección.'
+        : 'Revisa los campos marcados.'
+      );
       return;
     }
     setSaving(true);
@@ -120,6 +154,14 @@ export function ProfilePanel({ user, tags, tagsLoading, onSaved }: ProfilePanelP
       .filter((c) => c.label.trim() || c.url.trim())
       .map((c) => ({ label: c.label.trim(), url: normalizeLink(c.url) }));
     try {
+      // The address first: if it fails, nothing else changes.
+      if (handleChanged) {
+        const h = await changeHandle(user.id, handle);
+        if (!h.success) return fail(h.error);
+        setSavedHandle(h.handle);
+        setHandle(h.handle);
+        setHandleConfirmed(false);
+      }
       const r = await updateUserProfile(user.id, {
         ...(username.trim() ? { username: username.trim() } : {}),
         bio,
@@ -142,7 +184,7 @@ export function ProfilePanel({ user, tags, tagsLoading, onSaved }: ProfilePanelP
     } finally {
       setSaving(false);
     }
-  }, [saving, blocking, nameCheck.state, contacts, user.id, username, bio, tagIds, onSaved]);
+  }, [saving, blocking, nameCheck.state, handleCheck.state, handleChanged, handle, needsHandleConfirm, handleConfirmed, contacts, user.id, username, bio, tagIds, onSaved]);
 
   useSaveShortcut(rootRef, save);
 
@@ -167,7 +209,42 @@ export function ProfilePanel({ user, tags, tagsLoading, onSaved }: ProfilePanelP
           </Field>
         </Stage>
 
-        <Stage {...stages[1]} hint="Unas líneas sobre ti. Se imprime también en la primera página de tu poemario en PDF.">
+        <Stage {...stages[1]} hint="Tu dirección pública: es lo que se ve en cada enlace que compartes. No cambia cuando cambias tu nombre.">
+          <Field
+            label="Dirección"
+            error={handleError}
+            hint={handleChanged && handleCheck.state === 'checking' ? 'Comprobando…'
+              : handleChanged && handleCheck.state === 'ok' ? 'Disponible.'
+              : <>Tus enlaces: <code>chubascos/u/{handle || 'tu-direccion'}</code></>}
+            count={handle.length}
+            max={30}
+          >
+            {(f) => (
+              <input {...f} className={s.input} value={handle} maxLength={30} spellCheck={false} autoComplete="off"
+                onChange={(e) => { setHandle(normalizeHandle(e.target.value)); setHandleConfirmed(false); }}
+                onBlur={() => setHandle((h) => h.replace(/-+$/, ''))}
+                placeholder="tu-direccion" />
+            )}
+          </Field>
+          {needsHandleConfirm && (
+            <div className={s.notice} role="alert">
+              <span>
+                Los enlaces que ya compartiste con <code>/u/{savedHandle}</code> dejarán de funcionar,
+                y <code>{savedHandle}</code> quedará libre para otra persona. Los enlaces viejos con tu correo seguirán
+                llevando a tu perfil nuevo.
+              </span>
+              <label className={s.textButton} style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center', textTransform: 'none', letterSpacing: 0 }}>
+                <input type="checkbox" checked={handleConfirmed} onChange={(e) => setHandleConfirmed(e.target.checked)} />
+                Entiendo, cambiar a «{handle}»
+              </label>
+              <button type="button" className={s.textButton} onClick={() => { setHandle(savedHandle); setHandleConfirmed(false); }}>
+                Mantener «{savedHandle}»
+              </button>
+            </div>
+          )}
+        </Stage>
+
+        <Stage {...stages[2]} hint="Unas líneas sobre ti. Se imprime también en la primera página de tu poemario en PDF.">
           <Field label="Biografía" count={bio.length} max={MAX_BIO} error={bio.length > MAX_BIO ? 'Demasiado larga.' : null}>
             {(f) => (
               <textarea {...f} className={s.textarea} value={bio} rows={6} maxLength={MAX_BIO}
@@ -177,7 +254,7 @@ export function ProfilePanel({ user, tags, tagsLoading, onSaved }: ProfilePanelP
           </Field>
         </Stage>
 
-        <Stage {...stages[2]} hint={`Hasta ${MAX_LINKS}: redes, web, correo o teléfono. Escribe «instagram.com/tu-nombre»; nosotros completamos el resto.`}>
+        <Stage {...stages[3]} hint={`Hasta ${MAX_LINKS}: redes, web, correo o teléfono. Escribe «instagram.com/tu-nombre»; nosotros completamos el resto.`}>
           {contacts.map((c, i) => (
             <div key={i} className={p.contactRow}>
               <Field label="Nombre">
@@ -186,7 +263,7 @@ export function ProfilePanel({ user, tags, tagsLoading, onSaved }: ProfilePanelP
                     onChange={(e) => setContacts((prev) => prev.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} />
                 )}
               </Field>
-              <Field label="Dirección" error={contactErrors[i]}>
+              <Field label="Enlace" error={contactErrors[i]}>
                 {(f) => (
                   <input {...f} className={s.input} value={c.url} maxLength={500} inputMode="url" placeholder="instagram.com/tu-nombre"
                     onChange={(e) => setContacts((prev) => prev.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))}
@@ -206,7 +283,7 @@ export function ProfilePanel({ user, tags, tagsLoading, onSaved }: ProfilePanelP
           )}
         </Stage>
 
-        <Stage {...stages[3]} hint={`Hasta ${MAX_TAGS}. Te ubican en «Poetas» del buscador y conectan tu voz con otras afines.`}>
+        <Stage {...stages[4]} hint={`Hasta ${MAX_TAGS}. Te ubican en «Poetas» del buscador y conectan tu voz con otras afines.`}>
           {tagsLoading ? (
             <p className={s.hint}>Cargando etiquetas…</p>
           ) : (
@@ -221,7 +298,7 @@ export function ProfilePanel({ user, tags, tagsLoading, onSaved }: ProfilePanelP
           dirty={dirty}
           message={message}
           tone={tone}
-          aside={!dirty ? <Link href={`/u/${encodeURIComponent(user.id)}`} className={s.viewLink}>Ver perfil público →</Link> : null}
+          aside={!dirty ? <Link href={profilePath(savedHandle || user.id)} className={s.viewLink}>Ver perfil público →</Link> : null}
         />
       </div>
 

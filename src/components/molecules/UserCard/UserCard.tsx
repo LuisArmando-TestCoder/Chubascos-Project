@@ -3,6 +3,7 @@ import { DropSigil } from '@/components/atoms/DropSigil/DropSigil';
 import type { User } from '@/types';
 import styles from './UserCard.module.scss';
 import { WaterText } from '@/components/organisms/WaterText/WaterText';
+import { profilePath, publicName } from '@/lib/handles';
 
 interface UserCardProps {
   user: User;
@@ -10,7 +11,7 @@ interface UserCardProps {
 }
 
 export function UserCard({ user, badge }: UserCardProps) {
-  const name = user.username || user.email.split('@')[0];
+  const name = publicName(user);
   return (
     <article className={styles.card} data-drop="paper">
       {badge && <span className={styles.badge}>{badge}</span>}
@@ -19,7 +20,7 @@ export function UserCard({ user, badge }: UserCardProps) {
       </div>
       <div className={styles.info}>
         <h3 className={styles.name}>
-          <Link href={`/u/${user.id}`} className={styles.inner}><WaterText text={name} /></Link>
+          <Link href={profilePath(user)} className={styles.inner}><WaterText text={name} /></Link>
         </h3>
         {user.bio && <p className={styles.bio}>{user.bio.slice(0, 90)}{user.bio.length > 90 ? '…' : ''}</p>}
       </div>

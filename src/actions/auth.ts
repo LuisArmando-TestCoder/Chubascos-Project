@@ -101,6 +101,10 @@ export async function verifyOtp(email: string, otp: string) {
       sessionVersion = userDoc.data()?.sessionVersion || 1;
     }
 
+    // Every poet gets a public handle on first sign-in (never shown: the email).
+    const { ensureHandle } = await import('@/actions/data/handleStore');
+    await ensureHandle(normalized).catch((e) => console.error('ensureHandle at login failed:', e));
+
     const session = await getSession();
     session.userId = normalized;
     session.email = normalized;

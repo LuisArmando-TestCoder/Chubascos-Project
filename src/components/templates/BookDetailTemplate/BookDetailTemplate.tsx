@@ -6,6 +6,7 @@ import { formatDate } from '@/utils/formatDate';
 import { sanitizeMarkdown } from '@/utils/sanitizeMarkdown';
 import type { Book, Event, User } from '@/types';
 import styles from './BookDetailTemplate.module.scss';
+import { bookPath, profilePath, publicName } from '@/lib/handles';
 
 interface BookDetailTemplateProps {
   book: Book;
@@ -14,8 +15,9 @@ interface BookDetailTemplateProps {
 }
 
 export function BookDetailTemplate({ book, author, authorEvents }: BookDetailTemplateProps) {
-  const authorName = author.username || author.email.split('@')[0];
-  const bookUrl = typeof window !== 'undefined' ? `${window.location.origin}/u/${book.userId}/b/${book.slug}` : '';
+  const authorName = publicName(author);
+  const owner = author?.handle ? author : book;
+  const bookUrl = typeof window !== 'undefined' ? `${window.location.origin}${bookPath(owner, book.slug)}` : '';
   const safeHtml = sanitizeMarkdown(book.content);
 
   return (
@@ -28,7 +30,7 @@ export function BookDetailTemplate({ book, author, authorEvents }: BookDetailTem
             <div className={styles.meta}>
               <div className={styles.authorBlock}>
                 <span className={styles.label}>Publicado por</span>
-                <Link href={`/u/${book.userId}`} className={styles.authorName}>
+                <Link href={profilePath(owner)} className={styles.authorName}>
                   {authorName}
                 </Link>
               </div>
@@ -51,7 +53,7 @@ export function BookDetailTemplate({ book, author, authorEvents }: BookDetailTem
           <footer className={styles.bookFooter}>
             <div className={styles.interactions}>
               <QrModalButton url={bookUrl} label={book.title} />
-              <Link href={`/u/${book.userId}`} className={styles.backBtn}>
+              <Link href={profilePath(owner)} className={styles.backBtn}>
                 Volver al perfil
               </Link>
             </div>

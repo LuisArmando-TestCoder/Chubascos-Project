@@ -5,6 +5,7 @@ import * as admin from 'firebase-admin';
 import type { User } from '@/types';
 import { toData, serialize, PAGE_SIZE, tagFilter, existingTagIds } from './common';
 import { isActor, FORBIDDEN } from './guard';
+import { attachHandles, attachUserHandles } from './handleStore';
 import { ProfileUpdateSchema, USERNAME_RE, firstIssue } from '@/utils/validation';
 
 export async function getUsers(limitNum: number = PAGE_SIZE, cursor?: string) {
@@ -19,7 +20,7 @@ export async function getUsers(limitNum: number = PAGE_SIZE, cursor?: string) {
   }
 
   const snapshot = await query.get();
-  const items = snapshot.docs.map(toData);
+  const items = await attachUserHandles(snapshot.docs.map(toData) as User[]);
   const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
   return { items, nextCursor };
 }
@@ -61,7 +62,7 @@ export async function searchUsers(
   }
 
   const snapshot = await q.get();
-  const items = snapshot.docs.map(toData) as User[];
+  const items = await attachUserHandles(snapshot.docs.map(toData) as User[]);
   const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
   return { items, nextCursor };
 }
@@ -83,7 +84,7 @@ export async function searchUsersByTag(
   }
 
   const snapshot = await q.get();
-  const items = snapshot.docs.map(toData) as User[];
+  const items = await attachUserHandles(snapshot.docs.map(toData) as User[]);
   const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
   return { items, nextCursor };
 }
@@ -167,7 +168,9 @@ export async function getSavedItems(
     }
     
     if (chunkSnapshot) {
-      items.push(...chunkSnapshot.docs.map(toData));
+      const rows = chunkSnapshot.docs.map(toData) as Record<string, unknown>[];
+      if (type === 'users') items.push(...await attachUserHandles(rows as { id: string; handle?: string }[]));
+      else items.push(...await attachHandles(rows, type === 'events' ? 'ownerUserId' : 'userId'));
     }
   }
 

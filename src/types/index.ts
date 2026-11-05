@@ -17,6 +17,8 @@ export type Post = {
   tagIds: string[];
   shaderId?: string;
   eventId?: string;
+  /** Owner's public handle, attached server-side for links. */
+  authorHandle?: string;
   isVisible: boolean;
   isIndexed: boolean;
   createdAt: FirestoreTimestamp;
@@ -28,6 +30,8 @@ export type User = {
   email: string;
   username?: string;
   usernameLower?: string;
+  /** Public, stable URL identity (see lib/handles). Never the email. */
+  handle?: string;
   bio?: string;
   contacts: Contact[];
   tagIds?: string[];
@@ -43,6 +47,7 @@ export type Book = {
   slug: string;
   tagIds?: string[];
   isVisible: boolean;
+  authorHandle?: string;
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;
 };
@@ -63,6 +68,8 @@ export type Event = {
   cronExpression?: string;
   /** IANA zone of the venue. Absent on events saved before it existed. */
   timeZone?: string;
+  /** Owner's public handle, attached server-side for links. */
+  authorHandle?: string;
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;
 };

@@ -14,6 +14,7 @@ import type { Event, Tag } from '@/types';
 import styles from './EventDetailTemplate.module.scss';
 import { plume } from '@/lib/fluid/bus';
 import { WaterText } from '@/components/organisms/WaterText/WaterText';
+import { profilePath } from '@/lib/handles';
 
 function hostOf(url: string): string {
   try { return new URL(url).hostname; } catch { return url; }
@@ -151,7 +152,7 @@ export function EventDetailTemplate({ event, tags = [] }: EventDetailTemplatePro
 
           <div className={styles.organizerSection}>
              <span className={styles.label}>Organizado por</span>
-             <Link href={`/u/${event.ownerUserId}`} className={styles.ownerLink}>
+             <Link href={profilePath(event)} className={styles.ownerLink}>
                 Ver perfil del autor
              </Link>
           </div>

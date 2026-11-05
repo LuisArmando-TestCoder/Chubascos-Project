@@ -8,6 +8,8 @@
  * is cached briefly, and returns exactly what the page renders.
  */
 import { unstable_cache } from 'next/cache';
+import { publicName } from '@/lib/handles';
+import { attachHandles } from './handleStore';
 import { db } from '@/firebase/admin';
 import type { Post, Event, User, Tag, Book } from '@/types';
 import { toData } from './common';
@@ -22,7 +24,7 @@ const TAG_ID = /^[A-Za-z0-9_-]{1,64}$/;
 const RESULTS = 10;
 const CORPUS_MAX = 1000;
 
-export type PublicUser = Pick<User, 'id' | 'username' | 'bio' | 'tagIds' | 'contacts' | 'createdAt'> & { email: string };
+export type PublicUser = Pick<User, 'id' | 'username' | 'handle' | 'bio' | 'tagIds' | 'contacts' | 'createdAt'> & { email: string };
 
 export type TagSearchResult = {
   /** The tag plus its taxonomy descendants actually searched (≤ 30, most-used first). */
@@ -40,7 +42,8 @@ export type PoemHit = Post & { authorName: string; snippet: string; score: numbe
 function toPublicUser(u: User): PublicUser {
   return {
     id: u.id,
-    username: u.username || (u.email ? u.email.split('@')[0] : 'poeta'),
+    username: publicName(u),
+    handle: u.handle,
     bio: u.bio,
     tagIds: u.tagIds,
     contacts: u.contacts || [],
@@ -155,12 +158,11 @@ const cachedCorpus = unstable_cache(
     // No `where`/`orderBy`: a bare collection-group scan needs no composite index.
     const [postsSnap, usersSnap] = await Promise.all([
       db.collectionGroup('posts').limit(CORPUS_MAX).get(),
-      db.collection('users').select('username', 'email').limit(2000).get(),
+      db.collection('users').select('username', 'handle').limit(2000).get(),
     ]);
     const names = new Map<string, string>();
     usersSnap.docs.forEach((d) => {
-      const data = d.data() as { username?: string; email?: string };
-      names.set(d.id, data.username || (data.email ? data.email.split('@')[0] : 'poeta'));
+      names.set(d.id, publicName(d.data() as { username?: string; handle?: string }));
     });
     return (postsSnap.docs.map(toData) as Post[])
       .filter((p) => p.isVisible !== false && typeof p.title === 'string' && typeof p.content === 'string')
@@ -220,7 +222,7 @@ export async function searchPoems(rawQuery: string): Promise<{ hits: PoemHit[]; 
       scored.push({ ...post, score, snippet: snippetFor(p.content, norm.content, firstToken) });
     }
     scored.sort((a, b) => b.score - a.score || secondsOf(b.updatedAt) - secondsOf(a.updatedAt));
-    const hits = scored.slice(0, 40);
+    const hits = await attachHandles(scored.slice(0, 40));
     const tags = await getTagsByIds(hits.flatMap((h) => h.tagIds || []));
     return { hits, tagMap: tagMapOf(tags), total: scored.length };
   } catch (error) {

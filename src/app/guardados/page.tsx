@@ -6,8 +6,9 @@ import { getSavedItems } from '@/actions/data';
 import i18n from '@/utils/i18n';
 import styles from './guardados.module.scss';
 import { WaterText } from '@/components/organisms/WaterText/WaterText';
+import { poemPath, profilePath, publicName } from '@/lib/handles';
 
-type SavedRow = { id: string; userId?: string; slug?: string; title?: string; username?: string; email?: string };
+type SavedRow = { id: string; userId?: string; authorHandle?: string; handle?: string; slug?: string; title?: string; username?: string };
 
 export default function GuardadosPage() {
   const { posts, users, events, unsavePost, unsaveUser, unsaveEvent } = useSavedStore();
@@ -104,7 +105,7 @@ export default function GuardadosPage() {
                       items.map((item) => (
                         <div key={item.id} className={styles.item}>
                           <Link 
-                            href={activeTab === 'posts' ? `/u/${item.userId}/p/${item.slug}` : activeTab === 'users' ? `/u/${item.id}` : `/e/${item.id}`} 
+                            href={activeTab === 'posts' ? poemPath(item, item.slug ?? '') : activeTab === 'users' ? profilePath(item.handle || item.id) : `/e/${item.id}`} 
                             className={styles.itemLink}
                           >
                              <span className={styles.itemLabel}>
@@ -112,7 +113,7 @@ export default function GuardadosPage() {
                              </span>
                              <WaterText
                                className={styles.itemValue}
-                               text={(activeTab === 'users' ? (item.username || item.email?.split('@')[0] || item.id) : item.title) || ''}
+                               text={(activeTab === 'users' ? publicName(item) : item.title) || ''}
                              />
                           </Link>
                           <button

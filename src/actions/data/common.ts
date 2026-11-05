@@ -4,6 +4,7 @@ import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { sendNotificationEmail } from '@/utils/sendEmail';
 import crypto from 'crypto';
 import { generateSlug } from '@/utils/generateSlug';
+import { ensureHandle } from './handleStore';
 
 export const LIVE_FEED_MAX = 20;
 export const PAGE_SIZE = 10;
@@ -51,6 +52,8 @@ export async function notifyFollowers(userId: string, itemData: Record<string, u
   // Get author profile for the username
   const authorDoc = await db.collection('users').doc(userId).get();
   const authorName = authorDoc.exists ? (authorDoc.data()?.username || 'Un poeta') : 'Un poeta';
+  // Links in the email use the public handle, never the author's email.
+  const authorHandle = (await ensureHandle(userId)) ?? userId;
 
   const followersSnapshot = await db.collection('users').doc(userId).collection('followers').get();
   const followerEmails: string[] = followersSnapshot.docs.map((doc: QueryDocumentSnapshot) => doc.id);
@@ -60,7 +63,7 @@ export async function notifyFollowers(userId: string, itemData: Record<string, u
   for (let i = 0; i < followerEmails.length; i += chunkSize) {
     const chunk = followerEmails.slice(i, i + chunkSize);
     await Promise.allSettled(
-      chunk.map((email) => sendNotificationEmail(email, userId, authorName, { ...itemData, type }))
+      chunk.map((email) => sendNotificationEmail(email, authorHandle, authorName, { ...itemData, type }))
     );
   }
 }

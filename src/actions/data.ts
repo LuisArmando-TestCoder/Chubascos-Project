@@ -6,3 +6,4 @@ export * from './data/tags';
 export * from './data/shaders';
 export * from './data/search';
 export * from './data/affinity';
+export * from './data/handles';

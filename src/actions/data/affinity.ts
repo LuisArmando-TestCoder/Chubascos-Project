@@ -1,4 +1,7 @@
 'use server';
+
+import { publicName } from '@/lib/handles';
+import { handlesFor } from './handleStore';
 /**
  * Kindred voices, computed once for everyone and cached.
  *
@@ -24,16 +27,16 @@ const cachedAffinities = unstable_cache(
     const [posts, books, users, tags] = await Promise.all([
       db.collectionGroup('posts').select('userId', 'tagIds', 'isVisible').limit(SCAN_MAX).get(),
       db.collectionGroup('books').select('userId', 'tagIds', 'isVisible').limit(SCAN_MAX).get(),
-      db.collection('users').select('username', 'email', 'tagIds').limit(SCAN_MAX).get(),
+      db.collection('users').select('username', 'handle', 'tagIds').limit(SCAN_MAX).get(),
       getTagCloud(),
     ]);
 
     const authors = new Map<string, AuthorInput>();
     users.docs.forEach((d) => {
-      const u = d.data() as { username?: string; email?: string; tagIds?: string[] };
+      const u = d.data() as { username?: string; handle?: string; tagIds?: string[] };
       authors.set(d.id, {
         id: d.id,
-        name: u.username || (u.email ? u.email.split('@')[0] : 'poeta'),
+        name: publicName(u),
         works: [],
         selfTags: Array.isArray(u.tagIds) ? u.tagIds : [],
       });
@@ -55,7 +58,10 @@ const cachedAffinities = unstable_cache(
 export async function getKindredVoices(userId: string): Promise<Kindred[]> {
   if (typeof userId !== 'string' || !USER_ID.test(userId)) return [];
   try {
-    return (await cachedAffinities())[userId] ?? [];
+    const voices = (await cachedAffinities())[userId] ?? [];
+    if (!voices.length) return voices;
+    const handles = await handlesFor(voices.map((v) => v.id));
+    return voices.map((v) => ({ ...v, handle: handles.get(v.id) }));
   } catch (error) {
     console.error('getKindredVoices error:', error);
     return [];

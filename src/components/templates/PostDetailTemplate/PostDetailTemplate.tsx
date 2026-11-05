@@ -16,6 +16,7 @@ import { sanitizeMarkdown } from '@/utils/sanitizeMarkdown';
 import type { Post, User, Shader, Tag, Event } from '@/types';
 import styles from './PostDetailTemplate.module.scss';
 import { WaterText } from '@/components/organisms/WaterText/WaterText';
+import { poemPath, profilePath, publicName } from '@/lib/handles';
 
 const ShaderCanvas = dynamic(() => import('@/components/organisms/ShaderCanvas/ShaderCanvas'), {
   ssr: false,
@@ -100,8 +101,10 @@ export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const authorName = author.username || author.email.split('@')[0];
-  const postUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ''}/u/${post.userId}/p/${post.slug}`;
+  const authorName = publicName(author);
+  // The handle is the public address; the email never reaches a link.
+  const owner = author?.handle ? author : post;
+  const postUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ''}${poemPath(owner, post.slug)}`;
   const safeHtml = sanitizeMarkdown(post.content);
   const verses = post.content.split('\n').filter((l) => l.trim()).length;
   const words = post.content.split(/\s+/).filter(Boolean).length;
@@ -123,7 +126,7 @@ export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: 
             <div className={styles.meta}>
               <div className={styles.authorBlock}>
                 <span className={styles.label}>Visitar perfil</span>
-                <Link href={`/u/${post.userId}`} className={styles.authorName}>
+                <Link href={profilePath(owner)} className={styles.authorName}>
                   <WaterText text={authorName} inline />
                 </Link>
               </div>
@@ -188,14 +191,14 @@ export function PostDetailTemplate({ post, author, shader, tags = [], prevPost: 
 
           <nav className={styles.navigation} aria-label="Más poemas de este autor">
             {nextPost && (
-              <Link href={`/u/${post.userId}/p/${nextPost.slug}`} className={styles.navLink}>
+              <Link href={poemPath(owner, nextPost.slug)} className={styles.navLink}>
                 <span className={styles.navLabel}>Anterior</span>
                 <WaterText className={styles.navTitle} text={nextPost.title} />
               </Link>
             )}
             <div className={styles.navSpacer} />
             {prevPost && (
-              <Link href={`/u/${post.userId}/p/${prevPost.slug}`} className={styles.navLink}>
+              <Link href={poemPath(owner, prevPost.slug)} className={styles.navLink}>
                 <span className={styles.navLabel}>Siguiente</span>
                 <WaterText className={styles.navTitle} text={prevPost.title} />
               </Link>

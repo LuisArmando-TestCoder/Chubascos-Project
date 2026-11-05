@@ -3,6 +3,7 @@ import { DropSigil } from '@/components/atoms/DropSigil/DropSigil';
 import { WaterText } from '@/components/organisms/WaterText/WaterText';
 import type { Kindred } from '@/lib/affinity';
 import styles from './KindredVoices.module.scss';
+import { profilePath } from '@/lib/handles';
 
 interface KindredVoicesProps {
   voices: Kindred[];
@@ -32,7 +33,7 @@ export function KindredVoices({ voices, title = 'Voces afines', compact = false 
               </div>
               <div className={styles.body}>
                 <h3 className={styles.name}>
-                  <Link href={`/u/${v.id}`} className={styles.link}><WaterText text={v.name} /></Link>
+                  <Link href={profilePath(v)} className={styles.link}><WaterText text={v.name} /></Link>
                 </h3>
                 {v.shared.length > 0 && (
                   <p className={styles.shared}>

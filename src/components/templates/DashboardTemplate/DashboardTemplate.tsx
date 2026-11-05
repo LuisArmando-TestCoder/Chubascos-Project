@@ -20,6 +20,7 @@ import { BookPanel } from './panels/BookPanel';
 import { PoetEvents } from '@/components/organisms/PoetEvents/PoetEvents';
 import { poemStats } from './studio/text';
 import styles from './DashboardTemplate.module.scss';
+import { profilePath, publicName } from '@/lib/handles';
 
 interface DashboardTemplateProps {
   user: User;
@@ -60,7 +61,7 @@ export function DashboardTemplate({
   const [visited, setVisited] = useState<Set<DashTab>>(() => new Set([activeTab]));
   const tabRefs = useRef<Record<DashTab, HTMLButtonElement | null>>({ 'perfil': null, 'nuevo-poema': null, 'nuevo-evento': null, 'mis-libros': null });
   const { username: liveName } = useProfileStore();
-  const name = liveName || user.username || user.email.split('@')[0];
+  const name = liveName || publicName(user);
 
   // ── Tags: loaded once for every picker ──────────────────────────────────
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
@@ -178,7 +179,7 @@ export function DashboardTemplate({
             <PoetEvents events={userEvents} isOwner activeId={editEvent?.id} title="Tus eventos" fill />
 
             <div className={styles.headerActions}>
-              <Link href={`/u/${encodeURIComponent(user.id)}`} className={styles.profileLink}>
+              <Link href={profilePath(user)} className={styles.profileLink}>
                 Ver perfil público
               </Link>
               <button className={styles.logoutBtn} type="button" onClick={handleLogout}>

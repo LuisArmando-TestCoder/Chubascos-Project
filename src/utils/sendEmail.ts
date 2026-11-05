@@ -49,7 +49,8 @@ function getExcerpt(content: string, length = 120): string {
   return cleanText.substring(0, length) + '...';
 }
 
-export async function sendNotificationEmail(email: string, authorId: string, authorName: string, data: NotificationData) {
+/** `authorHandle` is the author's public handle (it goes into the links). */
+export async function sendNotificationEmail(email: string, authorHandle: string, authorName: string, data: NotificationData) {
   let subject = '';
   let title = '';
   let description = '';
@@ -64,14 +65,14 @@ export async function sendNotificationEmail(email: string, authorId: string, aut
     title = data.title ?? '';
     description = `El poeta ${authorName} ha dejado un nuevo charco.`;
     linkLabel = 'Leer poema completo';
-    linkUrl = `${baseUrl}/u/${encodeURIComponent(authorId)}/p/${encodeURIComponent(data.slug ?? '')}`;
+    linkUrl = `${baseUrl}/u/${encodeURIComponent(authorHandle)}/p/${encodeURIComponent(data.slug ?? '')}`;
     snippet = getExcerpt(data.content || '');
   } else if (data.type === 'book') {
     subject = `Nuevo libro de ${authorName}: ${data.title}`;
     title = data.title ?? '';
     description = `El poeta ${authorName} ha publicado un nuevo libro.`;
     linkLabel = 'Ver libro';
-    linkUrl = `${baseUrl}/u/${encodeURIComponent(authorId)}/b/${encodeURIComponent(data.slug ?? '')}`;
+    linkUrl = `${baseUrl}/u/${encodeURIComponent(authorHandle)}/b/${encodeURIComponent(data.slug ?? '')}`;
     snippet = getExcerpt(data.description || data.content || '');
   } else if (data.type === 'event') {
     subject = `Nuevo evento de ${authorName}: ${data.title}`;

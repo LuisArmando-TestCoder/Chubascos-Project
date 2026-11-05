@@ -5,6 +5,7 @@ import styles from './DashboardPostsList.module.scss';
 
 import { sanitizeMarkdown } from '@/utils/sanitizeMarkdown';
 import { WaterText } from '@/components/organisms/WaterText/WaterText';
+import { bookPath, poemPath } from '@/lib/handles';
 
 interface DashboardPostsListProps {
   items: (Post | Book)[];
@@ -29,8 +30,8 @@ export function DashboardPostsList({ items, activeId, type, title, isPublic = fa
           const href = isOwner 
             ? `/dashboard?edit=${type}&id=${item.id}` 
             : type === 'post' 
-              ? `/u/${item.userId}/p/${item.slug}` 
-              : `/u/${item.userId}/b/${item.slug}`;
+              ? poemPath(item, item.slug)
+              : bookPath(item, item.slug);
 
           const actionLabel = isOwner 
             ? (type === 'post' ? 'Editar poema' : 'Editar libro')

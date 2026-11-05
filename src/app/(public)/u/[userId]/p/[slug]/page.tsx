@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getPost, getUserProfile, getUserProfileByEmail, getShader, getTagsByIds, getPreviousPost, getNextPost, getUserEvents } from '@/actions/data';
+import { getPost, getShader, getTagsByIds, getPreviousPost, getNextPost, getUserEvents } from '@/actions/data';
+import { publicName } from '@/lib/handles';
+import { findOwner, loadOwner } from '../../owner';
 import { PostDetailTemplate } from '@/components/templates/PostDetailTemplate/PostDetailTemplate';
 import { Footer } from '@/components/organisms/Footer/Footer';
 
@@ -9,17 +11,14 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { userId: rawId, slug } = await params;
-  const userId = decodeURIComponent(rawId);
-  
-  // Try to resolve user by ID or email
-  let user = await getUserProfile(userId);
-  if (!user) user = await getUserProfileByEmail(userId);
+  const { userId: segment, slug } = await params;
+  const user = await findOwner(segment);
+  if (!user) return { title: 'No encontrado' };
 
-  const post = await getPost(user?.id || userId, slug);
+  const post = await getPost(user.id, slug);
   
   if (!post) return { title: 'Poema no encontrado' };
-  const authorName = user?.username || user?.email.split('@')[0] || userId;
+  const authorName = publicName(user);
   return {
     title: `${post.title} — ${authorName}`,
     description: post.content.replace(/[#*`_~[\]()>]/g, '').slice(0, 160),
@@ -31,27 +30,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function PostDetailPage({ params }: Props) {
-  const { userId: rawId, slug } = await params;
-  const userId = decodeURIComponent(rawId);
-  console.log(`[PostDetailPage] Requested: userId=${userId}, slug=${slug}`);
+  const { userId: segment, slug } = await params;
+  // Old links with an email land here too, then move to /u/<handle>/p/<slug>.
+  const user = await loadOwner(segment, `/p/${encodeURIComponent(slug)}`);
+  const post = await getPost(user.id, slug);
+  if (!post) notFound();
 
-  // Try to resolve user by ID or email
-  let user = await getUserProfile(userId);
-  if (!user) user = await getUserProfileByEmail(userId);
-
-  const post = await getPost(user?.id || userId, slug);
-  
-  if (!post) {
-    console.error(`[PostDetailPage] Post not found for: userId=${userId}, slug=${slug}`);
-    notFound();
-  }
-  
-  if (!user) {
-    console.error(`[PostDetailPage] User profile not found for: userId=${userId}`);
-    // If the user doesn't exist, we can't render the author block.
-    // For now, let it pass or create a dummy user, but let's log it.
-  }
-  
   const [shader, tags, prevPost, nextPost, authorEvents] = await Promise.all([
     post.shaderId ? getShader(post.shaderId) : Promise.resolve(null),
     getTagsByIds(post.tagIds || []),
@@ -62,7 +46,7 @@ export default async function PostDetailPage({ params }: Props) {
 
   return (
     <>
-      <PostDetailTemplate post={post} author={user!} shader={shader} tags={tags} prevPost={prevPost} nextPost={nextPost} authorEvents={authorEvents} />
+      <PostDetailTemplate post={post} author={user} shader={shader} tags={tags} prevPost={prevPost} nextPost={nextPost} authorEvents={authorEvents} />
       <Footer />
     </>
   );

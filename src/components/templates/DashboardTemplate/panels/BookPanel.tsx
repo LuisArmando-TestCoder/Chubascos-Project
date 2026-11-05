@@ -18,6 +18,7 @@ import { DangerZone } from '../studio/DangerZone';
 import { useSaveShortcut, useUnsavedGuard } from '../studio/hooks';
 import s from '../studio/Studio.module.scss';
 import b from './BookPanel.module.scss';
+import { bookPath, publicName } from '@/lib/handles';
 
 const MAX_TAGS = 4;
 const MAX_CHARS = 50000;
@@ -37,7 +38,7 @@ type BookVisibility = 'visible' | 'hidden';
 export function BookPanel({ user, books, posts, editBook, tags, tagsLoading, onSaved }: BookPanelProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const editingId = editBook?.id ?? null;
-  const authorName = user.username || user.email.split('@')[0];
+  const authorName = publicName(user);
 
   const initial = useMemo(() => ({
     title: editBook?.title ?? '',
@@ -175,7 +176,7 @@ export function BookPanel({ user, books, posts, editBook, tags, tagsLoading, onS
           message={message}
           tone={tone}
           missing={touched ? missing : []}
-          aside={savedSlug && !dirty ? <Link href={`/u/${encodeURIComponent(user.id)}/b/${savedSlug}`} className={s.viewLink}>Ver el libro →</Link> : null}
+          aside={savedSlug && !dirty ? <Link href={bookPath(user, savedSlug)} className={s.viewLink}>Ver el libro →</Link> : null}
         />
 
         {editingId && <DangerZone label="Eliminar libro" onConfirm={handleDelete} />}

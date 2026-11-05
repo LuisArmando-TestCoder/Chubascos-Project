@@ -21,6 +21,7 @@ import { DangerZone } from '../studio/DangerZone';
 import { useLocalDraft, useSaveShortcut, useUnsavedGuard } from '../studio/hooks';
 import { poemStats, visibilityOf, flagsFor, type Visibility } from '../studio/text';
 import s from '../studio/Studio.module.scss';
+import { poemPath } from '@/lib/handles';
 
 const ShaderCanvas = dynamic(() => import('@/components/organisms/ShaderCanvas/ShaderCanvas'), { ssr: false });
 
@@ -206,7 +207,7 @@ export function PoemPanel({ user, posts, books, editPost, editShader, prevPost, 
 
   const previewHtml = content.trim() ? sanitizeMarkdown(content) : '';
   const livePreviewCode = editorOpen ? previewCode : shaderCode;
-  const publicPath = `/u/${encodeURIComponent(user.id)}/p/${savedSlug ?? ''}`;
+  const publicPath = poemPath(user, savedSlug ?? '');
 
   return (
     <div ref={rootRef} className={s.panel}>

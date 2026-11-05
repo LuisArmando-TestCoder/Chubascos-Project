@@ -6,6 +6,7 @@ import { EventSchema, EventBaseSchema, firstIssue } from '@/utils/validation';
 import type { Event } from '@/types';
 import { toData, serialize, PAGE_SIZE, notifyFollowers, generateContentHash, tagFilter, existingTagIds, applyTagDelta } from './common';
 import { isActor, isActorEmail, FORBIDDEN } from './guard';
+import { attachHandle, attachHandles } from './handleStore';
 import {
   DEFAULT_EVENT_TIME_ZONE, EVENT_GRACE_MS, eventStartMs, isEventPast, isValidTimeZone, wallClockIn, wallTimeString,
 } from '@/utils/eventTime';
@@ -104,7 +105,7 @@ export async function getEvents(limitNum: number = PAGE_SIZE, cursor?: string) {
   }
 
   const snapshot = await query.get();
-  const items = snapshot.docs.map(toData);
+  const items = await attachHandles(snapshot.docs.map(toData) as Event[], 'ownerUserId');
   const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
   return { items, nextCursor };
 }
@@ -113,7 +114,7 @@ export async function getEvent(eventId: string): Promise<Event | null> {
   if (!db) return null;
   const doc = await db.collection('events').doc(eventId).get();
   if (!doc.exists) return null;
-  return { id: doc.id, ...serialize(doc.data()) } as Event;
+  return attachHandle({ id: doc.id, ...serialize(doc.data()) } as Event, 'ownerUserId');
 }
 
 export async function searchEventsByTag(
@@ -139,7 +140,7 @@ export async function searchEventsByTag(
     }
 
     const snapshot = await q.get();
-    const items = snapshot.docs.map(toData) as Event[];
+    const items = await attachHandles(snapshot.docs.map(toData) as Event[], 'ownerUserId');
     const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
     return { items, nextCursor };
   } catch (error: unknown) {
@@ -168,7 +169,7 @@ export async function searchExpiredEventsByTag(
     }
 
     const snapshot = await q.get();
-    const items = snapshot.docs.map(toData) as Event[];
+    const items = await attachHandles(snapshot.docs.map(toData) as Event[], 'ownerUserId');
     const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
     return { items, nextCursor };
   } catch (error: unknown) {
@@ -190,7 +191,7 @@ export async function getUserEvents(userId: string): Promise<Event[]> {
     .where('ownerUserId', '==', userId)
     .limit(MAX_EVENTS_PER_POET)
     .get();
-  const events = snapshot.docs.map(toData) as Event[];
+  const events = await attachHandles(snapshot.docs.map(toData) as Event[], 'ownerUserId');
   const now = Date.now();
   const upcoming = events
     .filter((e) => !isEventPast(e, now))

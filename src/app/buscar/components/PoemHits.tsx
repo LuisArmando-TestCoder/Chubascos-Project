@@ -7,6 +7,7 @@ import type { PoemHit } from '@/actions/data';
 import type { Tag } from '@/types';
 import styles from '../buscar.module.scss';
 import { WaterText } from '@/components/organisms/WaterText/WaterText';
+import { poemPath, profilePath } from '@/lib/handles';
 
 interface PoemHitsProps {
   query: string;
@@ -76,7 +77,7 @@ export function PoemHits({ query, loading, result, tagMap, matchingTags, onSelec
               <DropSigil seed={hit.id} text={hit.content} size={48} className={styles.hitSigil} />
               <div className={styles.hitBody}>
                 <h3 className={styles.hitTitle}>
-                  <Link href={`/u/${hit.userId}/p/${hit.slug}`} className={styles.hitLink}>
+                  <Link href={poemPath(hit, hit.slug)} className={styles.hitLink}>
                     <WaterText text={hit.title} />
                   </Link>
                 </h3>
@@ -86,7 +87,7 @@ export function PoemHits({ query, loading, result, tagMap, matchingTags, onSelec
                   </blockquote>
                 )}
                 <div className={styles.hitMeta}>
-                  <Link href={`/u/${hit.userId}`} className={styles.hitAuthor}>
+                  <Link href={profilePath(hit)} className={styles.hitAuthor}>
                     <WaterText text={hit.authorName} inline />
                   </Link>
                   <span className={styles.hitDate}>{formatDate(hit.updatedAt)}</span>

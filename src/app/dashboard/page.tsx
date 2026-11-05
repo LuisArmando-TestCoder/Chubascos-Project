@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getSession } from '@/actions/auth';
 import { getUserProfile, getPost, getEvent, getShader, getPreviousPost, getNextPost, getUserEvents, getUserAllPosts, getUserAllBooks, getBook, getKindredVoices } from '@/actions/data';
+import { ensureHandle } from '@/actions/data/handleStore';
 import { DashboardTemplate } from '@/components/templates/DashboardTemplate/DashboardTemplate';
 import type { Post, Event, Shader, Book } from '@/types';
 
@@ -16,8 +17,10 @@ interface Props {
 export default async function DashboardPage({ searchParams }: Props) {
   const session = await getSession();
   if (!session.isLoggedIn || !session.userId) redirect('/entrar');
-  const user = await getUserProfile(session.userId);
-  if (!user) redirect('/entrar');
+  const profile = await getUserProfile(session.userId);
+  if (!profile) redirect('/entrar');
+  // Poets who signed up before handles existed get theirs here.
+  const user = profile.handle ? profile : { ...profile, handle: (await ensureHandle(profile.id)) ?? undefined };
 
   const { edit, id, tab, copy } = await searchParams;
   // Every event the poet owns: the studio's history, and prev/next while editing.

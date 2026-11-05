@@ -6,6 +6,7 @@ import { PostSchema, firstIssue } from '@/utils/validation';
 import type { Post, SerializedTimestamp } from '@/types';
 import { toData, serialize, PAGE_SIZE, evictLiveFeed, notifyFollowers, generateContentHash, tagFilter, existingTagIds, applyTagDelta, uniqueSlug } from './common';
 import { isActor, FORBIDDEN } from './guard';
+import { attachHandle, attachHandles } from './handleStore';
 import { getUserProfileByEmail } from './users';
 
 export async function getLiveFeed(limitNum: number = PAGE_SIZE, cursor?: string) {
@@ -21,7 +22,7 @@ export async function getLiveFeed(limitNum: number = PAGE_SIZE, cursor?: string)
   }
 
   const snapshot = await query.get();
-  const items = snapshot.docs.map(toData);
+  const items = await attachHandles(snapshot.docs.map(toData) as Post[]);
   const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
   return { items, nextCursor };
 }
@@ -48,7 +49,7 @@ export async function getUserPosts(
   }
 
   const snapshot = await query.get();
-  const items = snapshot.docs.map(toData) as Post[];
+  const items = await attachHandles(snapshot.docs.map(toData) as Post[]);
   const nextCursor = snapshot.docs.length === limitNum ? snapshot.docs[snapshot.docs.length - 1].id : null;
   return { items, nextCursor };
 }
@@ -60,7 +61,7 @@ export async function getUserAllPosts(userId: string): Promise<Post[]> {
     .orderBy('updatedAt', 'desc')
     .limit(100)
     .get();
-  return snapshot.docs.map(toData) as Post[];
+  return attachHandles(snapshot.docs.map(toData) as Post[]);
 }
 
 export async function getPost(userId: string, slugOrId: string): Promise<Post | null> {
@@ -79,11 +80,11 @@ export async function getPost(userId: string, slugOrId: string): Promise<Post | 
 
   if (!bySlug.empty) {
     const doc = bySlug.docs[0];
-    return { id: doc.id, ...serialize(doc.data()) } as Post;
+    return attachHandle({ id: doc.id, ...serialize(doc.data()) } as Post);
   }
 
   const byId = await db.collection('users').doc(resolvedUserId).collection('posts').doc(slugOrId).get();
-  if (byId.exists) return { id: byId.id, ...serialize(byId.data()) } as Post;
+  if (byId.exists) return attachHandle({ id: byId.id, ...serialize(byId.data()) } as Post);
 
   return null;
 }
@@ -101,7 +102,7 @@ export async function getPreviousPost(userId: string, currentUpdatedAt: admin.fi
     .get();
 
   if (snapshot.empty) return null;
-  return toData(snapshot.docs[0]) as Post;
+  return attachHandle(toData(snapshot.docs[0]) as Post);
 }
 
 export async function getNextPost(userId: string, currentUpdatedAt: admin.firestore.Timestamp | SerializedTimestamp | null): Promise<Post | null> {
@@ -117,7 +118,7 @@ export async function getNextPost(userId: string, currentUpdatedAt: admin.firest
     .get();
 
   if (snapshot.empty) return null;
-  return toData(snapshot.docs[0]) as Post;
+  return attachHandle(toData(snapshot.docs[0]) as Post);
 }
 
 export async function searchPostsByTag(
@@ -142,7 +143,7 @@ export async function searchPostsByTag(
     }
 
     const snapshot = await q.get();
-    const items = snapshot.docs.map(toData) as Post[];
+    const items = await attachHandles(snapshot.docs.map(toData) as Post[]);
     const lastUpdatedAt = items[items.length - 1]?.updatedAt as { seconds: number } | undefined;
     const nextCursor = items.length === limitNum && lastUpdatedAt
       ? String(lastUpdatedAt.seconds)
