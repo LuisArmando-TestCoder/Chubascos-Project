@@ -20,9 +20,11 @@ interface WaterTextProps {
   className?: string;
   /** Sit inline with surrounding text instead of taking the full line. */
   inline?: boolean;
+  /** Wet strokes stay in the text's own colour (for blend-mode contexts). */
+  monochrome?: boolean;
 }
 
-export function WaterText({ text, as: Tag = 'span', className = '', inline = false }: WaterTextProps) {
+export function WaterText({ text, as: Tag = 'span', className = '', inline = false, monochrome = false }: WaterTextProps) {
   const hostRef = useRef<HTMLElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -33,11 +35,11 @@ export function WaterText({ text, as: Tag = 'span', className = '', inline = fal
     const canvas = canvasRef.current;
     if (!host || !span || !canvas) return;
     const engine = waterText();
-    const item = engine.register(host, span, canvas, text);
+    const item = engine.register(host, span, canvas, text, { monochrome });
     if (!item) return;
     engine.kick();
     return () => engine.unregister(item);
-  }, [text]);
+  }, [text, monochrome]);
 
   return (
     <Tag ref={hostRef} className={`${styles.host} ${inline ? styles.inline : ''} ${className}`}>

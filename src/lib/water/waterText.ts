@@ -79,6 +79,8 @@ export type WaterItem = {
   lastActive: number;
   prev: { x: number; y: number } | null;
   ink: [number, number, number];
+  /** Colour of the wet stroke; null = $puddle. */
+  wet: [number, number, number] | null;
 };
 
 function parseColor(c: string): [number, number, number] {
@@ -140,7 +142,6 @@ class WaterTextEngine {
     for (const name of ['uTime', 'uInk', 'uWet', 'uScale']) this.u[name] = gl.getUniformLocation(prog, name);
     gl.uniform1i(gl.getUniformLocation(prog, 'uText'), 0);
     gl.uniform1i(gl.getUniformLocation(prog, 'uTrail'), 1);
-    gl.uniform3f(this.u.uWet, 0.56, 0.83, 0.91); // $puddle
     c.addEventListener('webglcontextlost', (e) => { e.preventDefault(); this.failed = true; });
     this.gl = gl;
     this.glCanvas = c;
@@ -165,7 +166,7 @@ class WaterTextEngine {
     return true;
   }
 
-  register(host: HTMLElement, textEl: HTMLElement, canvas: HTMLCanvasElement, text: string): WaterItem | null {
+  register(host: HTMLElement, textEl: HTMLElement, canvas: HTMLCanvasElement, text: string, opts: { monochrome?: boolean } = {}): WaterItem | null {
     if (!this.init()) return null;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
@@ -192,6 +193,7 @@ class WaterTextEngine {
       lastActive: 0,
       prev: null,
       ink: [0.925, 0.922, 0.894],
+      wet: opts.monochrome ? null : [0.56, 0.83, 0.91],
     };
     this.items.add(item);
     this.io!.observe(host);
@@ -314,6 +316,9 @@ class WaterTextEngine {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, it.trail);
     gl.uniform1f(this.u.uTime, (now - this.t0) / 1000);
     gl.uniform3f(this.u.uInk, it.ink[0], it.ink[1], it.ink[2]);
+    // Monochrome texts get wet in their own ink (keeps blend modes honest).
+    const wet = it.wet ?? it.ink;
+    gl.uniform3f(this.u.uWet, wet[0], wet[1], wet[2]);
     // Small text gets proportionally gentler displacement.
     gl.uniform1f(this.u.uScale, Math.min(1, Math.max(0.35, it.canvas.height / 160)));
     gl.enable(gl.SCISSOR_TEST);
