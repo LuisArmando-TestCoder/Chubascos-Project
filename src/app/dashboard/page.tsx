@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getSession } from '@/actions/auth';
-import { getUserProfile, getPost, getEvent, getShader, getPreviousPost, getNextPost, getUserEvents, getUserAllPosts, getUserAllBooks, getBook } from '@/actions/data';
+import { getUserProfile, getPost, getEvent, getShader, getPreviousPost, getNextPost, getUserEvents, getUserAllPosts, getUserAllBooks, getBook, getKindredVoices } from '@/actions/data';
 import { DashboardTemplate } from '@/components/templates/DashboardTemplate/DashboardTemplate';
 import type { Post, Event, Shader, Book } from '@/types';
 
@@ -63,9 +63,10 @@ export default async function DashboardPage({ searchParams }: Props) {
   }
 
   // Fetch all user posts for the profile edit list (includes invisible ones)
-  const [allPosts, allBooks] = await Promise.all([
+  const [allPosts, allBooks, kindred] = await Promise.all([
     getUserAllPosts(session.userId),
     getUserAllBooks(session.userId),
+    getKindredVoices(session.userId),
   ]);
 
   return (
@@ -82,6 +83,7 @@ export default async function DashboardPage({ searchParams }: Props) {
       editNextPost={editNextPost}
       editPrevEvent={editPrevEvent}
       editNextEvent={editNextEvent}
+      kindred={kindred}
     />
   );
 }

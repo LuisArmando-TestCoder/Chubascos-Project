@@ -431,3 +431,14 @@ Fuentes: [List of internet aesthetics](https://en.wikipedia.org/wiki/List_of_int
     - Brainrot — *La mente saturada de internet*
     - Touch grass — *Salir de la pantalla y tocar el mundo*
     - Parasocial — *Intimidad con alguien que no sabe que existes*
+
+## Voces afines (afinidad por etiquetas)
+
+`src/lib/affinity.ts` convierte las etiquetas de los poemas y libros de cada autor (más, con medio peso, las etiquetas de su perfil) en un perfil sobre el árbol:
+
+1. Cada obra reparte una unidad de peso entre sus etiquetas.
+2. Cada etiqueta cede la mitad a su padre, un cuarto al abuelo… (las raíces no cuentan), así «Desamor» y «Mutual pining» se encuentran en «Amor».
+3. El perfil se promedia por obra: describe qué escribe alguien, no cuánto.
+4. Cada dimensión se pondera por su rareza entre autores (IDF): lo que todos usan dice poco.
+
+La afinidad es el coseno entre perfiles (mínimo 0,12; hasta 6 voces). «Comparten» muestra las tres etiquetas que más aportan, sin repetir una etiqueta y su propio ancestro. Se calcula para todos a la vez en `actions/data/affinity.ts` (caché de 10 min) y se muestra en el perfil público y en el riel del taller.

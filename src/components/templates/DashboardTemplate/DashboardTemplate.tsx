@@ -19,6 +19,8 @@ import { useProfileStore } from '@/store/profile';
 import { useSavedStore } from '@/store/saved';
 import { DashboardPostsList } from './DashboardPostsList';
 import { BookDownloadButton } from '@/components/molecules/BookDownloadButton/BookDownloadButton';
+import { KindredVoices } from '@/components/organisms/KindredVoices/KindredVoices';
+import type { Kindred } from '@/lib/affinity';
 import styles from './DashboardTemplate.module.scss';
 import { DropSigil } from '@/components/atoms/DropSigil/DropSigil';
 import { DropField } from '@/components/atoms/DropField/DropField';
@@ -40,6 +42,7 @@ interface DashboardTemplateProps {
   editNextPost?: Post | null;
   editPrevEvent?: Event | null;
   editNextEvent?: Event | null;
+  kindred?: Kindred[];
 }
 
 type DashTab = 'perfil' | 'nuevo-poema' | 'nuevo-evento' | 'mis-libros';
@@ -56,7 +59,7 @@ function timestampToDateString(ts: unknown): string {
   return `${y}-${m}-${day}`;
 }
 
-export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPost, editBook, editShader, editEvent, editPrevPost, editNextPost, editPrevEvent, editNextEvent }: DashboardTemplateProps) {
+export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPost, editBook, editShader, editEvent, editPrevPost, editNextPost, editPrevEvent, editNextEvent, kindred = [] }: DashboardTemplateProps) {
   const [activeTab, setActiveTab] = useState<DashTab>(() => {
     if (editPost) return 'nuevo-poema';
     if (editEvent) return 'nuevo-evento';
@@ -515,6 +518,10 @@ export function DashboardTemplate({ user, userPosts = [], userBooks = [], editPo
               <button className={styles.logoutBtn} onClick={handleLogout} aria-label="Cerrar sesión">
                 Salir
               </button>
+            </div>
+
+            <div className={styles.kindred}>
+              <KindredVoices voices={kindred.slice(0, 4)} title="Escriben parecido a ti" compact />
             </div>
           </aside>
 

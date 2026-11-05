@@ -12,6 +12,8 @@ import i18n from '@/utils/i18n';
 import type { User, Post, Event, Tag, Book } from '@/types';
 import styles from './UserProfileTemplate.module.scss';
 import { WaterText } from '@/components/organisms/WaterText/WaterText';
+import { KindredVoices } from '@/components/organisms/KindredVoices/KindredVoices';
+import type { Kindred } from '@/lib/affinity';
 
 interface UserProfileTemplateProps {
   user: User;
@@ -20,6 +22,7 @@ interface UserProfileTemplateProps {
   initialEvents: Event[];
   initialBooks?: Book[];
   initialTagMap?: Record<string, Tag>;
+  kindred?: Kindred[];
 }
 
 function isEventExpired(event: Event): boolean {
@@ -28,7 +31,7 @@ function isEventExpired(event: Event): boolean {
   return secs * 1000 < Date.now();
 }
 
-export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCursor, initialEvents, initialBooks = [], initialTagMap = {} }: UserProfileTemplateProps) {
+export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCursor, initialEvents, initialBooks = [], initialTagMap = {}, kindred = [] }: UserProfileTemplateProps) {
   const [posts, setPosts] = useState<Post[]>(initialPosts);
   const [cursor, setCursor] = useState<string | null>(initialCursor);
   const [loading, setLoading] = useState(false);
@@ -100,6 +103,9 @@ export function UserProfileTemplate({ user, initialPosts, nextCursor: initialCur
             <div ref={sentinelRef} style={{ height: 40 }} />
             {loading && <p className={styles.loading}>{i18n.common.loading}</p>}
           </section>
+
+          {/* Who writes like this voice, read from the tags of their work */}
+          <KindredVoices voices={kindred} />
 
           {/* Events section */}
           {initialEvents.length > 0 && (

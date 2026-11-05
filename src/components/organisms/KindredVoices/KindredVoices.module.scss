@@ -1,0 +1,145 @@
+@use '@/styles/variables' as v;
+@use '@/styles/mixins' as m;
+
+.root {
+  min-width: 0;
+}
+
+.title {
+  @include m.display(v.$step-3);
+  color: v.$paper;
+  margin: 0 0 0.6rem;
+}
+
+.lede {
+  font-family: v.$font-display;
+  font-style: italic;
+  font-size: v.$step-0;
+  color: v.$mist;
+  margin: 0 0 1.75rem;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid v.$line;
+}
+
+.item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 6px;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 1rem 0.25rem;
+  border-bottom: 1px solid v.$line;
+  transition: background 0.4s;
+  @include m.settle(16px);
+
+  &:hover,
+  &:focus-within {
+    background: color-mix(in srgb, v.$ink-3 60%, transparent);
+  }
+}
+
+.sigil {
+  width: 52px;
+  height: 52px;
+  color: v.$fog;
+  transition: color 0.4s;
+
+  .item:hover &,
+  .item:focus-within & { color: v.$rain-soft; }
+}
+
+.body {
+  min-width: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.name {
+  @include m.display(v.$step-1);
+  font-weight: 400;
+  margin: 0;
+}
+
+.link {
+  color: v.$paper;
+
+  // The whole row opens the profile; tag links sit above this layer.
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+
+  &:hover { opacity: 1; color: v.$rain-soft; }
+  &:focus-visible { @include m.focus-ring; }
+}
+
+.shared {
+  margin: 0;
+  font-family: v.$font-ui;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: v.$mist;
+}
+
+.sharedLabel {
+  @include m.hud(v.$fog);
+}
+
+.sep { color: v.$fog; }
+
+.tag {
+  position: relative;
+  z-index: 1;
+  color: v.$puddle;
+  text-decoration: none;
+
+  &:is(a):hover { opacity: 1; text-decoration: underline; text-underline-offset: 3px; }
+  &:is(a):focus-visible { @include m.focus-ring; }
+}
+
+// Thin vertical column filled from the bottom, like a rain gauge.
+.meter {
+  align-self: stretch;
+  width: 2px;
+  margin-block: 0.35rem;
+  justify-self: center;
+  background: v.$line;
+  border-radius: 2px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+
+.fill {
+  display: block;
+  width: 100%;
+  height: calc(var(--a, 0) * 100%);
+  background: linear-gradient(to top, v.$puddle, v.$rain-soft);
+  transform-origin: bottom;
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: rise 1.2s v.$ease-drop both;
+    animation-timeline: view();
+    animation-range: entry 10% cover 40%;
+  }
+}
+
+@keyframes rise {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+.compact {
+  .title { @include m.display(v.$step-1); }
+  .lede { font-size: 0.875rem; margin-bottom: 1rem; }
+  .item { grid-template-columns: 36px minmax(0, 1fr) 4px; gap: 0.8rem; padding-block: 0.75rem; }
+  .sigil { width: 36px; height: 36px; }
+  .name { font-size: v.$step-0; }
+  .shared { font-size: 0.8125rem; }
+}

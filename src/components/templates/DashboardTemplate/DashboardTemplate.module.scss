@@ -616,3 +616,9 @@
     opacity: 0.8;
   }
 }
+
+// Kindred voices sit at the foot of the rail, after the actions.
+.kindred:not(:empty) {
+  padding-top: 1.5rem;
+  border-top: 1px solid v.$line;
+}
