@@ -1,7 +1,8 @@
 'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import FocusTrap from 'focus-trap-react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/atoms/Button/Button';
 import { PAGE } from '@/utils/pdfBook/geometry';
 import type { PageDescriptor, PageElement } from '@/utils/pdfBook/pageModel';
@@ -15,6 +16,8 @@ interface BookPreviewModalProps {
   onClose: () => void;
   onDownload: () => void;
 }
+
+const noopSubscribe = () => () => {};
 
 // On-screen page width in CSS pixels; everything else scales from PDF points.
 const PREVIEW_WIDTH = 340;
@@ -148,10 +151,15 @@ export function BookPreviewModal({ isOpen, pages, filename, onClose, onDownload 
     };
   }, [isOpen, onClose]);
 
+  // False during SSR and hydration, true after: the portal target exists.
+  const isClient = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const streaming = visibleCount < pages.length;
   const shown = useMemo(() => pages.slice(0, visibleCount), [pages, visibleCount]);
 
-  return (
+  // Portal to <body>: an animated ancestor (transform) would otherwise trap
+  // this fixed overlay inside its own box.
+  if (!isClient) return null;
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -208,6 +216,7 @@ export function BookPreviewModal({ isOpen, pages, filename, onClose, onDownload 
           </FocusTrap>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

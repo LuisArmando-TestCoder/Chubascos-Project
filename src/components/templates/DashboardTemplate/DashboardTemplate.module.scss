@@ -224,7 +224,9 @@
   &:focus-visible { outline: none; }
 }
 
+// Opacity only: a transform would make this panel the containing block of
+// every fixed or sticky child (dialogs, save bar, progress).
 @keyframes panel-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }

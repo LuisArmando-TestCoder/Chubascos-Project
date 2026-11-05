@@ -153,6 +153,7 @@ export function ProfilePanel({ user, tags, tagsLoading, onSaved }: ProfilePanelP
 
   return (
     <div ref={rootRef} className={s.panel}>
+      <div className={s.split}>
       <div className={s.formCol}>
         <StageProgress stages={stages} label="Pasos del perfil" />
 
@@ -179,7 +180,7 @@ export function ProfilePanel({ user, tags, tagsLoading, onSaved }: ProfilePanelP
         <Stage {...stages[2]} hint={`Hasta ${MAX_LINKS}: redes, web, correo o teléfono. Escribe «instagram.com/tu-nombre»; nosotros completamos el resto.`}>
           {contacts.map((c, i) => (
             <div key={i} className={p.contactRow}>
-              <Field label={`Nombre del enlace ${i + 1}`}>
+              <Field label="Nombre">
                 {(f) => (
                   <input {...f} className={s.input} value={c.label} maxLength={50} placeholder="Instagram"
                     onChange={(e) => setContacts((prev) => prev.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} />
@@ -246,6 +247,7 @@ export function ProfilePanel({ user, tags, tagsLoading, onSaved }: ProfilePanelP
           )}
         </div>
       </aside>
+      </div>
     </div>
   );
 }

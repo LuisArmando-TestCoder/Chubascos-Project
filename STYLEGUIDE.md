@@ -53,6 +53,10 @@ stay as they are because the hero uses them.
 | `RainGauge` | layout (≥ 768px) | scroll depth as rainfall; pure CSS scroll timeline |
 | `FluidLayer` | layout | the water under every page |
 | Rail + drops | legal pages, lists | a timeline of clauses or items |
+| `Stage` + `StageProgress` | studio forms (`DashboardTemplate/studio`) | a form as steps on a rail of drops; a drop fills when its step has what it needs. Optional steps have a dashed drop. Titles are italic Newsreader, never numbered |
+| `SaveBar` | foot of every studio form | sticky edge of the desk: one status line (`role=status`) and the one primary action. ⌘/Ctrl + ↵ saves |
+| `Choice` | visibility, frequency, price | native radios dressed as cards (`cards`) or pills (`segmented`); arrow keys for free |
+| Occurrence timeline | event studio, `DashboardEventsList` | upcoming dates as drops on a vertical rail; the next one glows puddle |
 
 ## 4. Interaction → water (`src/lib/fluid/bus.ts`)
 
@@ -91,7 +95,20 @@ hidden, and **is off with `prefers-reduced-motion`**.
 - Surfaces: `@include m.surface`, opaque enough to read over the water without
   `backdrop-filter`.
 
-## 7. Accessibility floor (non-negotiable)
+## 7. Studio grammar
+
+- Every creation flow (perfil, poema, evento, libro) is stages → save bar, with
+  a live preview beside it on desktop. The preview is sticky only inside its
+  `.split`; wide sections (history, poemario) sit below it.
+- Panels stay mounted after first open, so switching tabs never loses work.
+  New poems keep a local draft; every form warns before leaving with changes.
+- Selected pills use `$puddle` with ink text (never paper on `$rain`).
+- Event times are the venue's wall clock (`utils/eventTime.ts`). Never format
+  an event's `day` without `eventZone()`.
+- Dialogs over animated panels render through a portal; panel entry animates
+  opacity only (a transform would trap fixed/sticky children).
+
+## 8. Accessibility floor (non-negotiable)
 
 - One focus language: 2px `--focus` (puddle) outline, everywhere.
 - Text contrast ≥ 4.5:1 (use `$fog` or lighter; never `$rain` for text).
@@ -101,7 +118,7 @@ hidden, and **is off with `prefers-reduced-motion`**.
   Lenis falls back to native scroll.
 - Decorative graphics (`DropSigil`, gauge, water) are `aria-hidden`.
 
-## 8. Logo — «Chubasco»
+## 9. Logo — «Chubasco»
 
 Three slanted strokes of wind-driven rain, uneven in length like lines of verse. No drop, no puddle: just the downpour.
 

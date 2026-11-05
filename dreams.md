@@ -31,3 +31,15 @@
 - **A one-off effect becomes a system the moment it's liked.** The footer used its own WebGL context; repeating it on every title would have hit the browser's ~16-context limit on the first list of poems. It now runs on a shared engine (`lib/water/waterText.ts`), the same pattern as `dropRenderer`. Next time, build shader effects shared from the start.
 - **Match the browser's layout instead of re-implementing it:** glyphs are placed word by word from `Range.getClientRects()`, so wrapping, letter-spacing and text-transform match the DOM exactly.
 - Search-hit titles lost their <mark> highlight to the effect; matches are still highlighted in the snippet.
+
+## 2026-11-05 · Studio: events, poems, profile, books
+
+- **Server actions are public endpoints.** Every write took `userId` from the browser, so anyone could edit anyone's work. `actions/data/guard.ts` now checks the session on every write. Grep for any new action that takes an identity argument and route it through `isActor`.
+- **Dates without zones are a bug waiting for nightfall.** `new Date("YYYY-MM-DD")` is UTC midnight: Costa Rica saw events a day early and they expired at 18:00 the day before. The fix is to store a real instant plus the venue's IANA zone and do all calendar math on the venue's wall clock (`utils/eventTime.ts`, tested across DST). Legacy rows still need `src/scripts/migrate-event-times.ts` to be run once.
+- **One source of truth per value.** The recurring picker had its own time and the stored first date ignored the pattern; the server now normalizes `day`/`hour` to the next real occurrence, and the picker takes the form's single time.
+- **Owning state in each panel needs them to stay mounted.** Splitting the 950-line template into panels would have lost drafts on every tab switch; panels now mount on first visit and hide with `hidden`.
+- **`transform` in a keyframe makes a containing block**, even with a final value of `none` under `fill-mode: both`. It trapped the PDF dialog inside the panel. Animate opacity only, and portal dialogs.
+- **Visual QA caught what the types didn't:** a sticky preview sliding over the section below, and screen-reader text that widened the page on phones. Keep the throwaway preview route with mock data (never committed) for future studio work.
+- **jsPDF's Times only has Windows-1252.** Emoji and CJK printed as mojibake. The PDF path now filters to printable glyphs; embedding a TTF (Newsreader) would be the real upgrade.
+- Lint was not running; it now uses `eslint-config-next` (core-web-vitals + typescript) and is clean except one warning in the hero shader, which stays untouched by rule.
+- Still open: user ids are emails, so `/u/<email>` URLs and `searchUsers` expose addresses. That needs a public handle or an opaque id.

@@ -210,6 +210,7 @@ export function PoemPanel({ user, posts, books, editPost, editShader, prevPost, 
 
   return (
     <div ref={rootRef} className={s.panel}>
+      <div className={s.split}>
       <div className={s.formCol}>
         <StageProgress stages={stages} label="Pasos del poema" />
 
@@ -354,6 +355,7 @@ export function PoemPanel({ user, posts, books, editPost, editShader, prevPost, 
         <DashboardPostsList items={posts} activeId={editingId} type="post" isOwner />
         <DashboardPostsList items={books} type="book" isOwner />
       </aside>
+      </div>
     </div>
   );
 }

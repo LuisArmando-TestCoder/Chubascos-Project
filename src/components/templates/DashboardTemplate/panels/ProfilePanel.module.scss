@@ -5,7 +5,9 @@
   display: grid;
   grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr) auto;
   gap: 1rem;
-  align-items: end;
+  align-items: start;
+
+  > button { margin-top: 2rem; }
 
   @media (max-width: 640px) {
     grid-template-columns: 1fr;

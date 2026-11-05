@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { EventCard } from '@/components/molecules/EventCard/EventCard';
 import { CronScheduleInput } from '@/components/molecules/CronScheduleInput/CronScheduleInput';
@@ -25,6 +25,8 @@ import s from '../studio/Studio.module.scss';
 
 const MAX_TAGS = 4;
 const MAX_LINKS = 5;
+
+const noopSubscribe = () => () => {};
 
 type Frequency = 'once' | 'weekly' | 'monthly';
 type PriceMode = 'unset' | 'free' | 'paid';
@@ -81,8 +83,12 @@ const same = (a: FormState, b: FormState) => JSON.stringify(a) === JSON.stringif
 export function EventPanel({ user, events, editEvent, prevEvent, nextEvent, tags, tagsLoading, onSaved }: EventPanelProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [editingId, setEditingId] = useState<string | null>(editEvent?.id ?? null);
-  const [timeZone] = useState(() =>
-    editEvent && isValidTimeZone(editEvent.timeZone) ? editEvent.timeZone : editEvent ? DEFAULT_EVENT_TIME_ZONE : browserTimeZone());
+  // New events use the poet's own zone; the server render can't know it, so
+  // it starts from the default and the browser value takes over after hydration.
+  const clientZone = useSyncExternalStore(noopSubscribe, browserTimeZone, () => DEFAULT_EVENT_TIME_ZONE);
+  const timeZone = editEvent && isValidTimeZone(editEvent.timeZone)
+    ? editEvent.timeZone
+    : editEvent ? DEFAULT_EVENT_TIME_ZONE : clientZone;
   const today = todayIn(timeZone);
 
   const [form, setForm] = useState<FormState>(() => formFrom(editEvent, today));
@@ -263,6 +269,7 @@ export function EventPanel({ user, events, editEvent, prevEvent, nextEvent, tags
 
   return (
     <div ref={rootRef} className={s.panel}>
+      <div className={s.split}>
       <div className={s.formCol}>
         <StageProgress stages={stages} label="Pasos del evento" />
 
@@ -420,6 +427,8 @@ export function EventPanel({ user, events, editEvent, prevEvent, nextEvent, tags
           )}
         </div>
       </aside>
+
+      </div>
 
       <div className={s.wide}>
         <DashboardEventsList events={events} activeId={editingId} onDuplicate={duplicate} />

@@ -124,6 +124,7 @@ export function BookPanel({ user, books, posts, editBook, tags, tagsLoading, onS
 
   return (
     <div ref={rootRef} className={s.panel}>
+      <div className={s.split}>
       <div className={s.formCol}>
         <StageProgress stages={stages} label="Pasos del libro" />
 
@@ -194,6 +195,8 @@ export function BookPanel({ user, books, posts, editBook, tags, tagsLoading, onS
         )}
         <DashboardPostsList items={books} activeId={editingId} type="book" isOwner />
       </aside>
+
+      </div>
 
       <div className={s.wide}>
         <PoemarioComposer user={user} posts={posts} suggestedTitle={title.trim() || undefined} />
